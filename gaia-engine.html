@@ -1,0 +1,1912 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gaia Engine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=IM+Fell+English&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brass: #d9b36a;
+    --brass-dim: #8a6a36;
+    --ember: #ff8a2a;
+    --blood: #d8321e;
+    --steam: #e9e2d0;
+    --ink: #1a120b;
+    --panel: rgba(26, 18, 11, 0.72);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #140d08; color: var(--steam); font-family: 'IM Fell English', Georgia, serif; }
+  canvas#view { display: block; }
+  .hidden { display: none !important; }
+
+  /* ---------- HUD ---------- */
+  #hud { position: fixed; inset: 0; pointer-events: none; user-select: none; }
+  #cross { position: absolute; left: 50%; top: 50%; width: 26px; height: 26px; transform: translate(-50%, -50%); }
+  #cross::before, #cross::after { content: ""; position: absolute; background: var(--steam); opacity: .85; }
+  #cross::before { left: 12px; top: 3px; width: 2px; height: 20px; }
+  #cross::after { top: 12px; left: 3px; height: 2px; width: 20px; }
+  #cross .dot { position: absolute; left: 10px; top: 10px; width: 6px; height: 6px; border: 1px solid var(--ember); border-radius: 50%; }
+  #hitm { position: absolute; left: 50%; top: 50%; width: 30px; height: 30px; transform: translate(-50%, -50%) rotate(45deg); opacity: 0; }
+  #hitm::before, #hitm::after { content: ""; position: absolute; background: #fff; }
+  #hitm::before { left: 14px; top: 0; width: 2px; height: 30px; }
+  #hitm::after { top: 14px; left: 0; height: 2px; width: 30px; }
+  #hitm.kill::before, #hitm.kill::after { background: var(--ember); }
+
+  .panel { background: var(--panel); border: 1px solid var(--brass-dim); border-radius: 6px; box-shadow: 0 0 0 1px rgba(0,0,0,.5), inset 0 0 18px rgba(0,0,0,.5); }
+  .lbl { font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: .12em; color: var(--brass); text-transform: uppercase; }
+  .bar { height: 10px; background: rgba(0,0,0,.55); border: 1px solid var(--brass-dim); border-radius: 3px; overflow: hidden; position: relative; }
+  .bar > .fill { height: 100%; width: 100%; transition: width .12s linear; }
+
+  #organs { position: absolute; left: 16px; top: 16px; width: 250px; padding: 10px 12px; }
+  .orow { margin: 5px 0 7px; }
+  .orow .head { display: flex; justify-content: space-between; font-size: 13px; }
+  .orow .key { color: var(--brass); font-family: 'Cinzel', serif; font-size: 11px; margin-right: 6px; }
+  .orow .fill { background: linear-gradient(90deg, #b8541c, var(--ember)); }
+  .orow.heart .fill { background: linear-gradient(90deg, #b8861c, #ffd36a); }
+  .orow.hit .head { color: #ff9d80; }
+  .orow.hit .bar { border-color: var(--blood); }
+  .orow.dead { opacity: .45; }
+  .orow.dead .name { text-decoration: line-through; }
+
+  #topc { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); text-align: center; width: min(620px, 90vw); }
+  #wave { font-family: 'Cinzel', serif; font-size: 14px; letter-spacing: .2em; color: var(--brass); text-shadow: 0 1px 3px #000; }
+  #banner { margin-top: 10px; font-family: 'Cinzel', serif; font-weight: 700; font-size: 26px; color: var(--steam); text-shadow: 0 2px 8px #000, 0 0 20px rgba(255,138,42,.4); opacity: 0; transition: opacity .3s; }
+  #banner .sub { display: block; font-family: 'IM Fell English', serif; font-weight: 400; font-size: 17px; color: var(--brass); margin-top: 4px; }
+  #bossbar { margin-top: 12px; }
+  #bossbar .lbl { font-size: 13px; color: #ffb28a; margin-bottom: 4px; }
+  #bossbar .bar { height: 14px; }
+  #bossfill { background: linear-gradient(90deg, #7a1510, var(--blood), #ff7a3a); }
+  #bosshint { font-size: 14px; color: var(--steam); margin-top: 4px; text-shadow: 0 1px 3px #000; }
+
+  #map { position: absolute; right: 16px; top: 16px; width: 180px; height: 180px; border-radius: 50%; border: 2px solid var(--brass-dim); box-shadow: 0 0 0 4px rgba(26,18,11,.7), 0 0 12px #000; background: rgba(20,14,9,.6); }
+
+  #eyebox { position: absolute; left: 16px; bottom: 16px; width: 260px; padding: 10px 12px; }
+  #eyefill { background: linear-gradient(90deg, #3d7e6c, #7fd1b4); }
+
+  #abil { position: absolute; right: 16px; bottom: 16px; width: 330px; padding: 10px 12px; }
+  #presfill { background: linear-gradient(90deg, #6a8fa0, #c8eaff); }
+  #heatfill { background: linear-gradient(90deg, #d9b36a, #ff4a1a); }
+  #abil .bar.over { border-color: var(--blood); animation: blink .25s steps(2) infinite; }
+  .tick { position: absolute; top: 0; bottom: 0; width: 2px; background: rgba(255,255,255,.55); }
+  .skills { display: flex; gap: 6px; margin-top: 8px; }
+  .skill { flex: 1; border: 1px solid var(--brass-dim); border-radius: 4px; padding: 4px 6px; font-size: 12px; text-align: center; background: rgba(0,0,0,.35); }
+  .skill b { font-family: 'Cinzel', serif; color: var(--brass); font-size: 11px; display: block; }
+  .skill.off { opacity: .4; }
+  .row2 { display: flex; justify-content: space-between; align-items: baseline; margin-top: 6px; }
+
+  #tut { position: absolute; left: 50%; bottom: 120px; transform: translateX(-50%); width: min(620px, 92vw); padding: 14px 18px; font-size: 19px; line-height: 1.35; text-align: center; }
+  #tut .step { font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: .18em; color: var(--brass); margin-bottom: 6px; }
+  #tut .skip { font-size: 13px; color: #b9a98a; margin-top: 8px; }
+  #tut.done { border-color: #7fd1b4; }
+
+  #alert { position: absolute; left: 50%; top: 42%; transform: translateX(-50%); font-family: 'Cinzel', serif; font-size: 16px; color: #ffb28a; text-shadow: 0 1px 4px #000; opacity: 0; transition: opacity .25s; white-space: nowrap; }
+
+  #vig { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(ellipse at center, rgba(0,0,0,0) 45%, rgba(170,20,10,.85) 100%); opacity: 0; }
+  #fade { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(circle, #3a2210, #0c0704); opacity: 0; }
+  #deadmsg { position: absolute; left: 50%; top: 58%; transform: translateX(-50%); font-family: 'Cinzel', serif; font-size: 20px; color: #ffb28a; text-shadow: 0 2px 6px #000; }
+
+  /* ---------- Overlay screens ---------- */
+  #overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: radial-gradient(ellipse at center, rgba(20,12,6,.45), rgba(10,6,3,.9)); }
+  .card { width: min(760px, 94vw); max-height: 94vh; overflow: auto; padding: 28px 34px; text-align: center; }
+  h1 { font-family: 'Cinzel', serif; font-weight: 900; font-size: clamp(38px, 7vw, 68px); letter-spacing: .08em; margin: 0; color: var(--brass); text-shadow: 0 3px 0 #4a2f12, 0 0 30px rgba(255,138,42,.35); }
+  .tag { font-family: 'Cinzel', serif; font-size: 18px; letter-spacing: .3em; color: var(--ember); margin: 6px 0 16px; }
+  .lore { font-size: 18px; line-height: 1.45; color: var(--steam); margin: 0 auto 16px; max-width: 620px; }
+  .goal { font-size: 16px; color: var(--brass); margin: 0 auto 16px; max-width: 620px; }
+  .controls { display: grid; grid-template-columns: auto 1fr auto 1fr; gap: 6px 14px; text-align: left; font-size: 15px; margin: 0 auto 20px; max-width: 600px; }
+  .controls kbd { font-family: 'Cinzel', serif; font-size: 12px; color: var(--ink); background: var(--brass); border-radius: 3px; padding: 2px 6px; white-space: nowrap; justify-self: end; }
+  button.go { pointer-events: auto; font-family: 'Cinzel', serif; font-weight: 700; font-size: 20px; letter-spacing: .2em; color: var(--ink); background: linear-gradient(#f0cf85, #b8893c); border: 2px solid #5a3a14; border-radius: 6px; padding: 12px 36px; cursor: pointer; box-shadow: 0 4px 0 #5a3a14, 0 0 24px rgba(255,138,42,.35); }
+  button.go:hover { filter: brightness(1.1); }
+  button.go:active { transform: translateY(2px); box-shadow: 0 2px 0 #5a3a14; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 20px; max-width: 420px; margin: 10px auto 22px; font-size: 17px; text-align: left; }
+  .stats span:nth-child(even) { text-align: right; color: var(--brass); }
+  .small { font-size: 14px; color: #b9a98a; margin-top: 12px; }
+  @keyframes blink { 50% { opacity: .5; } }
+
+  @media (max-width: 720px) {
+    #organs { width: 200px; font-size: 12px; }
+    #map { width: 120px; height: 120px; }
+    #abil { width: 250px; }
+    #eyebox { width: 180px; }
+    .controls { grid-template-columns: auto 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div id="hud" class="hidden">
+  <div id="cross"><div class="dot"></div></div>
+  <div id="hitm"></div>
+  <div id="organs" class="panel"></div>
+  <div id="topc">
+    <div id="wave"></div>
+    <div id="bossbar" class="hidden">
+      <div class="lbl">Typhon, Father of Monsters</div>
+      <div class="bar"><div id="bossfill" class="fill"></div></div>
+      <div id="bosshint"></div>
+    </div>
+    <div id="banner"></div>
+  </div>
+  <canvas id="map" width="180" height="180"></canvas>
+  <div id="eyebox" class="panel">
+    <div class="row2"><span class="lbl">Wandering Eye</span><span id="eyetxt">100</span></div>
+    <div class="bar"><div id="eyefill" class="fill"></div></div>
+  </div>
+  <div id="abil" class="panel">
+    <div class="row2"><span class="lbl">Pressure</span><span id="prestxt">100</span></div>
+    <div class="bar" id="presbar"><div id="presfill" class="fill"></div><div class="tick" style="left:35%"></div><div class="tick" style="left:60%"></div></div>
+    <div class="row2"><span class="lbl">Lance Heat</span><span id="heattxt"></span></div>
+    <div class="bar" id="heatbar"><div id="heatfill" class="fill"></div></div>
+    <div class="skills">
+      <div class="skill" id="sk-piston"><b>RMB Piston</b>35</div>
+      <div class="skill" id="sk-tremor"><b>Q Tremor</b>60</div>
+      <div class="skill" id="sk-walk"><b>F Earthwalk</b><span id="walktxt">ready</span></div>
+    </div>
+  </div>
+  <div id="tut" class="panel hidden"></div>
+  <div id="alert"></div>
+  <div id="deadmsg" class="hidden"></div>
+</div>
+<div id="vig"></div>
+<div id="fade"></div>
+
+<div id="overlay">
+  <div id="menu" class="card panel">
+    <h1>GAIA ENGINE</h1>
+    <div class="tag">YOU ARE THE WORLD</div>
+    <p class="lore">You are Gaia, the clockwork earth. Your soil is riveted brass. Your rivers run with steam. Your heart is the Omphalos, the navel of the world. Typhon, Father of Monsters, has woken his bronze brood to tear that heart out. You have no body but the land. Walk it as a wandering Eye, and fight with the ground itself.</p>
+    <p class="goal">Survive four waves of the brood. Then bring down Typhon. If the Omphalos stops, the world falls silent.</p>
+    <div class="controls">
+      <kbd>W A S D</kbd><span>Move the Eye</span><kbd>Mouse</kbd><span>Look</span>
+      <kbd>Space</kbd><span>Jump</span><kbd>Shift</kbd><span>Run</span>
+      <kbd>Left Click</kbd><span>Steam Lance</span><kbd>Right Click</kbd><span>Earth Piston</span>
+      <kbd>Q</kbd><span>Tremor</span><kbd>F</kbd><span>Earthwalk</span>
+      <kbd>1 - 5</kbd><span>Earthwalk to an organ</span><kbd>Esc</kbd><span>Pause</span>
+    </div>
+    <button class="go" id="startBtn">AWAKEN</button>
+    <div class="small">A short tutorial runs first. Press Enter during it to skip.</div>
+  </div>
+  <div id="pause" class="card panel hidden">
+    <h1 style="font-size:44px">DORMANT</h1>
+    <div class="tag">THE WORLD HOLDS ITS BREATH</div>
+    <button class="go" id="resumeBtn">RESUME</button>
+    <div class="small">Click to capture the mouse again.</div>
+  </div>
+  <div id="end" class="card panel hidden">
+    <h1 id="endTitle"></h1>
+    <div class="tag" id="endTag"></div>
+    <p class="lore" id="endLore"></p>
+    <div class="stats" id="endStats"></div>
+    <button class="go" id="againBtn">WAKE AGAIN</button>
+  </div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+const TEST = new URLSearchParams(location.search).has('test');
+const V3 = THREE.Vector3;
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const rand = (a, b) => a + Math.random() * (b - a);
+const smooth = t => t * t * (3 - 2 * t);
+const $ = id => document.getElementById(id);
+
+// =====================================================================
+// World shape
+// =====================================================================
+const R_ISLAND = 132, SEA_Y = -1.2, PYLON_DIST = 62;
+function rawH(x, z) {
+  return 10
+    + 4.5 * Math.sin(x * 0.034) * Math.cos(z * 0.029)
+    + 2.2 * Math.sin(x * 0.083 + 1.3) * Math.sin(z * 0.071 + 0.4)
+    + 0.9 * Math.sin(x * 0.19 + z * 0.16)
+    + 1.5 * Math.cos(Math.hypot(x, z) * 0.05);
+}
+const ORGAN_DEFS = [
+  { name: 'Omphalos', x: 0, z: 0, r: 8, height: 24, maxHp: 1000, heart: true },
+];
+const PYLON_NAMES = ['Pylon of Hyperion', 'Pylon of Rhea', 'Pylon of Themis', 'Pylon of Mnemosyne'];
+for (let i = 0; i < 4; i++) {
+  const a = Math.PI / 4 + i * Math.PI / 2;
+  ORGAN_DEFS.push({ name: PYLON_NAMES[i], x: Math.cos(a) * PYLON_DIST, z: Math.sin(a) * PYLON_DIST, r: 4, height: 16, maxHp: 400, heart: false });
+}
+const SITES = ORGAN_DEFS.map(d => ({ x: d.x, z: d.z, r: d.heart ? 12 : 7, h: rawH(d.x, d.z) }));
+function H(x, z) {
+  let h = rawH(x, z);
+  for (let i = 0; i < SITES.length; i++) {
+    const s = SITES[i], dx = x - s.x, dz = z - s.z, dd = dx * dx + dz * dz, rr = s.r + 8;
+    if (dd < rr * rr) {
+      const d = Math.sqrt(dd);
+      const t = d <= s.r ? 0 : smooth((d - s.r) / 8);
+      h = s.h + (h - s.h) * t;
+    }
+  }
+  const d = Math.hypot(x, z), e = R_ISLAND - 28;
+  if (d > e) { const t = (d - e) / 28; h -= t * t * 16; }
+  return h;
+}
+// March a ray against the heightfield and the sea. Returns distance or Infinity.
+function terrainRay(o, dir, maxD) {
+  for (let t = 0.5; t <= maxD; t += 0.5) {
+    const x = o.x + dir.x * t, y = o.y + dir.y * t, z = o.z + dir.z * t;
+    if (y < H(x, z) || y < SEA_Y) {
+      let a = t - 0.5, b = t;
+      for (let i = 0; i < 7; i++) {
+        const m = (a + b) / 2, yy = o.y + dir.y * m;
+        if (yy < H(o.x + dir.x * m, o.z + dir.z * m) || yy < SEA_Y) b = m; else a = m;
+      }
+      return b;
+    }
+  }
+  return Infinity;
+}
+
+// =====================================================================
+// Renderer, scene, camera
+// =====================================================================
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.domElement.id = 'view';
+document.body.prepend(renderer.domElement);
+const canvas = renderer.domElement;
+
+const scene = new THREE.Scene();
+const SKY = new THREE.Color(0xd9a878), SKY_RED = new THREE.Color(0x6e1a10);
+scene.background = SKY.clone();
+scene.fog = new THREE.Fog(SKY.clone(), 70, 360);
+const camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 0.05, 1600);
+camera.rotation.order = 'YXZ';
+scene.add(camera);
+
+// Environment map built from a tiny gradient scene, so metals have something to reflect.
+{
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const env = new THREE.Scene();
+  const g = new THREE.SphereGeometry(50, 32, 16);
+  const pa = g.attributes.position, cols = [];
+  const top = new THREE.Color(0x5a3c2c), hor = new THREE.Color(0xffc890), gnd = new THREE.Color(0x2a1c12), c = new THREE.Color();
+  for (let i = 0; i < pa.count; i++) {
+    const y = pa.getY(i) / 50;
+    if (y > 0) c.copy(hor).lerp(top, Math.pow(y, 0.6)); else c.copy(hor).lerp(gnd, Math.pow(-y, 0.4));
+    cols.push(c.r, c.g, c.b);
+  }
+  g.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
+  env.add(new THREE.Mesh(g, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide })));
+  const s = new THREE.Mesh(new THREE.SphereGeometry(7, 16, 8), new THREE.MeshBasicMaterial({ color: new THREE.Color(8, 6, 4) }));
+  s.position.set(30, 25, 10); env.add(s);
+  scene.environment = pmrem.fromScene(env, 0.02).texture;
+}
+
+const hemi = new THREE.HemisphereLight(0xffe0b8, 0x40281a, 0.55);
+scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xffd2a0, 2.4);
+sun.position.set(90, 130, 50);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -150, right: 150, top: 150, bottom: -150, near: 10, far: 420 });
+sun.shadow.bias = -0.0004;
+sun.shadow.normalBias = 0.4;
+scene.add(sun);
+
+// =====================================================================
+// Materials and shared geometry helpers
+// =====================================================================
+const std = (color, metal, rough, extra = {}) => new THREE.MeshStandardMaterial({ color, metalness: metal, roughness: rough, ...extra });
+const M = {
+  bronze: std(0x8c5a2e, 0.75, 0.38),
+  brass: std(0xc9a24a, 0.85, 0.3),
+  copper: std(0xb46a3a, 0.8, 0.35),
+  iron: std(0x3d3632, 0.6, 0.55),
+  verd: std(0x4f8a78, 0.4, 0.6),
+  marble: std(0xd9cfbf, 0.0, 0.7),
+  glowOrange: std(0xffa040, 0, 0.4, { emissive: 0xff7a1a, emissiveIntensity: 2.2 }),
+  glowRed: std(0xff3a1a, 0, 0.4, { emissive: 0xff2a10, emissiveIntensity: 2.5 }),
+  glowCyan: std(0x9fe8ff, 0, 0.3, { emissive: 0x6fd8ff, emissiveIntensity: 0.6 }),
+};
+const mesh = (geo, mat) => { const m = new THREE.Mesh(geo, mat); m.castShadow = true; m.receiveShadow = true; return m; };
+const box = (x, y, z) => new THREE.BoxGeometry(x, y, z);
+const cyl = (a, b, h, s = 12) => new THREE.CylinderGeometry(a, b, h, s);
+const sph = (r, a = 14, b = 10) => new THREE.SphereGeometry(r, a, b);
+
+function gearGeo(r, teeth, depth) {
+  const s = new THREE.Shape(), step = Math.PI * 2 / teeth, tr = r * 0.14;
+  for (let i = 0; i < teeth; i++) {
+    const a = i * step;
+    const pts = [[r, a], [r + tr, a + step * 0.12], [r + tr, a + step * 0.42], [r, a + step * 0.54]];
+    pts.forEach(([rr, aa], k) => {
+      const X = Math.cos(aa) * rr, Y = Math.sin(aa) * rr;
+      if (i === 0 && k === 0) s.moveTo(X, Y); else s.lineTo(X, Y);
+    });
+  }
+  s.closePath();
+  const hole = new THREE.Path(); hole.absarc(0, 0, r * 0.28, 0, Math.PI * 2, true); s.holes.push(hole);
+  for (let k = 0; k < 5; k++) {
+    const a = k / 5 * Math.PI * 2, hp = new THREE.Path();
+    hp.absarc(Math.cos(a) * r * 0.62, Math.sin(a) * r * 0.62, r * 0.16, 0, Math.PI * 2, true);
+    s.holes.push(hp);
+  }
+  const g = new THREE.ExtrudeGeometry(s, { depth, bevelEnabled: true, bevelThickness: depth * 0.15, bevelSize: depth * 0.1, bevelSegments: 1, curveSegments: 10 });
+  g.translate(0, 0, -depth / 2);
+  return g;
+}
+
+function makeCanvasTex(size, draw) {
+  const c = document.createElement('canvas'); c.width = c.height = size;
+  draw(c.getContext('2d'), size);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+const dotTex = makeCanvasTex(64, (x) => {
+  const g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+  g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.35, 'rgba(255,255,255,.55)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+  x.fillStyle = g; x.fillRect(0, 0, 64, 64);
+});
+const plateTex = makeCanvasTex(256, (x, S) => {
+  x.fillStyle = '#cfcfcf'; x.fillRect(0, 0, S, S);
+  for (let i = 0; i < 2200; i++) { const v = 170 + Math.random() * 70 | 0; x.fillStyle = `rgb(${v},${v},${v})`; x.fillRect(Math.random() * S, Math.random() * S, 2, 2); }
+  for (let p = 0; p <= S; p += 128) {
+    x.fillStyle = '#6a6a6a'; x.fillRect(p - 2, 0, 3, S); x.fillRect(0, p - 2, S, 3);
+    x.fillStyle = '#eeeeee'; x.fillRect(p + 1, 0, 1, S); x.fillRect(0, p + 1, S, 1);
+  }
+  for (let px = 0; px < 2; px++) for (let py = 0; py < 2; py++) for (let k = 12; k < 128; k += 26) {
+    for (const [rx, ry] of [[k, 9], [k, 119], [9, k], [119, k]]) {
+      const X = px * 128 + rx, Y = py * 128 + ry;
+      x.fillStyle = '#7a7a7a'; x.beginPath(); x.arc(X, Y, 4, 0, 7); x.fill();
+      x.fillStyle = '#f4f4f4'; x.beginPath(); x.arc(X - 1, Y - 1, 1.6, 0, 7); x.fill();
+    }
+  }
+});
+plateTex.wrapS = plateTex.wrapT = THREE.RepeatWrapping;
+plateTex.repeat.set(80, 80);
+plateTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+
+// =====================================================================
+// Terrain, sea, sky
+// =====================================================================
+{
+  const SIZE = 330, SEG = 165;
+  const g = new THREE.PlaneGeometry(SIZE, SIZE, SEG, SEG);
+  g.rotateX(-Math.PI / 2);
+  const p = g.attributes.position, col = new Float32Array(p.count * 3), c = new THREE.Color();
+  const sand = new THREE.Color(0x4a3a2a), copper = new THREE.Color(0x9a6238), brass = new THREE.Color(0xb49250), verd = new THREE.Color(0x4f7f6a), dark = new THREE.Color(0x3a2a1c);
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), z = p.getZ(i), h = H(x, z);
+    p.setY(i, h);
+    if (h < 1.5) c.copy(sand);
+    else {
+      c.copy(copper).lerp(brass, clamp((h - 6) / 12, 0, 1));
+      const n = Math.sin(x * 0.11 + Math.sin(z * 0.07) * 2) * Math.cos(z * 0.13 - x * 0.02);
+      if (n > 0.45) c.lerp(verd, clamp((n - 0.45) * 2.4, 0, 0.85));
+      if (h < 4) c.lerp(dark, (4 - h) / 3);
+    }
+    col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
+  }
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  g.computeVertexNormals();
+  const t = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, map: plateTex, metalness: 0.45, roughness: 0.62 }));
+  t.receiveShadow = true;
+  scene.add(t);
+}
+const sea = new THREE.Mesh(new THREE.PlaneGeometry(3200, 3200), std(0x1e3a36, 0.5, 0.22));
+sea.rotation.x = -Math.PI / 2; sea.position.y = SEA_Y; sea.receiveShadow = true;
+scene.add(sea);
+
+// Sky dome: vertex colors are a multiplier on the current fog color, so the horizon always matches the fog.
+const skyDome = (() => {
+  const g = new THREE.SphereGeometry(1400, 32, 16), pa = g.attributes.position, cols = [];
+  for (let i = 0; i < pa.count; i++) {
+    const y = Math.max(0, pa.getY(i) / 1400), f = Math.pow(y, 0.5);
+    cols.push(1 - f * 0.55, 1 - f * 0.62, 1 - f * 0.6);
+  }
+  g.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
+  const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, fog: false, depthWrite: false }));
+  m.renderOrder = -1; scene.add(m); return m;
+})();
+// Armillary rings in the sky: the orrery that turns the world.
+const skyRings = [];
+{
+  const mat = new THREE.MeshBasicMaterial({ color: 0x8a6a3a, fog: false });
+  [[430, 3], [480, 2.5], [540, 3.5]].forEach(([r, t], i) => {
+    const m = new THREE.Mesh(new THREE.TorusGeometry(r, t, 8, 160), mat);
+    m.position.y = 40;
+    m.rotation.set(Math.PI / 2 + (i - 1) * 0.35, i * 0.6, 0);
+    scene.add(m); skyRings.push(m);
+  });
+  const sunDisc = new THREE.Mesh(new THREE.SphereGeometry(28, 24, 12), new THREE.MeshBasicMaterial({ color: 0xfff0c8, fog: false }));
+  sunDisc.position.copy(sun.position).normalize().multiplyScalar(900);
+  scene.add(sunDisc);
+}
+
+// =====================================================================
+// Organs: the Omphalos (heart) and four Pylons
+// =====================================================================
+const organs = [];
+function buildHeart(o) {
+  const g = new THREE.Group();
+  const b1 = mesh(cyl(9, 10, 2, 24), M.iron); b1.position.y = 1; g.add(b1);
+  const b2 = mesh(cyl(7, 8, 3, 24), M.bronze); b2.position.y = 3.5; g.add(b2);
+  const tower = mesh(cyl(2.4, 3.4, 12, 12), M.brass); tower.position.y = 11; g.add(tower);
+  for (let i = 0; i < 8; i++) {
+    const a = i / 8 * Math.PI * 2;
+    const rib = mesh(box(0.6, 12, 0.8), M.copper); rib.position.set(Math.cos(a) * 3, 11, Math.sin(a) * 3); rib.rotation.y = -a; g.add(rib);
+  }
+  o.coreMat = M.glowOrange.clone();
+  const core = mesh(sph(2.6, 24, 16), o.coreMat); core.position.y = 19; g.add(core);
+  o.rings = [];
+  [4.2, 5.0, 5.8].forEach((r, i) => {
+    const ring = mesh(new THREE.TorusGeometry(r, 0.22, 8, 48), M.brass);
+    ring.position.y = 19; ring.rotation.set(i * 0.9, i * 0.5, 0); g.add(ring); o.rings.push(ring);
+  });
+  o.gears = [];
+  const gg = gearGeo(2.2, 12, 0.6);
+  for (let i = 0; i < 4; i++) {
+    const a = i / 4 * Math.PI * 2 + 0.4;
+    const gm = mesh(gg, M.brass); gm.position.set(Math.cos(a) * 7.8, 3.2, Math.sin(a) * 7.8); gm.rotation.y = -a + Math.PI / 2; g.add(gm); o.gears.push(gm);
+  }
+  return g;
+}
+function buildPylon(o) {
+  const g = new THREE.Group();
+  const base = mesh(box(6, 1.5, 6), M.iron); base.position.y = 0.75; g.add(base);
+  const ob = new THREE.Group(); g.add(ob); o.obelisk = ob;
+  const shaft = mesh(cyl(1.1, 2.3, 12, 4), M.bronze); shaft.position.y = 7.5; shaft.rotation.y = Math.PI / 4; ob.add(shaft);
+  for (let k = 0; k < 3; k++) { const band = mesh(cyl(2.1 - k * 0.35, 2.1 - k * 0.35, 0.4, 4), M.brass); band.position.y = 3 + k * 3.5; band.rotation.y = Math.PI / 4; ob.add(band); }
+  o.coreMat = M.glowOrange.clone();
+  const core = mesh(new THREE.OctahedronGeometry(1.3), o.coreMat); core.position.y = 15; ob.add(core); o.core = core;
+  const ring = mesh(gearGeo(2.4, 14, 0.3), M.brass); ring.position.y = 15; ring.rotation.x = Math.PI / 2; ob.add(ring); o.ring = ring;
+  return g;
+}
+ORGAN_DEFS.forEach((d, i) => {
+  const h = H(d.x, d.z);
+  const o = { idx: i, name: d.name, isHeart: d.heart, pos: new V3(d.x, h, d.z), r: d.r, height: d.height, hp: d.maxHp, maxHp: d.maxHp, alive: true,
+    lastHitT: -99, alertT: -99, recentDmg: 0, flash: 0, fallT: 0 };
+  o.aim = o.pos.clone().add(new V3(0, d.heart ? 16 : 10, 0));
+  o.group = d.heart ? buildHeart(o) : buildPylon(o);
+  o.group.position.copy(o.pos);
+  scene.add(o.group);
+  organs.push(o);
+});
+const heart = organs[0];
+
+// Veins: glowing steam pipes carrying Pressure from each Pylon to the heart.
+{
+  const collar = new THREE.TorusGeometry(0.75, 0.18, 6, 14);
+  for (let i = 1; i < 5; i++) {
+    const o = organs[i], pts = [];
+    for (let k = 0; k <= 14; k++) {
+      const t = k / 14, x = o.pos.x * t, z = o.pos.z * t;
+      pts.push(new V3(x, H(x, z) + 0.35, z));
+    }
+    const curve = new THREE.CatmullRomCurve3(pts);
+    o.veinMat = std(0x3a2a1a, 0.6, 0.4, { emissive: 0xff8a2a, emissiveIntensity: 1 });
+    const tube = new THREE.Mesh(new THREE.TubeGeometry(curve, 60, 0.5, 8), o.veinMat);
+    tube.receiveShadow = true; scene.add(tube);
+    for (let k = 1; k < 10; k++) {
+      const t = k / 10, p = curve.getPointAt(t), tan = curve.getTangentAt(t);
+      const c = new THREE.Mesh(collar, M.brass);
+      c.position.copy(p); c.lookAt(p.clone().add(tan)); scene.add(c);
+    }
+  }
+}
+
+// =====================================================================
+// Decorations: buried gears, marble columns, chimneys, pipe arches
+// =====================================================================
+const spinGears = [], chimneys = [], colliders = [];
+function freeSpot(minD) {
+  for (let tries = 0; tries < 60; tries++) {
+    const a = rand(0, Math.PI * 2), r = rand(18, R_ISLAND - 26), x = Math.cos(a) * r, z = Math.sin(a) * r;
+    if (Math.hypot(x, z - 42) < 24) continue; // the tutorial field stays open
+    if (SITES.every(s => Math.hypot(x - s.x, z - s.z) > s.r + minD)) {
+      // keep the veins clear
+      let ok = true;
+      for (let i = 1; i < 5; i++) {
+        const o = organs[i], L = PYLON_DIST, t = clamp((x * o.pos.x + z * o.pos.z) / (L * L), 0, 1);
+        if (Math.hypot(x - o.pos.x * t, z - o.pos.z * t) < 6) ok = false;
+      }
+      if (ok) return { x, z };
+    }
+  }
+  return null;
+}
+{
+  const gearGeos = [gearGeo(3, 12, 0.8), gearGeo(5, 18, 1.0), gearGeo(8, 26, 1.3)];
+  for (let i = 0; i < 26; i++) {
+    const s = freeSpot(10); if (!s) continue;
+    const k = i % 3, r = [3, 5, 8][k];
+    const gm = mesh(gearGeos[k], i % 4 === 0 ? M.copper : M.brass);
+    const flat = i % 5 === 0;
+    if (flat) { gm.rotation.x = -Math.PI / 2; gm.position.set(s.x, H(s.x, s.z) + 0.3, s.z); }
+    else { gm.rotation.y = rand(0, Math.PI); gm.position.set(s.x, H(s.x, s.z) + r * 0.35, s.z); }
+    gm.userData.spin = rand(0.1, 0.4) * (Math.random() < 0.5 ? -1 : 1) * (8 / r);
+    scene.add(gm); spinGears.push(gm);
+  }
+  // Marble columns of the old gods, capped in brass
+  const colGeo = cyl(1.1, 1.25, 1, 16);
+  for (let i = 0; i < 16; i++) {
+    const s = freeSpot(9); if (!s) continue;
+    const h = rand(5, 12), y = H(s.x, s.z);
+    if (i % 4 === 0) {
+      const c = mesh(colGeo, M.marble); c.scale.y = h; c.rotation.z = Math.PI / 2; c.rotation.y = rand(0, 3); c.position.set(s.x, y + 1, s.z); scene.add(c);
+    } else {
+      const c = mesh(colGeo, M.marble); c.scale.y = h; c.position.set(s.x, y + h / 2 - 0.3, s.z); scene.add(c);
+      const cap = mesh(box(3, 0.8, 3), M.brass); cap.position.set(s.x, y + h, s.z); scene.add(cap);
+      colliders.push({ x: s.x, z: s.z, r: 1.6, top: y + h + 0.4 });
+    }
+  }
+  // Chimneys venting steam
+  for (let i = 0; i < 14; i++) {
+    const s = freeSpot(8); if (!s) continue;
+    const h = rand(8, 15), y = H(s.x, s.z), r = rand(0.9, 1.5);
+    const c = mesh(cyl(r, r * 1.3, h, 12), i % 2 ? M.iron : M.copper); c.position.set(s.x, y + h / 2 - 0.5, s.z); scene.add(c);
+    const lip = mesh(new THREE.TorusGeometry(r, 0.3, 8, 16), M.brass); lip.rotation.x = Math.PI / 2; lip.position.set(s.x, y + h - 0.5, s.z); scene.add(lip);
+    chimneys.push(new V3(s.x, y + h, s.z));
+    colliders.push({ x: s.x, z: s.z, r: r * 1.3 + 0.4, top: y + h });
+  }
+  // Pipe arches rising out of the ground
+  const arch = new THREE.TorusGeometry(4, 0.6, 10, 24, Math.PI);
+  for (let i = 0; i < 12; i++) {
+    const s = freeSpot(8); if (!s) continue;
+    const a = mesh(arch, M.copper); a.position.set(s.x, H(s.x, s.z) - 0.5, s.z); a.rotation.y = rand(0, Math.PI); scene.add(a);
+  }
+}
+
+// =====================================================================
+// Particles, tracers, rings
+// =====================================================================
+function makeParticles(n, size, opacity) {
+  const pos = new Float32Array(n * 3).fill(-9999), col = new Float32Array(n * 3);
+  const vel = new Float32Array(n * 3), base = new Float32Array(n * 3), life = new Float32Array(n), max = new Float32Array(n), grav = new Float32Array(n);
+  const g = new THREE.BufferGeometry();
+  const pa = new THREE.BufferAttribute(pos, 3).setUsage(THREE.DynamicDrawUsage), ca = new THREE.BufferAttribute(col, 3).setUsage(THREE.DynamicDrawUsage);
+  g.setAttribute('position', pa); g.setAttribute('color', ca);
+  const m = new THREE.PointsMaterial({ size, map: dotTex, vertexColors: true, transparent: true, opacity, depthWrite: false, blending: THREE.AdditiveBlending });
+  const pts = new THREE.Points(g, m); pts.frustumCulled = false; scene.add(pts);
+  let head = 0;
+  return {
+    emit(x, y, z, vx, vy, vz, r, gg, b, l, gr = 0) {
+      const i = head; head = (head + 1) % n; const j = i * 3;
+      pos[j] = x; pos[j + 1] = y; pos[j + 2] = z; vel[j] = vx; vel[j + 1] = vy; vel[j + 2] = vz;
+      base[j] = r; base[j + 1] = gg; base[j + 2] = b; life[i] = max[i] = l; grav[i] = gr;
+    },
+    update(dt) {
+      for (let i = 0; i < n; i++) {
+        if (life[i] <= 0) continue;
+        const j = i * 3;
+        life[i] -= dt;
+        if (life[i] <= 0) { pos[j + 1] = -9999; col[j] = col[j + 1] = col[j + 2] = 0; continue; }
+        vel[j + 1] -= grav[i] * dt;
+        pos[j] += vel[j] * dt; pos[j + 1] += vel[j + 1] * dt; pos[j + 2] += vel[j + 2] * dt;
+        const f = life[i] / max[i];
+        col[j] = base[j] * f; col[j + 1] = base[j + 1] * f; col[j + 2] = base[j + 2] * f;
+      }
+      pa.needsUpdate = true; ca.needsUpdate = true;
+    }
+  };
+}
+const sparks = makeParticles(2500, 0.45, 1);
+const smoke = makeParticles(900, 3.2, 0.5);
+
+function burst(p, n, speed, color, life, grav = 12, up = 0) {
+  const c = new THREE.Color(color);
+  for (let i = 0; i < n; i++) {
+    const v = new V3(rand(-1, 1), rand(-1, 1), rand(-1, 1)).normalize().multiplyScalar(speed * rand(0.3, 1));
+    sparks.emit(p.x, p.y, p.z, v.x, v.y + up, v.z, c.r, c.g, c.b, life * rand(0.5, 1), grav);
+  }
+}
+function puff(p, n, spread, color, life, rise = 2) {
+  const c = new THREE.Color(color);
+  for (let i = 0; i < n; i++) smoke.emit(p.x + rand(-spread, spread), p.y + rand(0, spread * 0.5), p.z + rand(-spread, spread), rand(-1, 1), rise * rand(0.5, 1.2), rand(-1, 1), c.r, c.g, c.b, life * rand(0.6, 1), 0);
+}
+// Scrap from a slain beast flows back into the heart: the world takes back its metal.
+function scrapStream(p) {
+  for (let i = 0; i < 10; i++) {
+    const d = heart.aim.clone().sub(p), t = rand(0.9, 1.6);
+    const v = d.divideScalar(t);
+    sparks.emit(p.x + rand(-1, 1), p.y + rand(0, 2), p.z + rand(-1, 1), v.x, v.y, v.z, 1, 0.65, 0.25, t, 0);
+  }
+}
+
+const tracerGeo = new THREE.CylinderGeometry(0.035, 0.035, 1, 5, 1, true); tracerGeo.translate(0, 0.5, 0);
+const tracerMat = new THREE.MeshBasicMaterial({ color: 0xffd9a0, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
+const tracers = [];
+for (let i = 0; i < 24; i++) { const m = new THREE.Mesh(tracerGeo, tracerMat); m.visible = false; m.userData.life = 0; scene.add(m); tracers.push(m); }
+let tracerIdx = 0;
+const UP = new V3(0, 1, 0);
+function tracer(a, b) {
+  const m = tracers[tracerIdx]; tracerIdx = (tracerIdx + 1) % tracers.length;
+  const d = b.clone().sub(a), L = d.length(); if (L < 0.01) return;
+  m.position.copy(a); m.quaternion.setFromUnitVectors(UP, d.divideScalar(L)); m.scale.set(1, L, 1);
+  m.visible = true; m.userData.life = 0.06;
+}
+
+const ringGeo = new THREE.RingGeometry(0.85, 1, 64);
+const rings = [];
+function shockRing(p, maxR, color, life) {
+  const m = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+  m.rotation.x = -Math.PI / 2; m.position.copy(p); m.position.y += 0.4;
+  scene.add(m); rings.push({ m, t: 0, life, maxR });
+}
+
+// =====================================================================
+// Audio: all synthesized
+// =====================================================================
+let AC = null, master = null, noiseBuf = null;
+function initAudio() {
+  if (AC) return;
+  try {
+    AC = new (window.AudioContext || window.webkitAudioContext)();
+    master = AC.createGain(); master.gain.value = 0.5; master.connect(AC.destination);
+    noiseBuf = AC.createBuffer(1, AC.sampleRate * 2, AC.sampleRate);
+    const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    // low drone of the world's engine
+    const lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 240;
+    const dg = AC.createGain(); dg.gain.value = 0.05; lp.connect(dg).connect(master);
+    [55, 82.4, 110.3].forEach(f => { const o = AC.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; o.connect(lp); o.start(); });
+  } catch (e) { AC = null; }
+}
+function tone(type, f0, f1, dur, vol, delay = 0) {
+  const t = AC.currentTime + delay, o = AC.createOscillator(), g = AC.createGain();
+  o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(Math.max(1, f1), t + dur);
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g).connect(master); o.start(t); o.stop(t + dur + 0.05);
+}
+function noise(dur, vol, ftype, f0, f1, q = 1, delay = 0) {
+  const t = AC.currentTime + delay, s = AC.createBufferSource(), f = AC.createBiquadFilter(), g = AC.createGain();
+  s.buffer = noiseBuf; f.type = ftype; f.Q.value = q;
+  f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  s.connect(f).connect(g).connect(master); s.start(t, Math.random() * 0.5, dur + 0.05);
+}
+const sfxLast = {};
+function sfx(n) {
+  if (!AC) return;
+  const now = AC.currentTime;
+  if (sfxLast[n] !== undefined && now - sfxLast[n] < 0.03) return;
+  sfxLast[n] = now;
+  switch (n) {
+    case 'shot': noise(0.09, 0.35, 'bandpass', 2400, 900, 1.2); tone('square', 320, 90, 0.07, 0.08); break;
+    case 'hit': tone('square', 1100, 700, 0.04, 0.07); break;
+    case 'clang': tone('triangle', 1500, 1400, 0.25, 0.12); tone('triangle', 2230, 2200, 0.2, 0.06); break;
+    case 'piston': tone('sine', 110, 35, 0.5, 0.5); noise(0.45, 0.4, 'lowpass', 900, 120); noise(0.2, 0.2, 'highpass', 3000, 1500, 1, 0.05); break;
+    case 'tremor': tone('sine', 60, 25, 1.2, 0.6); noise(1.2, 0.5, 'lowpass', 400, 60); break;
+    case 'death': noise(0.35, 0.3, 'bandpass', 900, 300, 2); tone('sawtooth', 400, 70, 0.35, 0.08); break;
+    case 'hurt': tone('sawtooth', 160, 60, 0.2, 0.18); noise(0.12, 0.2, 'lowpass', 1200, 300); break;
+    case 'fire': noise(0.35, 0.18, 'lowpass', 1400, 300); break;
+    case 'boom': noise(0.8, 0.55, 'lowpass', 700, 60); tone('sine', 80, 30, 0.7, 0.4); break;
+    case 'horn': [110, 164.8, 220].forEach((f, i) => tone('sawtooth', f, f * 0.98, 2.2, 0.07, i * 0.02)); break;
+    case 'walk': noise(0.6, 0.35, 'bandpass', 200, 1800, 3); tone('sine', 80, 300, 0.5, 0.15); break;
+    case 'fail': tone('square', 160, 120, 0.12, 0.08); break;
+    case 'tick': tone('triangle', 2400, 2300, 0.03, 0.035); break;
+    case 'alarm': tone('square', 660, 660, 0.12, 0.05); tone('square', 520, 520, 0.12, 0.05, 0.14); break;
+    case 'heal': tone('sine', 440, 880, 0.6, 0.1); tone('sine', 660, 1320, 0.6, 0.06, 0.1); break;
+    case 'win': [220, 277, 330, 440].forEach((f, i) => tone('triangle', f, f, 2.5, 0.12, i * 0.25)); break;
+  }
+}
+
+// =====================================================================
+// Player: the Wandering Eye
+// =====================================================================
+const EYE_H = 1.7;
+const player = { pos: new V3(0, 0, 30), vel: new V3(), yaw: Math.PI, pitch: -0.05, onGround: false, hp: 100, maxHp: 100, lastHurt: -99, dead: false, respawnT: 0, moved: 0 };
+const keys = {};
+const mouse = { left: false };
+let locked = false;
+let pressure = 100, heat = 0, overheated = false, nextShot = 0, lastFire = -9, ewReady = 0;
+let shake = 0, vig = 0, fadeT = 0, ewPending = null;
+
+// View-model: a brass steam lance held by the Eye
+const gun = new THREE.Group();
+const heatMat = std(0x552211, 0, 0.5, { emissive: 0xff4a10, emissiveIntensity: 0 });
+{
+  const wood = std(0x4a2a16, 0.1, 0.7);
+  const chamber = mesh(cyl(0.075, 0.075, 0.34, 14), M.brass); chamber.rotation.x = Math.PI / 2; chamber.position.z = -0.1; gun.add(chamber);
+  const capR = mesh(cyl(0.085, 0.085, 0.04, 14), M.copper); capR.rotation.x = Math.PI / 2; capR.position.z = 0.07; gun.add(capR);
+  const capF = mesh(cyl(0.085, 0.07, 0.05, 14), M.copper); capF.rotation.x = Math.PI / 2; capF.position.z = -0.28; gun.add(capF);
+  const barrel = mesh(cyl(0.032, 0.04, 0.5, 10), M.copper); barrel.rotation.x = Math.PI / 2; barrel.position.set(0, 0, -0.52); gun.add(barrel);
+  for (let i = 0; i < 3; i++) { const c = mesh(new THREE.TorusGeometry(0.055, 0.016, 6, 14), heatMat); c.position.set(0, 0, -0.4 - i * 0.12); gun.add(c); }
+  const gauge = mesh(cyl(0.045, 0.045, 0.03, 16), M.brass); gauge.position.set(0, 0.085, -0.05); gun.add(gauge);
+  const face = mesh(cyl(0.036, 0.036, 0.032, 16), std(0xf0e6c8, 0, 0.4, { emissive: 0x6a5a3a, emissiveIntensity: 0.4 })); face.position.set(0, 0.087, -0.05); gun.add(face);
+  const tank = mesh(cyl(0.035, 0.035, 0.26, 10), M.copper); tank.rotation.x = Math.PI / 2; tank.position.set(0.085, -0.03, -0.1); gun.add(tank);
+  const grip = mesh(box(0.06, 0.17, 0.08), wood); grip.position.set(0, -0.11, 0.03); grip.rotation.x = 0.35; gun.add(grip);
+  const gg = mesh(gearGeo(0.05, 8, 0.015), M.brass); gg.position.set(-0.08, 0, -0.1); gg.rotation.y = Math.PI / 2; gun.add(gg); gun.userData.gear = gg;
+}
+const muzzle = new THREE.Object3D(); muzzle.position.set(0, 0, -0.8); gun.add(muzzle);
+const flash = new THREE.Mesh(new THREE.PlaneGeometry(0.35, 0.35), new THREE.MeshBasicMaterial({ map: dotTex, color: 0xffc070, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+flash.position.copy(muzzle.position); flash.visible = false; gun.add(flash);
+gun.scale.setScalar(0.55);
+gun.traverse(o => { if (o.isMesh) o.castShadow = false; });
+camera.add(gun);
+let recoil = 0;
+
+// =====================================================================
+// Enemies
+// =====================================================================
+const enemies = [];
+let hittables = [];
+const GEO = {
+  hBody: sph(0.7, 12, 8), hHead: new THREE.ConeGeometry(0.3, 1.0, 8), hEye: sph(0.13, 8, 6), hWing: box(2.6, 0.07, 1.0), hTail: box(0.6, 0.05, 1.1),
+  mBody: box(2.2, 1.8, 3.0), mHead: box(1.3, 1.2, 1.4), mHorn: new THREE.ConeGeometry(0.18, 1.3, 8), mLeg: cyl(0.3, 0.26, 1.8, 8), mEye: sph(0.14, 8, 6), mStack: cyl(0.25, 0.3, 1.2, 8),
+  cLeg: cyl(0.45, 0.35, 5, 10), cHip: box(3, 0.9, 1.4), cBody: sph(2, 16, 12), cEye: sph(0.8, 16, 12), cRim: new THREE.TorusGeometry(0.9, 0.15, 8, 20), cArm: cyl(0.25, 0.2, 3.8, 8), cStack: cyl(0.35, 0.45, 2.2, 10),
+  ePole: cyl(0.15, 0.15, 3, 8), eBody: box(1.4, 1.6, 0.5), eHead: sph(0.55, 12, 8), eGear: gearGeo(0.5, 10, 0.12), eShield: new THREE.TorusGeometry(1.4, 0.12, 6, 24),
+  fb: sph(0.55, 10, 8),
+};
+function buildHarpy(e) {
+  const r = new THREE.Group();
+  const b = mesh(GEO.hBody, M.bronze); b.scale.set(1, 0.8, 1.6); r.add(b);
+  const h = mesh(GEO.hHead, M.brass); h.rotation.x = Math.PI / 2; h.position.set(0, 0.25, 1.35); r.add(h);
+  const ey = mesh(GEO.hEye, M.glowRed); ey.position.set(0, 0.45, 1.0); r.add(ey);
+  const wl = new THREE.Group(), wr = new THREE.Group();
+  const w1 = mesh(GEO.hWing, M.copper); w1.position.x = 1.3; wl.add(w1); wl.position.x = 0.4;
+  const w2 = mesh(GEO.hWing, M.copper); w2.position.x = -1.3; wr.add(w2); wr.position.x = -0.4;
+  r.add(wl, wr);
+  const t = mesh(GEO.hTail, M.brass); t.position.set(0, 0.1, -1.4); r.add(t);
+  e.parts = { wl, wr };
+  return r;
+}
+function buildMinotaur(e) {
+  const r = new THREE.Group();
+  const b = mesh(GEO.mBody, M.bronze); b.position.y = 2.4; r.add(b);
+  const h = mesh(GEO.mHead, M.iron); h.position.set(0, 3.2, 1.9); r.add(h);
+  for (const s of [-1, 1]) {
+    const hr = mesh(GEO.mHorn, M.brass); hr.position.set(s * 0.85, 3.9, 1.9); hr.rotation.z = -s * 0.9; r.add(hr);
+    const ey = mesh(GEO.mEye, M.glowRed); ey.position.set(s * 0.35, 3.35, 2.6); r.add(ey);
+  }
+  const st = mesh(GEO.mStack, M.copper); st.position.set(0, 3.8, -0.9); r.add(st);
+  const legs = [];
+  for (const [x, z] of [[-0.8, 1.1], [0.8, 1.1], [-0.8, -1.1], [0.8, -1.1]]) {
+    const piv = new THREE.Group(); piv.position.set(x, 1.8, z);
+    const l = mesh(GEO.mLeg, M.iron); l.position.y = -0.9; piv.add(l); r.add(piv); legs.push(piv);
+  }
+  e.parts = { legs, stack: st };
+  return r;
+}
+function buildCyclops(e) {
+  const r = new THREE.Group();
+  const legs = [];
+  for (const s of [-1, 1]) {
+    const piv = new THREE.Group(); piv.position.set(s * 1.1, 5, 0);
+    const l = mesh(GEO.cLeg, M.iron); l.position.y = -2.5; piv.add(l); r.add(piv); legs.push(piv);
+  }
+  const hip = mesh(GEO.cHip, M.bronze); hip.position.y = 5.2; r.add(hip);
+  const b = mesh(GEO.cBody, M.bronze); b.position.y = 7.2; r.add(b);
+  const ey = mesh(GEO.cEye, M.glowRed); ey.position.set(0, 7.5, 1.45); r.add(ey);
+  const rim = mesh(GEO.cRim, M.brass); rim.position.set(0, 7.5, 1.6); r.add(rim);
+  for (const s of [-1, 1]) { const a = mesh(GEO.cArm, M.copper); a.position.set(s * 2.2, 6.4, 0.3); a.rotation.z = s * 0.25; r.add(a); }
+  const st = mesh(GEO.cStack, M.iron); st.position.set(0, 9.6, -0.6); r.add(st);
+  e.parts = { legs, eye: ey, stack: st };
+  return r;
+}
+function buildEffigy(e, shielded) {
+  const r = new THREE.Group();
+  const p = mesh(GEO.ePole, M.iron); p.position.y = 1.5; r.add(p);
+  const b = mesh(GEO.eBody, M.brass); b.position.y = 3.2; r.add(b);
+  const h = mesh(GEO.eHead, M.copper); h.position.y = 4.5; r.add(h);
+  const g = mesh(GEO.eGear, M.bronze); g.position.set(0, 3.2, 0.3); r.add(g);
+  if (shielded) { const s = mesh(GEO.eShield, M.glowCyan); s.position.y = 3.4; s.rotation.x = Math.PI / 2; s.userData.noHit = false; r.add(s); e.parts = { shield: s, gear: g }; }
+  else e.parts = { gear: g };
+  return r;
+}
+const STATS = {
+  harpy: { hp: 30, speed: 13 },
+  minotaur: { hp: 150, speed: 5.5 },
+  cyclops: { hp: 320, speed: 3.2 },
+  effigy: { hp: 45, speed: 0 },
+};
+function registerHits(e) {
+  e.root.traverse(o => { if (o.isMesh && !o.userData.noHit) { o.userData.enemy = e; hittables.push(o); } });
+  e.root.updateMatrixWorld(true);
+}
+function unregisterHits(e) { hittables = hittables.filter(m => m.userData.enemy !== e); }
+
+function spawnEnemy(type, x, z, opts = {}) {
+  const st = STATS[type];
+  const e = { type, hp: st.hp, maxHp: st.hp, speed: st.speed, stun: 0, vy: 0, kb: new V3(), atkT: rand(0.5, 1.5), target: null, dead: false,
+    phase: Math.random() * 10, vel: new V3(), state: 'seek', stateT: 0, orbit: Math.random() * 6.28, airborne: false, pistonOnly: !!opts.pistonOnly, tut: !!opts.tut };
+  if (type === 'harpy') e.root = buildHarpy(e);
+  else if (type === 'minotaur') e.root = buildMinotaur(e);
+  else if (type === 'cyclops') e.root = buildCyclops(e);
+  else e.root = buildEffigy(e, e.pistonOnly);
+  e.pos = e.root.position;
+  const g = H(x, z);
+  e.pos.set(x, type === 'harpy' ? Math.max(g, 0) + 10 : g, z);
+  if (type === 'effigy') e.root.rotation.y = opts.face || 0;
+  scene.add(e.root);
+  registerHits(e);
+  enemies.push(e);
+  if (type !== 'effigy') { burst(e.pos.clone().add(new V3(0, 2, 0)), 30, 10, 0xff4020, 0.8, 4); puff(e.pos, 6, 2, 0x401010, 1.5, 3); }
+  return e;
+}
+function aliveOrgans() { return organs.filter(o => o.alive); }
+function nearestOrgan(p) {
+  let best = heart, bd = Infinity;
+  for (const o of organs) if (o.alive) { const d = Math.hypot(o.pos.x - p.x, o.pos.z - p.z); if (d < bd) { bd = d; best = o; } }
+  return best;
+}
+function randomOrgan() { const a = aliveOrgans(); return a[Math.floor(Math.random() * a.length)] || heart; }
+
+let kills = 0;
+function damageEnemy(e, amt, meshHit, point, source) {
+  if (e.dead) return false;
+  if (e.type === 'boss') return damageBoss(meshHit, amt, point, source);
+  if (e.pistonOnly && source !== 'piston') {
+    sfx('clang'); if (point) burst(point, 8, 6, 0x9fe8ff, 0.3);
+    hint('This effigy is shielded. Only the land can break it. Right click the ground beneath it.');
+    return false;
+  }
+  e.hp -= amt;
+  if (point) burst(point, 6, 7, 0xffc070, 0.35);
+  if (e.hp <= 0) { killEnemy(e); return true; }
+  return false;
+}
+function killEnemy(e, quiet) {
+  if (e.dead) return;
+  e.dead = true;
+  unregisterHits(e);
+  scene.remove(e.root);
+  const c = e.pos.clone().add(new V3(0, e.type === 'cyclops' ? 6 : e.type === 'harpy' ? 0 : 2.5, 0));
+  burst(c, e.type === 'harpy' ? 30 : 60, 12, 0xffa040, 1.0, 14);
+  puff(c, 8, 1.5, 0x553322, 2, 2);
+  if (!quiet) sfx('death');
+  if (!e.tut) {
+    kills++;
+    scrapStream(c);
+    const heal = e.type === 'harpy' ? 3 : e.type === 'minotaur' ? 8 : 15;
+    if (heart.alive) heart.hp = Math.min(heart.maxHp, heart.hp + heal);
+  }
+  if (e.tut) tutEvent('effigy', e);
+}
+
+// =====================================================================
+// Fireballs
+// =====================================================================
+const fireballs = [];
+const fbMat = new THREE.MeshBasicMaterial({ color: 0xffa040 });
+function spawnFireball(from, to, speed, dmg, organ) {
+  const d = to.clone().sub(from), dist = d.length(), t = Math.max(0.2, dist / speed), g = 9;
+  const vel = d.divideScalar(t); vel.y += 0.5 * g * t;
+  const m = new THREE.Mesh(GEO.fb, fbMat); m.position.copy(from); scene.add(m);
+  fireballs.push({ m, pos: m.position, vel, g, dmg, organ, life: t + 3 });
+  sfx('fire');
+}
+function explodeFireball(f, i) {
+  burst(f.pos, 25, 9, 0xff6020, 0.6, 8); puff(f.pos, 4, 1, 0x442211, 1.2);
+  const d = f.pos.distanceTo(eyePos());
+  if (!player.dead && d < 3.5) hurtPlayer(f.dmg * 0.5);
+  scene.remove(f.m); fireballs.splice(i, 1);
+}
+function updateFireballs(dt) {
+  const ep = eyePos();
+  for (let i = fireballs.length - 1; i >= 0; i--) {
+    const f = fireballs[i];
+    f.vel.y -= f.g * dt; f.pos.addScaledVector(f.vel, dt); f.life -= dt;
+    smoke.emit(f.pos.x, f.pos.y, f.pos.z, 0, 0.5, 0, 0.5, 0.18, 0.05, 0.5, 0);
+    if (!player.dead && f.pos.distanceTo(ep) < 1.5) { hurtPlayer(f.dmg); burst(f.pos, 25, 9, 0xff6020, 0.5, 8); scene.remove(f.m); fireballs.splice(i, 1); continue; }
+    if (f.organ && f.organ.alive && Math.hypot(f.pos.x - f.organ.pos.x, f.pos.z - f.organ.pos.z) < f.organ.r && f.pos.y < f.organ.pos.y + f.organ.height + 1) {
+      organDamage(f.organ, f.dmg); burst(f.pos, 25, 9, 0xff6020, 0.5, 8); scene.remove(f.m); fireballs.splice(i, 1); continue;
+    }
+    if (f.pos.y < H(f.pos.x, f.pos.z) || f.pos.y < SEA_Y || f.life <= 0) explodeFireball(f, i);
+  }
+}
+
+// =====================================================================
+// Boss: Typhon, Father of Monsters
+// =====================================================================
+let boss = null;
+function buildBoss() {
+  const root = new THREE.Group(); root.rotation.order = 'YXZ';
+  const body = new THREE.Group(); root.add(body);
+  const b = { type: 'boss', root, body, pos: root.position, furnHp: [450, 450, 450], furnMax: 450, coreHp: 900, coreMax: 900, coreExposed: false,
+    stagger: 0, volleyT: 4, summonT: 14, slamT: 1, walk: 0, dead: false, dying: 0, legs: [], arms: [[], []], furnaces: [], enraged: false, stacks: [] };
+  for (const sx of [-1, 1]) {
+    const hip = new THREE.Group(); hip.position.set(sx * 4, 16, 0);
+    const leg = mesh(cyl(1.5, 1.9, 16, 10), M.iron); leg.position.y = -8; hip.add(leg);
+    const knee = mesh(sph(2.1), M.bronze); knee.position.y = -8; hip.add(knee);
+    const foot = mesh(box(4, 1.5, 6), M.bronze); foot.position.set(0, -15.3, 0.8); hip.add(foot);
+    body.add(hip); b.legs.push(hip);
+  }
+  const pelvis = mesh(box(11, 3, 6), M.bronze); pelvis.position.y = 16; body.add(pelvis);
+  const torso = mesh(cyl(6, 4.5, 13, 14), M.iron); torso.position.y = 23.5; body.add(torso);
+  const plate = mesh(box(9, 8.5, 1), M.bronze); plate.position.set(0, 25, 4.9); body.add(plate);
+  for (const [x, y] of [[-2.6, 23.5], [2.6, 23.5], [0, 27.6]]) {
+    const mat = M.glowOrange.clone();
+    const f = mesh(sph(1.6, 16, 12), mat); f.position.set(x, y, 5.7); body.add(f);
+    const rim = mesh(new THREE.TorusGeometry(1.75, 0.3, 8, 20), M.brass); rim.position.set(x, y, 5.6); body.add(rim);
+    f.userData.weak = b.furnaces.length; b.furnaces.push(f); f.userData.rim = rim;
+  }
+  for (const sx of [-1, 1]) { const s = mesh(sph(2.8), M.bronze); s.position.set(sx * 7, 29, 0); body.add(s); }
+  const neck = mesh(cyl(1.6, 2.1, 3), M.iron); neck.position.y = 31.5; body.add(neck);
+  const head = new THREE.Group(); head.position.y = 34.5; body.add(head); b.head = head;
+  const skull = mesh(box(4.6, 4, 4.4), M.iron); head.add(skull);
+  for (let i = 0; i < 7; i++) {
+    const a = (i / 6 - 0.5) * 2.6;
+    const hn = mesh(new THREE.ConeGeometry(0.45, 3.2, 8), M.brass); hn.position.set(Math.sin(a) * 2, 3, -Math.cos(a) * 0.6); hn.rotation.z = -Math.sin(a) * 0.5; head.add(hn);
+  }
+  const fp = mesh(box(3.8, 2.8, 0.6), M.bronze); fp.position.set(0, -0.1, 2.4); head.add(fp); b.faceplate = fp;
+  b.coreMat = M.glowCyan.clone();
+  const core = mesh(sph(1.0, 16, 12), b.coreMat); core.position.set(0, 0, 1.3); core.userData.weak = 3; head.add(core); b.core = core;
+  for (const sx of [-1, 1]) { const st = mesh(cyl(0.8, 1, 5), M.copper); st.position.set(sx * 2.5, 31, -4); body.add(st); b.stacks.push(st); }
+  // Serpent arms
+  for (let s = 0; s < 2; s++) {
+    for (let j = 0; j < 12; j++) {
+      const m = mesh(sph(1.7 - j * 0.08, 10, 8), j % 2 ? M.bronze : M.verd); body.add(m); b.arms[s].push(m);
+    }
+    const snake = mesh(new THREE.ConeGeometry(0.9, 2.4, 8), M.brass); body.add(snake); b.arms[s].push(snake);
+  }
+  return b;
+}
+function spawnBoss(angle) {
+  boss = buildBoss();
+  const x = Math.cos(angle) * (R_ISLAND - 20), z = Math.sin(angle) * (R_ISLAND - 20);
+  boss.pos.set(x, H(x, z), z);
+  scene.add(boss.root);
+  boss.root.traverse(o => { if (o.isMesh) { o.userData.enemy = boss; hittables.push(o); } });
+  boss.root.updateMatrixWorld(true);
+  enemies.push(boss);
+  $('bossbar').classList.remove('hidden');
+  banner('TYPHON RISES', 'Break his three furnaces. Then strike the crown-core.', 5);
+  sfx('horn'); shake = Math.max(shake, 1.2);
+}
+function bossTotal() { return boss.furnHp.reduce((a, v) => a + Math.max(0, v), 0) + Math.max(0, boss.coreHp); }
+function damageBoss(meshHit, amt, point, source) {
+  if (!boss || boss.dead || finished || state === 'lost') return false;
+  let w = meshHit ? meshHit.userData.weak : undefined;
+  if (source === 'piston' || source === 'tremor') {
+    w = boss.furnHp.findIndex(v => v > 0);
+    if (w < 0) w = 3;
+  }
+  if (w === undefined || (w === 3 && !boss.coreExposed)) {
+    sfx('clang'); if (point) burst(point, 6, 6, 0xdddddd, 0.25);
+    bossHint(boss.coreExposed ? 'Strike the glowing crown-core in his head.' : 'Armor turns the Lance. Aim at the glowing furnaces on his chest.');
+    return false;
+  }
+  if (point) burst(point, 8, 8, 0xffc070, 0.4);
+  if (w < 3) {
+    if (boss.furnHp[w] <= 0) return false;
+    boss.furnHp[w] -= amt;
+    const f = boss.furnaces[w];
+    f.material.emissiveIntensity = 5;
+    if (boss.furnHp[w] <= 0) {
+      boss.furnHp[w] = 0;
+      f.visible = false; hittables = hittables.filter(m => m !== f);
+      const wp = f.getWorldPosition(new V3());
+      burst(wp, 120, 18, 0xff7a20, 1.4, 10); puff(wp, 12, 3, 0x552211, 3); sfx('boom'); shake = Math.max(shake, 0.8);
+      const left = boss.furnHp.filter(v => v > 0).length;
+      if (left > 0) banner('A FURNACE BURSTS', `${left} left`, 2.5);
+      else {
+        boss.coreExposed = true; boss.enraged = true;
+        boss.faceplate.visible = false; hittables = hittables.filter(m => m !== boss.faceplate);
+        boss.core.position.z = 2.4; boss.core.scale.setScalar(1.5);
+        boss.coreMat.emissiveIntensity = 3.5;
+        const fp = boss.faceplate.getWorldPosition(new V3());
+        burst(fp, 80, 14, 0xdddddd, 1.2, 14);
+        banner('THE CROWN-CORE IS BARE', 'Strike his head. He is enraged.', 3.5);
+      }
+    }
+  } else {
+    boss.coreHp -= amt;
+    boss.coreMat.emissiveIntensity = 7;
+    if (boss.coreHp <= 0) { boss.coreHp = 0; bossDeath(); }
+  }
+  return true;
+}
+function bossDeath() {
+  boss.dead = true; boss.dying = 0.001;
+  hittables = hittables.filter(m => m.userData.enemy !== boss);
+  state = 'bossdead'; endTimer = 6;
+  banner('TYPHON FALLS', 'The brood loses its father.', 5);
+  sfx('boom'); shake = 2;
+  for (const e of enemies) if (e !== boss && !e.dead) killEnemy(e);
+  for (const f of fireballs) scene.remove(f.m);
+  fireballs.length = 0;
+}
+function updateBoss(dt) {
+  if (!boss) return;
+  const b = boss;
+  if (b.dying > 0) {
+    b.dying += dt;
+    b.root.rotation.x = -Math.min(1.5, b.dying * b.dying * 0.35);
+    if (b.dying > 2.2) b.pos.y -= dt * 3;
+    if (Math.random() < 0.5) {
+      const p = b.pos.clone().add(new V3(rand(-6, 6), rand(4, 30) * Math.cos(Math.min(1.5, b.dying)), rand(-6, 6)));
+      burst(p, 30, 12, 0xff8030, 1, 10); puff(p, 3, 2, 0x442211, 2);
+    }
+    if (b.dying > 3.2 && !b.thudded) { b.thudded = true; shake = 2.5; sfx('boom'); puff(b.pos, 40, 16, 0x6a4a2a, 3, 3); }
+    if (b.dying > 6) { scene.remove(b.root); boss = null; }
+    return;
+  }
+  const t = gt;
+  // animate arms
+  for (let s = 0; s < 2; s++) {
+    const sx = s ? 1 : -1, arr = b.arms[s];
+    for (let j = 0; j < arr.length; j++) {
+      const m = arr[j], k = j * 1.05;
+      m.position.set(sx * (7.5 + k * 0.9 + Math.sin(t * 1.3 + j * 0.4 + s) * j * 0.12),
+        28 - k * 0.9 + Math.sin(t * 1.7 + j * 0.5 + s * 2) * j * 0.3 + (j > 8 ? (j - 8) * 1.6 : 0),
+        Math.sin(t * 1.1 + j * 0.45 + s * 3) * j * 0.35 + j * 0.3);
+      if (j === arr.length - 1) { m.rotation.x = Math.PI / 2; }
+    }
+  }
+  for (const f of b.furnaces) if (f.visible) f.material.emissiveIntensity += (2.2 + Math.sin(t * 6) * 0.6 - f.material.emissiveIntensity) * Math.min(1, dt * 8);
+  if (b.coreExposed) b.coreMat.emissiveIntensity += (3 + Math.sin(t * 9) - b.coreMat.emissiveIntensity) * Math.min(1, dt * 8);
+  for (const st of b.stacks) if (Math.random() < 0.3) { const p = st.getWorldPosition(new V3()); smoke.emit(p.x, p.y + 3, p.z, rand(-1, 1), 4, rand(-1, 1), 0.2, 0.12, 0.08, 3, 0); }
+
+  const dx = heart.pos.x - b.pos.x, dz = heart.pos.z - b.pos.z, d = Math.hypot(dx, dz);
+  b.root.rotation.y = Math.atan2(dx, dz);
+  if (b.stagger > 0) {
+    b.stagger -= dt;
+    b.body.rotation.z = Math.sin(t * 14) * 0.03 * b.stagger;
+  } else {
+    b.body.rotation.z = 0;
+    const sp = b.enraged ? 2.8 : 2.0;
+    if (d > 20) {
+      b.pos.x += dx / d * sp * dt; b.pos.z += dz / d * sp * dt;
+      const prev = Math.sin(b.walk);
+      b.walk += dt * sp * 0.55;
+      b.legs[0].rotation.x = Math.sin(b.walk) * 0.35; b.legs[1].rotation.x = -Math.sin(b.walk) * 0.35;
+      b.body.position.y = Math.abs(Math.cos(b.walk)) * 0.6;
+      if (Math.sign(prev) !== Math.sign(Math.sin(b.walk))) {
+        const pd = b.pos.distanceTo(player.pos);
+        shake = Math.max(shake, clamp(1 - pd / 90, 0, 1) * 0.5);
+        puff(b.pos, 6, 4, 0x6a4a2a, 1.5, 1.5);
+        if (AC) tone('sine', 50, 30, 0.4, clamp(1 - pd / 120, 0.05, 0.4));
+      }
+    } else {
+      b.slamT -= dt;
+      if (b.slamT <= 0) {
+        b.slamT = 4;
+        organDamage(heart, 50);
+        burst(heart.pos.clone().add(new V3(0, 6, 0)), 60, 14, 0xffa040, 1, 12);
+        shake = Math.max(shake, 1); sfx('boom');
+        banner('TYPHON STRIKES THE OMPHALOS', 'Drive him back with Pistons and Tremors.', 2);
+      }
+    }
+  }
+  b.pos.y = H(b.pos.x, b.pos.z);
+  if (b.stagger <= 0 && !player.dead) {
+    b.volleyT -= dt;
+    if (b.volleyT <= 0) {
+      b.volleyT = b.enraged ? 2.4 : 3.6;
+      const from = b.head.getWorldPosition(new V3());
+      const ep = eyePos();
+      for (let k = -1; k <= 1; k++) spawnFireball(from, ep.clone().add(new V3(k * 4, 0, -k * 2)), 36, 16, null);
+    }
+  }
+  b.summonT -= dt;
+  if (b.summonT <= 0) {
+    b.summonT = 18;
+    for (const sx of [-1, 1]) {
+      const p = b.pos.clone().add(new V3(sx * 8, 0, 0).applyAxisAngle(UP, b.root.rotation.y));
+      const h = spawnEnemy('harpy', p.x, p.z); h.pos.y = b.pos.y + 28;
+    }
+  }
+  // keep the Eye out of his legs
+  const px = player.pos.x - b.pos.x, pz = player.pos.z - b.pos.z, pd = Math.hypot(px, pz);
+  if (pd < 6 && pd > 0.01 && player.pos.y < b.pos.y + 36) { player.pos.x = b.pos.x + px / pd * 6; player.pos.z = b.pos.z + pz / pd * 6; }
+}
+
+// =====================================================================
+// Organ damage, player damage
+// =====================================================================
+let state = 'menu', paused = false, finished = false, gt = 0, endTimer = 0;
+function organDamage(o, amt) {
+  if (!o.alive || finished || state === 'lost') return;
+  o.hp -= amt; o.lastHitT = gt; o.recentDmg += amt; o.flash = 1;
+  vig = Math.max(vig, 0.12);
+  if (gt - o.alertT > 6 && state !== 'tutorial') { o.alertT = gt; alertMsg(`${o.name} is under attack  [${o.idx + 1}]`); sfx('alarm'); }
+  if (o.hp <= 0) {
+    o.hp = 0;
+    if (o.isHeart) { loseGame(); return; }
+    o.alive = false; o.fallT = 0.001;
+    const p = o.aim.clone();
+    burst(p, 120, 16, 0xff7a20, 1.4, 10); puff(p, 14, 3, 0x442211, 3); sfx('boom'); shake = Math.max(shake, 0.6);
+    banner(`${o.name.toUpperCase()} HAS FALLEN`, 'Your Pressure flows slower. It will be rebuilt after the wave.', 3);
+  }
+}
+function eyePos() { return player.pos.clone().add(new V3(0, EYE_H, 0)); }
+function hurtPlayer(amt) {
+  if (player.dead || finished) return;
+  player.hp -= amt; player.lastHurt = gt;
+  vig = Math.max(vig, 0.55); shake = Math.max(shake, 0.25); sfx('hurt');
+  if (player.hp <= 0) {
+    player.hp = 0; player.dead = true; player.respawnT = 3.5;
+    gun.visible = false;
+    burst(eyePos(), 60, 10, 0x7fd1b4, 1, 6);
+    $('deadmsg').textContent = 'Your Eye shatters. The Omphalos spends 100 of its strength to form another.';
+    $('deadmsg').classList.remove('hidden');
+    organDamage(heart, 100);
+  }
+}
+function respawn() {
+  player.dead = false; player.hp = player.maxHp; gun.visible = true;
+  player.pos.set(0, H(0, 16), 16); player.vel.set(0, 0, 0); player.yaw = 0; player.pitch = 0;
+  $('deadmsg').classList.add('hidden');
+  burst(eyePos(), 40, 8, 0x7fd1b4, 0.8, 0);
+}
+
+// =====================================================================
+// Abilities
+// =====================================================================
+const raycaster = new THREE.Raycaster();
+const tmpDir = new V3();
+function aimRay(spread = 0) {
+  camera.getWorldDirection(tmpDir);
+  if (spread) { tmpDir.x += rand(-spread, spread); tmpDir.y += rand(-spread, spread); tmpDir.z += rand(-spread, spread); tmpDir.normalize(); }
+  return { o: camera.getWorldPosition(new V3()), d: tmpDir.clone() };
+}
+function fire() {
+  heat += 5.5; lastFire = gt;
+  if (heat >= 100) { heat = 100; overheated = true; sfx('fail'); hint('The Lance is overheated. It vents until cool.'); }
+  const { o, d } = aimRay(0.006);
+  raycaster.set(o, d); raycaster.far = 220;
+  const hits = raycaster.intersectObjects(hittables, false);
+  const td = terrainRay(o, d, 220);
+  let end;
+  if (hits.length && hits[0].distance < td) {
+    const h = hits[0], e = h.object.userData.enemy;
+    end = h.point;
+    const res = damageEnemy(e, 14, h.object, h.point, 'lance');
+    if (e.type === 'boss') { if (res) { hitMarker(false); sfx('hit'); } }
+    else if (!e.pistonOnly) { hitMarker(res); sfx('hit'); }
+  } else if (td < 220) {
+    end = o.clone().addScaledVector(d, td);
+    burst(end, 5, 5, 0xd9b36a, 0.3);
+  } else end = o.clone().addScaledVector(d, 220);
+  tracer(muzzle.getWorldPosition(new V3()), end);
+  flash.visible = true; flash.rotation.z = Math.random() * 3; flashT = 0.04;
+  recoil = 1; sfx('shot');
+  if (gun.userData.gear) gun.userData.gear.rotation.z += 0.6;
+}
+let flashT = 0;
+
+const pistons = [];
+const pistonGeo = cyl(2.2, 2.5, 16, 14), pistonCap = gearGeo(2.6, 14, 0.7);
+function castPiston() {
+  if (player.dead) return;
+  if (pressure < 35) { sfx('fail'); hint('Not enough Pressure. A Piston needs 35.'); flashBar('presbar'); return; }
+  const { o, d } = aimRay();
+  let td = terrainRay(o, d, 95), x, z;
+  raycaster.set(o, d); raycaster.far = 95;
+  const hits = raycaster.intersectObjects(hittables, false);
+  if (hits.length && hits[0].distance < td) {
+    const e = hits[0].object.userData.enemy;
+    x = e.pos.x; z = e.pos.z;
+    if (e.type === 'boss') { x = hits[0].point.x; z = hits[0].point.z; }
+  } else if (isFinite(td)) { const p = o.clone().addScaledVector(d, td); x = p.x; z = p.z; }
+  else { sfx('fail'); hint('No ground in reach. Aim at the land within 95 paces.'); return; }
+  if (H(x, z) < SEA_Y + 0.4) { sfx('fail'); hint('The sea is not your body. Aim at the land.'); return; }
+  pressure -= 35;
+  const g = new THREE.Group();
+  const col = mesh(pistonGeo, M.brass); g.add(col);
+  const cap = mesh(pistonCap, M.copper); cap.rotation.x = -Math.PI / 2; cap.position.y = 8.2; g.add(cap);
+  const base = H(x, z);
+  g.position.set(x, base - 16, z);
+  scene.add(g);
+  pistons.push({ g, cap, x, z, base, t: 0, hit: false });
+  puff(new V3(x, base, z), 5, 1.5, 0x6a4a2a, 0.8, 1);
+}
+function pistonTop(p) { return p.g.position.y + 8.6; }
+function updatePistons(dt) {
+  for (let i = pistons.length - 1; i >= 0; i--) {
+    const p = pistons[i]; p.t += dt;
+    const low = p.base - 16, high = p.base - 3.2;
+    let y;
+    if (p.t < 0.12) y = low + (high - low) * (p.t / 0.12);
+    else if (p.t < 1.3) y = high;
+    else y = high - (high - low) * clamp((p.t - 1.3) / 0.7, 0, 1);
+    p.g.position.y = y;
+    p.cap.rotation.z += dt * 4;
+    if (!p.hit && p.t >= 0.08) { p.hit = true; pistonImpact(p); }
+    if (p.t > 2.0) { scene.remove(p.g); pistons.splice(i, 1); }
+  }
+}
+function pistonImpact(p) {
+  const top = p.base + 5.4, c = new V3(p.x, top, p.z);
+  sfx('piston');
+  shake = Math.max(shake, clamp(1 - player.pos.distanceTo(c) / 60, 0, 1) * 0.7);
+  burst(c, 50, 14, 0xd9b36a, 0.9, 20, 6);
+  puff(new V3(p.x, p.base, p.z), 14, 3.5, 0x7a5a3a, 1.6, 2);
+  shockRing(new V3(p.x, p.base, p.z), 7, 0xffc070, 0.4);
+  for (const e of enemies) {
+    if (e.dead) continue;
+    if (e.type === 'boss') {
+      if (Math.hypot(e.pos.x - p.x, e.pos.z - p.z) < 11) {
+        e.stagger = Math.max(e.stagger, 2.5);
+        damageBoss(null, 90, null, 'piston'); hitMarker(false);
+        banner('TYPHON STAGGERS', '', 1.2);
+      }
+      continue;
+    }
+    const d = Math.hypot(e.pos.x - p.x, e.pos.z - p.z);
+    if (d > 6.5) continue;
+    if (e.type === 'harpy' && e.pos.y > top + 14) continue;
+    const killed = damageEnemy(e, 75, null, e.pos.clone().add(new V3(0, 1.5, 0)), 'piston');
+    hitMarker(killed);
+    if (!e.dead && e.type !== 'effigy') {
+      e.stun = Math.max(e.stun, 1.8);
+      if (e.type === 'harpy') { e.vel.set(0, 14, 0); }
+      else { e.vy = e.type === 'cyclops' ? 10 : 16; e.airborne = true; e.pos.y += 0.1; }
+    }
+  }
+  // Riding your own Piston launches the Eye skyward.
+  if (!player.dead && Math.hypot(player.pos.x - p.x, player.pos.z - p.z) < 3.2) {
+    player.pos.y = Math.max(player.pos.y, top); player.vel.y = 24; player.onGround = false;
+  }
+  if (state === 'tutorial') tutEvent('piston');
+}
+function tremor() {
+  if (player.dead) return;
+  if (pressure < 60) { sfx('fail'); hint('Not enough Pressure. A Tremor needs 60.'); flashBar('presbar'); return; }
+  pressure -= 60;
+  const c = player.pos.clone();
+  sfx('tremor'); shake = Math.max(shake, 1.1);
+  shockRing(c, 24, 0xffa040, 0.7);
+  shockRing(c, 16, 0xd9b36a, 0.5);
+  for (let i = 0; i < 40; i++) {
+    const a = i / 40 * Math.PI * 2, r = rand(3, 22), x = c.x + Math.cos(a) * r, z = c.z + Math.sin(a) * r;
+    smoke.emit(x, H(x, z) + 0.5, z, Math.cos(a) * 4, rand(2, 5), Math.sin(a) * 4, 0.45, 0.33, 0.2, 1.6, 0);
+  }
+  let n = 0;
+  for (const e of enemies) {
+    if (e.dead) continue;
+    const dx = e.pos.x - c.x, dz = e.pos.z - c.z, d = Math.hypot(dx, dz);
+    if (e.type === 'boss') { if (d < 30) { e.stagger = Math.max(e.stagger, 1.5); damageBoss(null, 40, null, 'tremor'); n++; } continue; }
+    if (d > 24) continue;
+    if (e.type === 'harpy' && e.pos.y - c.y > 16) continue;
+    n++;
+    const killed = damageEnemy(e, 45, null, e.pos.clone().add(new V3(0, 1, 0)), 'tremor');
+    if (killed || e.dead) continue;
+    if (e.type === 'effigy') continue;
+    e.stun = Math.max(e.stun, 2.2);
+    const nx = d > 0.1 ? dx / d : 1, nz = d > 0.1 ? dz / d : 0;
+    if (e.type === 'harpy') e.vel.set(nx * 8, -4, nz * 8);
+    else { e.vy = 8; e.airborne = true; e.pos.y += 0.1; e.kb.set(nx * 14, 0, nz * 14); }
+  }
+  if (n) hitMarker(false);
+}
+function earthwalk(idx) {
+  if (player.dead || fadeT > 0) return;
+  if (gt < ewReady) { sfx('fail'); hint(`Earthwalk recovers in ${Math.ceil(ewReady - gt)}s.`); return; }
+  let target;
+  if (idx !== undefined) {
+    target = organs[idx];
+    if (!target.alive) { sfx('fail'); hint(`${target.name} has fallen. You cannot rise there.`); return; }
+  } else {
+    const threatened = organs.filter(o => o.alive && gt - o.lastHitT < 3);
+    if (threatened.length) target = threatened.reduce((a, b) => b.recentDmg > a.recentDmg ? b : a);
+    else {
+      // nothing under attack: step to the next organ around the ring
+      const cur = nearestOrgan(player.pos);
+      for (let k = 1; k <= 5; k++) { const o = organs[(cur.idx + k) % 5]; if (o.alive) { target = o; break; } }
+    }
+  }
+  if (!target) return;
+  ewReady = gt + 5; fadeT = 0.5; ewPending = target;
+  sfx('walk');
+  puff(player.pos, 10, 1.5, 0x6a4a2a, 1.2, 1);
+}
+function doEarthwalkArrive(o) {
+  let x, z;
+  if (o.isHeart) { x = 0; z = 16; }
+  else { const L = Math.hypot(o.pos.x, o.pos.z); x = o.pos.x - o.pos.x / L * (o.r + 7); z = o.pos.z - o.pos.z / L * (o.r + 7); }
+  player.pos.set(x, H(x, z), z); player.vel.set(0, 0, 0);
+  const tx = o.isHeart ? 0 : o.pos.x * 1.6, tz = o.isHeart ? 0 : o.pos.z * 1.6;
+  player.yaw = Math.atan2(-(tx - x), -(tz - z)); player.pitch = o.isHeart ? 0.25 : 0;
+  puff(player.pos, 12, 2, 0x6a4a2a, 1.4, 2);
+  burst(player.pos.clone().add(new V3(0, 1, 0)), 30, 8, 0xd9b36a, 0.8, 10, 4);
+  if (state === 'tutorial') tutEvent('walk');
+}
+
+// =====================================================================
+// Enemy AI
+// =====================================================================
+function groundPhys(e, dt) {
+  const g = H(e.pos.x, e.pos.z);
+  if (e.airborne) {
+    e.vy -= 30 * dt; e.pos.y += e.vy * dt;
+    if (e.pos.y <= g) { e.pos.y = g; e.vy = 0; e.airborne = false; puff(e.pos, 3, 1, 0x6a4a2a, 0.8, 1); }
+  } else e.pos.y = g;
+  if (e.kb.lengthSq() > 0.01) { e.pos.x += e.kb.x * dt; e.pos.z += e.kb.z * dt; e.kb.multiplyScalar(Math.exp(-4 * dt)); }
+  const d = Math.hypot(e.pos.x, e.pos.z);
+  if (d > R_ISLAND - 10) { e.pos.x *= (R_ISLAND - 10) / d; e.pos.z *= (R_ISLAND - 10) / d; }
+}
+function faceTo(e, x, z, dt, rate = 6) {
+  const want = Math.atan2(x - e.pos.x, z - e.pos.z);
+  let diff = want - e.root.rotation.y;
+  while (diff > Math.PI) diff -= Math.PI * 2;
+  while (diff < -Math.PI) diff += Math.PI * 2;
+  e.root.rotation.y += diff * Math.min(1, rate * dt);
+}
+function updateEnemies(dt) {
+  const ep = eyePos();
+  for (const e of enemies) {
+    if (e.dead || e.type === 'boss') continue;
+    e.stun -= dt; e.atkT -= dt;
+    const t = gt + e.phase;
+    if (e.type === 'effigy') { if (e.parts.gear) e.parts.gear.rotation.z += dt * 2; if (e.parts.shield) e.parts.shield.rotation.z += dt * 1.5; continue; }
+    if (e.type === 'harpy') updateHarpy(e, dt, t, ep);
+    else if (e.type === 'minotaur') updateMinotaur(e, dt, t);
+    else if (e.type === 'cyclops') updateCyclops(e, dt, t, ep);
+  }
+  // separation for walkers
+  for (let i = 0; i < enemies.length; i++) {
+    const a = enemies[i]; if (a.dead || a.type === 'harpy' || a.type === 'boss' || a.type === 'effigy') continue;
+    for (let j = i + 1; j < enemies.length; j++) {
+      const b = enemies[j]; if (b.dead || b.type === 'harpy' || b.type === 'boss' || b.type === 'effigy') continue;
+      const dx = b.pos.x - a.pos.x, dz = b.pos.z - a.pos.z, d = Math.hypot(dx, dz), min = (a.type === 'cyclops' || b.type === 'cyclops') ? 4 : 3;
+      if (d < min && d > 0.001) { const push = (min - d) / 2, nx = dx / d, nz = dz / d; a.pos.x -= nx * push; a.pos.z -= nz * push; b.pos.x += nx * push; b.pos.z += nz * push; }
+    }
+  }
+  for (let i = enemies.length - 1; i >= 0; i--) if (enemies[i].dead) enemies.splice(i, 1);
+}
+function updateHarpy(e, dt, t, ep) {
+  const g = H(e.pos.x, e.pos.z);
+  e.parts.wl.rotation.z = Math.sin(t * 16) * 0.7; e.parts.wr.rotation.z = -Math.sin(t * 16) * 0.7;
+  if (e.stun > 0) {
+    e.vel.y -= 25 * dt; e.pos.addScaledVector(e.vel, dt);
+    if (e.pos.y < g + 0.5) { e.pos.y = g + 0.5; e.vel.set(0, 0, 0); }
+    e.parts.wl.rotation.z = 0.9; e.parts.wr.rotation.z = -0.9;
+    e.root.rotation.z = Math.sin(t * 20) * 0.3;
+    return;
+  }
+  e.root.rotation.z = 0;
+  let goal;
+  const pd = e.pos.distanceTo(ep);
+  if (e.state === 'retreat') {
+    e.stateT -= dt;
+    if (e.stateT <= 0) e.state = 'seek';
+    goal = e.pos.clone().add(e.retreatDir);
+  } else if (!player.dead && pd < 18 && state !== 'bossdead') {
+    goal = ep;
+    if (pd < 1.8) {
+      hurtPlayer(8);
+      e.state = 'retreat'; e.stateT = 1.4;
+      e.retreatDir = e.pos.clone().sub(ep).setY(0).normalize().multiplyScalar(10).add(new V3(0, 6, 0));
+    }
+  } else {
+    if (!e.target || !e.target.alive) e.target = randomOrgan();
+    const o = e.target, a = e.orbit + t * 1.1, rr = o.r + 2.5;
+    goal = o.aim.clone().add(new V3(Math.cos(a) * rr, Math.sin(t * 3) * 1.2, Math.sin(a) * rr));
+    if (e.pos.distanceTo(goal) < 6 && e.atkT <= 0) {
+      e.atkT = 1; organDamage(o, 5);
+      burst(e.pos.clone().lerp(o.aim, 0.5), 6, 5, 0xffc070, 0.3);
+    }
+  }
+  const want = goal.clone().sub(e.pos);
+  const L = want.length();
+  if (L > 0.01) want.multiplyScalar(e.speed / L);
+  e.vel.lerp(want, Math.min(1, 3 * dt));
+  e.pos.addScaledVector(e.vel, dt);
+  if (e.pos.y < g + 2) e.pos.y = g + 2;
+  if (e.vel.lengthSq() > 0.5) e.root.rotation.y = Math.atan2(e.vel.x, e.vel.z);
+  e.root.rotation.x = -clamp(e.vel.y * 0.05, -0.5, 0.5);
+}
+function updateMinotaur(e, dt, t) {
+  groundPhys(e, dt);
+  const legs = e.parts.legs;
+  if (e.stun > 0 || e.airborne) {
+    for (const l of legs) l.rotation.x = Math.sin(t * 20) * 0.3;
+    e.root.rotation.z = Math.sin(t * 10) * 0.15;
+    return;
+  }
+  e.root.rotation.z = 0;
+  let tx, tz, range, onHit;
+  const pd = Math.hypot(player.pos.x - e.pos.x, player.pos.z - e.pos.z);
+  if (!player.dead && pd < 14 && Math.abs(player.pos.y - e.pos.y) < 6) {
+    tx = player.pos.x; tz = player.pos.z; range = 2.6;
+    onHit = () => { hurtPlayer(15); const n = new V3(player.pos.x - e.pos.x, 0, player.pos.z - e.pos.z).normalize(); player.vel.x += n.x * 14; player.vel.z += n.z * 14; player.vel.y = 6; };
+  } else {
+    if (!e.target || !e.target.alive) e.target = nearestOrgan(e.pos);
+    const o = e.target; tx = o.pos.x; tz = o.pos.z; range = o.r + 2.5;
+    onHit = () => { organDamage(o, 18); burst(e.pos.clone().add(new V3(0, 3, 0)).lerp(o.aim, 0.3), 14, 8, 0xffc070, 0.4); };
+  }
+  const dx = tx - e.pos.x, dz = tz - e.pos.z, d = Math.hypot(dx, dz);
+  faceTo(e, tx, tz, dt);
+  if (d > range) {
+    const sp = e.speed * (pd < 14 ? 1.5 : 1);
+    e.pos.x += dx / d * sp * dt; e.pos.z += dz / d * sp * dt;
+    const w = t * sp * 1.6;
+    legs[0].rotation.x = Math.sin(w) * 0.6; legs[3].rotation.x = Math.sin(w) * 0.6;
+    legs[1].rotation.x = -Math.sin(w) * 0.6; legs[2].rotation.x = -Math.sin(w) * 0.6;
+  } else if (e.atkT <= 0) {
+    e.atkT = 1.2; onHit();
+    e.root.position.y += 0.3;
+  }
+  if (Math.random() < dt * 3) { const p = e.parts.stack.getWorldPosition(new V3()); smoke.emit(p.x, p.y + 0.6, p.z, 0, 2, 0, 0.25, 0.22, 0.2, 1.5, 0); }
+}
+function updateCyclops(e, dt, t, ep) {
+  groundPhys(e, dt);
+  const legs = e.parts.legs;
+  if (e.stun > 0 || e.airborne) { e.root.rotation.z = Math.sin(t * 8) * 0.1; return; }
+  e.root.rotation.z = 0;
+  if (!e.target || !e.target.alive) e.target = nearestOrgan(e.pos);
+  const o = e.target;
+  const pd = e.pos.distanceTo(player.pos);
+  const atPlayer = !player.dead && pd < 48;
+  const dx = o.pos.x - e.pos.x, dz = o.pos.z - e.pos.z, d = Math.hypot(dx, dz);
+  if (atPlayer) faceTo(e, player.pos.x, player.pos.z, dt, 3); else faceTo(e, o.pos.x, o.pos.z, dt, 3);
+  if (d > o.r + 20 && !(atPlayer && pd < 22)) {
+    e.pos.x += dx / d * e.speed * dt; e.pos.z += dz / d * e.speed * dt;
+    const w = t * 3;
+    legs[0].rotation.x = Math.sin(w) * 0.4; legs[1].rotation.x = -Math.sin(w) * 0.4;
+  } else { legs[0].rotation.x *= 0.9; legs[1].rotation.x *= 0.9; }
+  e.parts.eye.scale.setScalar(1 + Math.max(0, 0.6 - e.atkT) * 0.6);
+  if (e.atkT <= 0 && (atPlayer || d < o.r + 26)) {
+    e.atkT = atPlayer ? 2.6 : 3.2;
+    const from = e.parts.eye.getWorldPosition(new V3());
+    if (atPlayer) spawnFireball(from, ep, 32, 16, null);
+    else spawnFireball(from, o.aim, 30, 25, o);
+  }
+  if (Math.random() < dt * 4) { const p = e.parts.stack.getWorldPosition(new V3()); smoke.emit(p.x, p.y + 1, p.z, 0, 2.5, 0, 0.25, 0.2, 0.18, 2, 0); }
+}
+
+// =====================================================================
+// Waves
+// =====================================================================
+const WAVES = [
+  { name: 'The First Brood', list: { harpy: 6 } },
+  { name: 'Horns of Crete', list: { harpy: 6, minotaur: 4 } },
+  { name: 'The One-Eyed Smiths', list: { harpy: 8, minotaur: 5, cyclops: 2 } },
+  { name: 'The Gathering Storm', list: { harpy: 10, minotaur: 7, cyclops: 3 } },
+  { name: 'Typhon, Father of Monsters', list: { harpy: 4, minotaur: 2 }, boss: true },
+];
+let waveIdx = -1, queue = [], spawnT = 0, interT = 0, riftAngles = [0, Math.PI];
+const riftMat = new THREE.MeshBasicMaterial({ color: 0xff3a1a, transparent: true, opacity: 0.28, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+const rifts = [0, 1].map(() => { const m = new THREE.Mesh(new THREE.CylinderGeometry(2.5, 6, 160, 16, 1, true), riftMat); m.visible = false; scene.add(m); return m; });
+function startWave(i) {
+  waveIdx = i; state = 'wave';
+  const w = WAVES[i];
+  queue = [];
+  for (const [k, n] of Object.entries(w.list)) for (let j = 0; j < n; j++) queue.push(k);
+  for (let j = queue.length - 1; j > 0; j--) { const k = Math.floor(Math.random() * (j + 1)); [queue[j], queue[k]] = [queue[k], queue[j]]; }
+  if (w.boss) queue.unshift('boss');
+  const a = rand(0, Math.PI * 2);
+  riftAngles = [a, a + rand(1.9, 4.4)];
+  rifts.forEach((r, k) => { const x = Math.cos(riftAngles[k]) * (R_ISLAND - 18), z = Math.sin(riftAngles[k]) * (R_ISLAND - 18); r.position.set(x, 70, z); r.visible = true; });
+  spawnT = w.boss ? 1 : 2;
+  if (!w.boss) banner(`WAVE ${i + 1}`, w.name, 3.5);
+  sfx('horn');
+}
+function updateWaves(dt) {
+  riftMat.opacity = 0.22 + Math.sin(gt * 4) * 0.08;
+  if (state === 'intermission') {
+    interT -= dt;
+    $('wave').textContent = `NEXT WAVE IN ${Math.ceil(Math.max(0, interT))}`;
+    if (interT <= 0) startWave(waveIdx + 1);
+    return;
+  }
+  if (state === 'bossdead') {
+    endTimer -= dt;
+    if (endTimer <= 0) showEnd(true);
+    return;
+  }
+  if (state === 'lost') { endTimer -= dt; if (endTimer <= 0) showEnd(false); return; }
+  if (state !== 'wave') return;
+  const live = enemies.filter(e => !e.dead && e.type !== 'boss').length;
+  const w = WAVES[waveIdx];
+  $('wave').textContent = w.boss ? `FINAL WAVE  -  ${w.name.toUpperCase()}` : `WAVE ${waveIdx + 1} OF 4  -  ${w.name.toUpperCase()}  -  ${live + queue.length} REMAIN`;
+  spawnT -= dt;
+  if (queue.length && spawnT <= 0) {
+    const type = queue.shift();
+    const k = Math.floor(Math.random() * 2), a = riftAngles[k] + rand(-0.22, 0.22), r = R_ISLAND - 22 + rand(-3, 3);
+    if (type === 'boss') { spawnBoss(riftAngles[0]); spawnT = 8; }
+    else { spawnEnemy(type, Math.cos(a) * r, Math.sin(a) * r); spawnT = Math.max(0.6, 1.4 - waveIdx * 0.15); }
+  }
+  if (!w.boss && !queue.length && live === 0) {
+    rifts.forEach(r => r.visible = false);
+    state = 'intermission'; interT = 12;
+    heart.hp = Math.min(heart.maxHp, heart.hp + 150);
+    for (let i = 1; i < 5; i++) {
+      const o = organs[i];
+      if (!o.alive) reviveOrgan(o, 0.4);
+      else o.hp = Math.min(o.maxHp, o.hp + o.maxHp * 0.3);
+    }
+    pressure = 100; sfx('heal');
+    banner(waveIdx === 3 ? 'THE BROOD FALLS BACK. SOMETHING VAST STIRS.' : 'THE BROOD FALLS BACK', 'The world mends. Fallen Pylons are rebuilt.', 4);
+  }
+}
+function reviveOrgan(o, frac) {
+  o.alive = true; o.hp = o.maxHp * frac; o.fallT = 0;
+  o.obelisk.rotation.set(0, 0, 0); o.obelisk.position.y = 0;
+  o.coreMat.emissive.setHex(0xff7a1a); o.coreMat.color.setHex(0xffa040);
+  burst(o.aim, 60, 10, 0xffd080, 1.2, 4);
+}
+
+// =====================================================================
+// Tutorial
+// =====================================================================
+const TUT = [
+  'Your Eye wanders the land. Move with W A S D. Look with the mouse. Jump with Space. Hold Shift to run.',
+  'Fire the Steam Lance with LEFT CLICK. Destroy the brass effigy ahead. Firing builds heat. Let it cool.',
+  'The land is your body. RIGHT CLICK the ground beneath the shielded effigy to raise an Earth Piston. A Piston costs 35 Pressure.',
+  'Press Q to Tremor. The ground around your Eye bucks, hurts and stuns. Shatter the three effigies around you. A Tremor costs 60 Pressure.',
+  'Press F to Earthwalk. You sink into the soil and rise beside the organ under the most threat. Keys 1 to 5 send you to one organ directly.',
+  'Guard the Omphalos, your heart, and the four Pylons. Living Pylons refill your Pressure faster. If your Eye breaks, the Omphalos pays to rebuild it. Slain beasts return their metal to the heart. Survive four waves. Then bring down Typhon.',
+];
+let tutStep = -1, tutCount = 0, tutDoneT = 0, tutTimer = 0;
+function tutSet(i) {
+  tutStep = i; tutCount = 0; tutDoneT = 0; tutTimer = 0;
+  const el = $('tut');
+  el.classList.remove('hidden', 'done');
+  const last = i === TUT.length - 1;
+  el.innerHTML = `<div class="step">${last ? 'THE TASK' : `LESSON ${i + 1} OF ${TUT.length - 1}`}</div>${TUT[i]}<div class="skip">${last ? 'Press Enter to begin. The first wave comes in a moment.' : 'Press Enter to skip the tutorial.'}</div>`;
+  const f = new V3(-Math.sin(player.yaw), 0, -Math.cos(player.yaw));
+  const r = new V3(Math.cos(player.yaw), 0, -Math.sin(player.yaw));
+  if (i === 1) { const p = player.pos.clone().addScaledVector(f, 16); spawnEnemy('effigy', p.x, p.z, { tut: true, face: player.yaw }); }
+  if (i === 2) { const p = player.pos.clone().addScaledVector(f, 20).addScaledVector(r, 5); spawnEnemy('effigy', p.x, p.z, { tut: true, pistonOnly: true, face: player.yaw }); }
+  if (i === 3) {
+    pressure = Math.max(pressure, 70);
+    for (let k = 0; k < 3; k++) { const a = player.yaw + k / 3 * Math.PI * 2; const p = player.pos.clone().add(new V3(-Math.sin(a) * 7, 0, -Math.cos(a) * 7)); spawnEnemy('effigy', p.x, p.z, { tut: true, face: a }); }
+  }
+}
+function tutEvent(kind) {
+  if (state !== 'tutorial' || tutDoneT > 0) return;
+  const live = enemies.filter(e => e.tut && !e.dead).length;
+  if ((tutStep === 1 || tutStep === 2 || tutStep === 3) && kind === 'effigy' && live === 0) tutComplete();
+  if (tutStep === 4 && kind === 'walk') tutComplete();
+}
+function tutComplete() { tutDoneT = 1.3; $('tut').classList.add('done'); sfx('heal'); }
+function updateTutorial(dt) {
+  if (state !== 'tutorial') return;
+  $('wave').textContent = 'THE WORLD AWAKENS';
+  pressure = Math.min(100, pressure + 20 * dt);
+  tutTimer += dt;
+  if (tutStep === 0 && player.moved > 10 && tutDoneT <= 0) tutComplete();
+  if (tutDoneT > 0) { tutDoneT -= dt; if (tutDoneT <= 0) tutSet(tutStep + 1); }
+  if (tutStep === TUT.length - 1 && tutTimer > 14) endTutorial();
+}
+function endTutorial() {
+  state = 'intermission'; interT = 6; waveIdx = -1; pressure = 100;
+  for (const e of enemies) if (e.tut) killEnemy(e, true);
+  $('tut').classList.add('hidden');
+  banner('TYPHON\'S BROOD APPROACHES', 'Red rifts mark where they come ashore.', 4);
+}
+
+// =====================================================================
+// HUD helpers
+// =====================================================================
+let bannerT = 0, alertT = 0, hintT = 0, hitmT = 0, bossHintT = 0;
+function banner(title, sub, dur) { $('banner').innerHTML = `${title}${sub ? `<span class="sub">${sub}</span>` : ''}`; $('banner').style.opacity = 1; bannerT = dur; }
+function alertMsg(t) { $('alert').textContent = t; $('alert').style.opacity = 1; alertT = 2.5; }
+function hint(t) { if (hintT > 0 && $('alert').textContent === t) return; $('alert').textContent = t; $('alert').style.opacity = 1; alertT = 2.5; hintT = 1; }
+function bossHint(t) { $('bosshint').textContent = t; bossHintT = 3; }
+function hitMarker(kill) { const h = $('hitm'); h.classList.toggle('kill', !!kill); h.style.opacity = 1; hitmT = kill ? 0.25 : 0.12; }
+function flashBar(id) { const b = $(id); b.classList.add('over'); setTimeout(() => b.classList.remove('over'), 500); }
+
+const organRows = [];
+{
+  const box = $('organs');
+  box.innerHTML = '<div class="lbl">Your Organs</div>';
+  organs.forEach((o, i) => {
+    const row = document.createElement('div');
+    row.className = 'orow' + (o.isHeart ? ' heart' : '');
+    row.innerHTML = `<div class="head"><span><span class="key">${i + 1}</span><span class="name">${o.name}</span></span><span class="num"></span></div><div class="bar"><div class="fill"></div></div>`;
+    box.appendChild(row);
+    organRows.push({ row, num: row.querySelector('.num'), fill: row.querySelector('.fill') });
+  });
+}
+const mapCtx = $('map').getContext('2d');
+function drawMap() {
+  const W = 180, c = W / 2, s = (W / 2 - 8) / R_ISLAND, x = mapCtx;
+  x.clearRect(0, 0, W, W);
+  x.fillStyle = '#1e3a36'; x.beginPath(); x.arc(c, c, c, 0, 7); x.fill();
+  x.fillStyle = '#6a4a2a'; x.beginPath(); x.arc(c, c, (R_ISLAND - 12) * s, 0, 7); x.fill();
+  x.strokeStyle = 'rgba(255,138,42,.6)'; x.lineWidth = 2;
+  for (let i = 1; i < 5; i++) { const o = organs[i]; if (!o.alive) continue; x.beginPath(); x.moveTo(c, c); x.lineTo(c + o.pos.x * s, c + o.pos.z * s); x.stroke(); }
+  if (rifts[0].visible) for (const a of riftAngles) { x.fillStyle = 'rgba(255,58,26,.5)'; x.beginPath(); x.arc(c + Math.cos(a) * (R_ISLAND - 18) * s, c + Math.sin(a) * (R_ISLAND - 18) * s, 7, 0, 7); x.fill(); }
+  const blink = Math.sin(gt * 12) > 0;
+  organs.forEach(o => {
+    const hit = gt - o.lastHitT < 2 && o.alive;
+    x.fillStyle = !o.alive ? '#555' : hit && blink ? '#ff4020' : o.isHeart ? '#ffd36a' : '#ff8a2a';
+    x.beginPath(); x.arc(c + o.pos.x * s, c + o.pos.z * s, o.isHeart ? 6 : 4.5, 0, 7); x.fill();
+  });
+  for (const e of enemies) {
+    if (e.dead || e.tut) continue;
+    x.fillStyle = e.type === 'harpy' ? '#ffb08a' : '#ff3a1a';
+    const r = e.type === 'boss' ? 7 : e.type === 'cyclops' ? 3.5 : e.type === 'minotaur' ? 3 : 2;
+    x.beginPath(); x.arc(c + e.pos.x * s, c + e.pos.z * s, r, 0, 7); x.fill();
+  }
+  const px = c + player.pos.x * s, pz = c + player.pos.z * s, fx = -Math.sin(player.yaw), fz = -Math.cos(player.yaw);
+  x.fillStyle = '#9ff0d4'; x.beginPath();
+  x.moveTo(px + fx * 8, pz + fz * 8); x.lineTo(px - fx * 4 + fz * 4, pz - fz * 4 - fx * 4); x.lineTo(px - fx * 4 - fz * 4, pz - fz * 4 + fx * 4); x.closePath(); x.fill();
+}
+function updateHUD(dt) {
+  organs.forEach((o, i) => {
+    const r = organRows[i];
+    r.fill.style.width = (o.hp / o.maxHp * 100).toFixed(1) + '%';
+    r.num.textContent = o.alive ? Math.ceil(o.hp) : 'fallen';
+    r.row.classList.toggle('hit', o.alive && gt - o.lastHitT < 1.5);
+    r.row.classList.toggle('dead', !o.alive);
+  });
+  $('eyefill').style.width = (player.hp / player.maxHp * 100) + '%';
+  $('eyetxt').textContent = Math.ceil(player.hp);
+  $('presfill').style.width = pressure + '%';
+  $('prestxt').textContent = Math.floor(pressure);
+  $('heatfill').style.width = heat + '%';
+  $('heattxt').textContent = overheated ? 'VENTING' : '';
+  $('heatbar').classList.toggle('over', overheated);
+  $('sk-piston').classList.toggle('off', pressure < 35);
+  $('sk-tremor').classList.toggle('off', pressure < 60);
+  const cd = ewReady - gt;
+  $('walktxt').textContent = cd > 0 ? Math.ceil(cd) + 's' : 'ready';
+  $('sk-walk').classList.toggle('off', cd > 0);
+  if (boss && !boss.dead) $('bossfill').style.width = (bossTotal() / (boss.furnMax * 3 + boss.coreMax) * 100) + '%';
+  else if (!boss) $('bossbar').classList.add('hidden');
+  if (bannerT > 0) { bannerT -= dt; if (bannerT <= 0) $('banner').style.opacity = 0; }
+  if (alertT > 0) { alertT -= dt; if (alertT <= 0) $('alert').style.opacity = 0; }
+  hintT -= dt;
+  if (bossHintT > 0) { bossHintT -= dt; if (bossHintT <= 0) $('bosshint').textContent = ''; }
+  if (hitmT > 0) { hitmT -= dt; if (hitmT <= 0) $('hitm').style.opacity = 0; }
+  const hf = heart.hp / heart.maxHp;
+  const low = hf < 0.3 ? (0.25 + Math.sin(gt * 6) * 0.1) * (1 - hf / 0.3) : 0;
+  vig = Math.max(0, vig - dt * 1.2);
+  $('vig').style.opacity = Math.max(vig, low, player.dead ? 0.7 : 0);
+  drawMap();
+}
+
+// =====================================================================
+// Per-frame world updates
+// =====================================================================
+const fogCol = new THREE.Color();
+let tickT = 1, steamT = 0;
+function updateWorld(dt, t) {
+  for (const g of spinGears) g.rotation.z += g.userData.spin * dt;
+  skyRings.forEach((r, i) => { r.rotation.z += dt * 0.01 * (i + 1) * (i % 2 ? -1 : 1); });
+  const hf = heart.hp / heart.maxHp;
+  heart.rings.forEach((r, i) => { r.rotation.x += dt * (0.3 + i * 0.2) * (0.3 + hf); r.rotation.y += dt * 0.4 * (i % 2 ? 1 : -1); });
+  heart.gears.forEach((g, i) => { g.rotation.z += dt * (i % 2 ? 1 : -1) * 0.8; });
+  heart.coreMat.emissiveIntensity = (1.4 + Math.sin(t * (2 + (1 - hf) * 6)) * 0.6) * (0.5 + hf * 0.8) + heart.flash * 3;
+  heart.flash = Math.max(0, heart.flash - dt * 4);
+  for (let i = 1; i < 5; i++) {
+    const o = organs[i];
+    o.recentDmg *= Math.exp(-dt / 3);
+    if (o.alive) {
+      o.ring.rotation.z += dt * 1.2;
+      o.core.rotation.y += dt;
+      o.core.position.y = 15 + Math.sin(t * 2 + i) * 0.3;
+      o.coreMat.emissiveIntensity = 1.8 + Math.sin(t * 3 + i) * 0.4 + o.flash * 4;
+      o.veinMat.emissiveIntensity = (0.5 + 0.5 * Math.sin(t * 4 - i)) * (0.4 + o.hp / o.maxHp);
+    } else {
+      o.fallT = Math.min(1, o.fallT + dt * 0.8);
+      o.obelisk.rotation.z = smooth(o.fallT) * 0.55; o.obelisk.position.y = -smooth(o.fallT) * 3;
+      o.coreMat.emissiveIntensity = 0.05; o.coreMat.color.setHex(0x333333);
+      o.veinMat.emissiveIntensity = 0;
+    }
+    o.flash = Math.max(0, o.flash - dt * 4);
+  }
+  heart.recentDmg *= Math.exp(-dt / 3);
+  // sky bleeds as the heart weakens
+  fogCol.copy(SKY).lerp(SKY_RED, clamp(1 - hf, 0, 1) * 0.85);
+  scene.background.copy(fogCol); scene.fog.color.copy(fogCol); skyDome.material.color.copy(fogCol);
+  hemi.intensity = 0.4 + hf * 0.2;
+  sea.position.y = SEA_Y + Math.sin(t * 0.6) * 0.15;
+  steamT -= dt;
+  if (steamT <= 0) {
+    steamT = 0.12;
+    for (const c of chimneys) smoke.emit(c.x + rand(-0.4, 0.4), c.y, c.z + rand(-0.4, 0.4), rand(-0.6, 0.6), rand(3, 5), rand(-0.6, 0.6), 0.28, 0.26, 0.24, rand(2.5, 4), 0);
+    smoke.emit(heart.aim.x + rand(-2, 2), heart.aim.y + 3, heart.aim.z + rand(-2, 2), 0, 2, 0, 0.45 * hf, 0.28 * hf, 0.08 * hf, 2, 0);
+  }
+  for (const r of rings) {
+    r.t += dt; const f = r.t / r.life;
+    r.m.scale.setScalar(1 + f * r.maxR); r.m.material.opacity = 1 - f;
+  }
+  for (let i = rings.length - 1; i >= 0; i--) if (rings[i].t >= rings[i].life) { scene.remove(rings[i].m); rings[i].m.material.dispose(); rings.splice(i, 1); }
+  for (const m of tracers) if (m.visible) { m.userData.life -= dt; if (m.userData.life <= 0) m.visible = false; }
+  sparks.update(dt); smoke.update(dt);
+}
+
+function updatePlayer(dt) {
+  if (player.dead) {
+    player.respawnT -= dt;
+    if (player.respawnT <= 0 && !finished && state !== 'lost') respawn();
+    return;
+  }
+  const fwd = new V3(-Math.sin(player.yaw), 0, -Math.cos(player.yaw)), right = new V3(Math.cos(player.yaw), 0, -Math.sin(player.yaw));
+  const wish = new V3();
+  if (keys.KeyW) wish.add(fwd); if (keys.KeyS) wish.sub(fwd);
+  if (keys.KeyD) wish.add(right); if (keys.KeyA) wish.sub(right);
+  if (wish.lengthSq() > 0) wish.normalize();
+  const sp = (keys.ShiftLeft || keys.ShiftRight) ? 17 : 11;
+  const k = 1 - Math.exp(-(player.onGround ? 12 : 2.5) * dt);
+  player.vel.x += (wish.x * sp - player.vel.x) * k;
+  player.vel.z += (wish.z * sp - player.vel.z) * k;
+  player.vel.y -= 30 * dt;
+  if (keys.Space && player.onGround) { player.vel.y = 11; player.onGround = false; }
+  const ox = player.pos.x, oz = player.pos.z;
+  player.pos.addScaledVector(player.vel, dt);
+  // island edge
+  const d = Math.hypot(player.pos.x, player.pos.z), lim = R_ISLAND - 20;
+  if (d > lim) { player.pos.x *= lim / d; player.pos.z *= lim / d; }
+  // solid structures
+  const solids = [];
+  for (const o of organs) solids.push({ x: o.pos.x, z: o.pos.z, r: o.isHeart ? 9.5 : 3.8, top: o.pos.y + (o.isHeart ? 26 : 17) });
+  for (const c of solids.concat(colliders)) {
+    const dx = player.pos.x - c.x, dz = player.pos.z - c.z, dd = Math.hypot(dx, dz), rr = c.r + 0.5;
+    if (dd < rr && player.pos.y < c.top) {
+      if (dd < 0.001) { player.pos.x += rr; continue; }
+      player.pos.x = c.x + dx / dd * rr; player.pos.z = c.z + dz / dd * rr;
+    }
+  }
+  let g = H(player.pos.x, player.pos.z);
+  for (const p of pistons) if (Math.hypot(player.pos.x - p.x, player.pos.z - p.z) < 2.6) g = Math.max(g, pistonTop(p));
+  if (player.pos.y <= g) { player.pos.y = g; if (player.vel.y < 0) player.vel.y = 0; player.onGround = true; }
+  else if (player.pos.y - g < 0.35 && player.vel.y <= 0) { player.pos.y = g; player.vel.y = 0; player.onGround = true; }
+  else player.onGround = false;
+  player.moved += Math.hypot(player.pos.x - ox, player.pos.z - oz);
+  if (gt - player.lastHurt > 4) player.hp = Math.min(player.maxHp, player.hp + 8 * dt);
+}
+function updateWeapon(dt) {
+  if (mouse.left && !player.dead && !overheated && gt >= nextShot && locked_or_test()) { fire(); nextShot = gt + 0.12; }
+  if (overheated) { heat -= 45 * dt; if (heat <= 0) { heat = 0; overheated = false; } }
+  else if (gt - lastFire > 0.25) heat = Math.max(0, heat - 32 * dt);
+  heatMat.emissiveIntensity = heat / 100 * 3;
+  recoil = Math.max(0, recoil - dt * 10);
+  if (flashT > 0) { flashT -= dt; if (flashT <= 0) flash.visible = false; }
+  const moving = player.onGround && (Math.abs(player.vel.x) + Math.abs(player.vel.z)) > 1;
+  const bob = moving ? Math.sin(gt * 11) * 0.012 : 0;
+  gun.position.set(0.24 + bob, -0.21 + Math.abs(bob) * 0.8 + recoil * 0.012, -0.62 + recoil * 0.04);
+  gun.rotation.x = recoil * 0.12;
+}
+function updatePressure(dt) {
+  const alive = organs.filter(o => o.alive && !o.isHeart).length;
+  pressure = Math.min(100, pressure + (5 + alive * 3) * dt);
+}
+let tickSnd = 0;
+function updateTick(dt) {
+  tickSnd -= dt;
+  if (tickSnd <= 0) { tickSnd = 0.35 + 0.65 * (heart.hp / heart.maxHp); sfx('tick'); }
+}
+function loseGame() {
+  if (state === 'lost') return;
+  state = 'lost'; endTimer = 4;
+  heart.hp = 0;
+  const p = heart.aim.clone();
+  burst(p, 300, 25, 0xffa040, 2, 10); puff(p, 40, 6, 0x442211, 4, 4);
+  shake = 2.5; sfx('boom');
+  banner('THE OMPHALOS STOPS', 'The world falls silent.', 4);
+}
+
+// =====================================================================
+// Camera
+// =====================================================================
+let menuAng = 0;
+function updateCamera(dt) {
+  if (state === 'menu') {
+    menuAng += dt * 0.05;
+    camera.position.set(Math.cos(menuAng) * 95, 45, Math.sin(menuAng) * 95);
+    camera.lookAt(0, 14, 0);
+    return;
+  }
+  shake = Math.max(0, shake - dt * 1.8);
+  const s = shake * shake * 0.6;
+  const moving = player.onGround && (Math.abs(player.vel.x) + Math.abs(player.vel.z)) > 1;
+  const bob = moving ? Math.sin(gt * 11) * 0.06 : 0;
+  camera.position.set(player.pos.x + rand(-s, s), player.pos.y + (player.dead ? 0.4 : EYE_H + bob) + rand(-s, s), player.pos.z + rand(-s, s));
+  camera.rotation.set(player.pitch + (player.dead ? -0.3 : 0), player.yaw, player.dead ? 0.4 : 0);
+  camera.updateMatrixWorld();
+}
+
+// =====================================================================
+// Input
+// =====================================================================
+function locked_or_test() { return locked || TEST; }
+function requestLock() { if (TEST) return; try { const p = canvas.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (e) {} }
+function playing() { return ['tutorial', 'wave', 'intermission', 'bossdead', 'lost'].includes(state) && !finished; }
+document.addEventListener('pointerlockchange', () => {
+  locked = document.pointerLockElement === canvas;
+  if (locked) { paused = false; $('overlay').classList.add('hidden'); $('pause').classList.add('hidden'); }
+  else if (playing() && !TEST) { paused = true; mouse.left = false; for (const k in keys) keys[k] = false; $('overlay').classList.remove('hidden'); $('pause').classList.remove('hidden'); $('menu').classList.add('hidden'); }
+});
+document.addEventListener('mousemove', e => {
+  if (!locked || paused) return;
+  player.yaw -= e.movementX * 0.0022;
+  player.pitch = clamp(player.pitch - e.movementY * 0.0022, -1.5, 1.5);
+});
+canvas.addEventListener('mousedown', e => {
+  if (!locked && !TEST) { if (playing()) requestLock(); return; }
+  if (paused || !playing() || state === 'lost') return;
+  if (e.button === 0) mouse.left = true;
+  if (e.button === 2) castPiston();
+});
+document.addEventListener('mouseup', e => { if (e.button === 0) mouse.left = false; });
+document.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space') e.preventDefault();
+  if (e.repeat) return;
+  keys[e.code] = true;
+  if (paused || !playing() || state === 'lost') return;
+  if (e.code === 'KeyQ') tremor();
+  if (e.code === 'KeyF') earthwalk();
+  if (/^Digit[1-5]$/.test(e.code)) earthwalk(+e.code.slice(5) - 1);
+  if (e.code === 'Enter' && state === 'tutorial') endTutorial();
+});
+document.addEventListener('keyup', e => { keys[e.code] = false; });
+window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; mouse.left = false; });
+addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
+
+function startGame() {
+  if (state !== 'menu') return;
+  if (document.activeElement) document.activeElement.blur();
+  initAudio();
+  if (AC && AC.state === 'suspended') AC.resume();
+  $('overlay').classList.add('hidden'); $('menu').classList.add('hidden');
+  $('hud').classList.remove('hidden');
+  state = 'tutorial';
+  player.pos.set(0, H(0, 30), 30); player.yaw = Math.PI; player.pitch = -0.05;
+  tutSet(0);
+  requestLock();
+}
+$('startBtn').addEventListener('click', startGame);
+$('resumeBtn').addEventListener('click', e => { e.currentTarget.blur(); requestLock(); });
+$('againBtn').addEventListener('click', () => location.reload());
+
+function showEnd(win) {
+  if (finished) return;
+  finished = true; state = win ? 'won' : 'lostEnd';
+  if (document.pointerLockElement) document.exitPointerLock();
+  $('overlay').classList.remove('hidden'); $('pause').classList.add('hidden'); $('menu').classList.add('hidden'); $('end').classList.remove('hidden');
+  $('endTitle').textContent = win ? 'THE WORLD ENDURES' : 'THE WORLD FALLS SILENT';
+  $('endTag').textContent = win ? 'TYPHON IS BURIED BENEATH YOU' : 'THE OMPHALOS HAS STOPPED';
+  $('endLore').textContent = win
+    ? 'The Father of Monsters lies in your soil. His bronze will become your hills. The gears turn on, and the Omphalos beats steady.'
+    : 'The brood tears out your heart. The gears grind still, the steam cools, and the sea closes over the brass.';
+  const pylons = organs.filter(o => o.alive && !o.isHeart).length;
+  const m = Math.floor(gt / 60), s = Math.floor(gt % 60);
+  const waves = win ? 'All 5' : `${Math.max(0, waveIdx)} of 5`;
+  $('endStats').innerHTML = `<span>Waves survived</span><span>${waves}</span><span>Brood destroyed</span><span>${kills}</span><span>Omphalos strength</span><span>${Math.ceil(heart.hp)} / ${heart.maxHp}</span><span>Pylons standing</span><span>${pylons} of 4</span><span>Time</span><span>${m}:${String(s).padStart(2, '0')}</span>`;
+  sfx(win ? 'win' : 'boom');
+}
+
+// =====================================================================
+// Main loop
+// =====================================================================
+let last = performance.now();
+function frame(now) {
+  requestAnimationFrame(frame);
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  step(dt);
+  renderer.render(scene, camera);
+}
+function step(dt) {
+  if (state === 'menu') { updateWorld(dt, performance.now() / 1000); updateCamera(dt); return; }
+  if (paused || finished) { updateCamera(0); return; }
+  gt += dt;
+  updatePlayer(dt);
+  if (fadeT > 0) {
+    const prev = fadeT; fadeT = Math.max(0, fadeT - dt);
+    if (prev > 0.25 && fadeT <= 0.25 && ewPending) { doEarthwalkArrive(ewPending); ewPending = null; }
+    $('fade').style.opacity = 1 - Math.abs(fadeT - 0.25) / 0.25;
+  } else $('fade').style.opacity = 0;
+  updateCamera(dt);
+  if (state !== 'lost') {
+    updateWeapon(dt);
+    updatePressure(dt);
+  }
+  updateEnemies(dt);
+  updateBoss(dt);
+  updateFireballs(dt);
+  updatePistons(dt);
+  updateWorld(dt, gt);
+  updateWaves(dt);
+  updateTutorial(dt);
+  updateTick(dt);
+  updateHUD(dt);
+}
+requestAnimationFrame(frame);
+
+// Debug hooks for automated testing only.
+window.__g = { get state() { return state; }, set state(v) { state = v; }, player, organs, enemies, heart, get boss() { return boss; }, startGame, startWave, endTutorial, fire, castPiston, tremor, earthwalk, step, spawnEnemy, killEnemy, damageBoss,
+  setGt: v => { gt = v; }, get waveIdx() { return waveIdx; }, get finished() { return finished; }, get queue() { return queue; }, mouse, keys, get pressure() { return pressure; }, set pressure(v) { pressure = v; } };
+</script>
+</body>
+</html>
