@@ -23,12 +23,13 @@ You are Gaia, the clockwork earth. Typhon, Father of Monsters, sends his bronze 
 | W A S D | Move the Eye |
 | Mouse | Look |
 | Space / Shift | Jump / Run |
-| Left click | Steam Lance. Builds heat and vents when it overheats. |
+| Left click | Steam Lance. Heads and glowing eyes take 2.5x damage. Builds heat and vents when it overheats. |
 | Right click | Earth Piston. Raises a pillar from the ground you aim at. It crushes, launches, and staggers enemies. Stand on it to launch yourself. Costs 35 Pressure. |
 | Q | Tremor. Damages and stuns everything near the Eye. Costs 60 Pressure. |
 | F | Earthwalk to the organ under the most threat |
 | 1 - 5 | Earthwalk to a chosen organ |
 | Esc | Pause |
+| M | Music on or off |
 
 ### How the world works
 
@@ -37,5 +38,9 @@ You are Gaia, the clockwork earth. Typhon, Father of Monsters, sends his bronze 
 - Slain beasts return their metal to the heart and heal it a little.
 - If your Eye breaks, the Omphalos spends 100 strength to rebuild it.
 - Fallen Pylons are rebuilt between waves.
+
+### Music
+
+The score is synthesized live and follows the game: a calm clockwork theme between waves, a driving battle theme, a choir and brass theme for Typhon, and a fanfare or a dirge at the end. A heartbeat rises under the music when the Omphalos drops below 35 percent. Wind, steam vents, turning gears, and a distant clock-tower chime fill the quiet moments.
 
 A short tutorial runs at the start. Press Enter to skip it.
