@@ -400,7 +400,11 @@ export class Game {
     if (kind === 'graft' && this.gloveModel) {
       const m = this.gloveModel.clone(true);
       m.rotation.set(0, Math.PI * 0.35, Math.PI / 2);
-      m.position.y = 0.06;
+      // centered on its pedestal and resting on it (the model's origin is at the wrist)
+      m.updateMatrixWorld(true);
+      const box = new THREE.Box3().setFromObject(m);
+      const c = box.getCenter(new THREE.Vector3());
+      m.position.set(-c.x, -box.min.y + 0.005, -c.z);
       g.add(m);
       return g;
     }

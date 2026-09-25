@@ -322,8 +322,9 @@ export class Pickup extends Entity {
     this.object = object;
     object.position.copy(this.pos);
     ctx.scene.add(dyn(object));
-    if ((rec.type === 'seed' || rec.type === 'upgrade') && ctx.lights) {
-      this.light = ctx.lights.add(this.pos, new THREE.Color(rec.type === 'seed' ? 0x9fffc8 : 0x7fe3ff), 2.2, 5);
+    // a soft light marks every pickup, the Graft included, so it reads from across a room
+    if (ctx.lights) {
+      this.light = ctx.lights.add(this.pos.clone().add(new THREE.Vector3(0, 0.3, 0)), new THREE.Color(rec.type === 'seed' ? 0x9fffc8 : 0x7fe3ff), 2.2, 5);
     }
   }
   near(p: THREE.Vector3): boolean { return !this.taken && this.shown && p.distanceTo(this.pos) < 2.2; }
@@ -343,7 +344,7 @@ export class Pickup extends Entity {
     if (this.kind !== 'graft') {
       this.object.position.set(this.pos.x, this.pos.y + Math.sin(this.t * 1.7) * 0.06, this.pos.z);
       this.object.rotation.y += dt * 0.6;
-      if (this.light) this.light.position.copy(this.pos);
+      if (this.light) this.light.position.copy(this.pos).y += 0.3;
     }
   }
   // Back where it started. The director hides it again when the player already has it (the Graft,

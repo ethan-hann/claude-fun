@@ -14,7 +14,7 @@ export const steps = [
   s('grow_a', `const a=T.lat('c_a').position(); T.lookAt(a.x,a.y-0.3,a.z); T.step(0.1); T.tap('give'); T.step(1.4); return {lvl:T.lat('c_a').level, s:T.state()};`, true),
   s('drop_b', `const a=T.lat('c_a').position(); T.lookAt(a.x, a.y+1.0, a.z-0.6); T.step(0.4); T.tap('use'); T.step(1.2); return {b:LP('c_b'), s:T.state()};`),
   s('grow_b', `const b=T.lat('c_b').position(); T.lookAt(b.x,b.y,b.z); T.step(0.1); T.tap('give'); T.step(1.2); return {lvl:T.lat('c_b').level, b:LP('c_b'), s:T.state()};`),
-  s('mount_b', `const b=T.lat('c_b').position(); const r=T.runJump(b.x, b.z, 0.05, 0.45); T.step(0.3); return {r, s:T.state()};`),
+  s('mount_b', `const b=T.lat('c_b').position(); const r=T.runJump(b.x, b.z, 0.0, 0.2); T.step(0.3); return {r, s:T.state()};`),
   s('onto_wall', `const w=L(0,4.3,-11.9); const r=T.runJump(w.x, w.z, 0.1, 0.6); return {r:P()};`, true),
   s('walk_wall', `const a=L(3.0,4.3,-11.8); T.walkTo(a.x,a.z,{tol:0.3}); const b=L(7.1,4.3,-14.6); T.walkTo(b.x,b.z,{tol:0.3}); const c=L(7.3,4.3,-20); const r=T.walkTo(c.x,c.z,{tol:0.3}); return {r, p:P()};`, true),
   s('onto_p', `const w=L(4.5,4.3,-20); const r=T.runJump(w.x, w.z, 0.2, 0.7); return {r:P()};`),

@@ -93,6 +93,7 @@ The scripted playthroughs in `tests/` drive the game's real input in headless Ch
 
 ```
 node tools/play.mjs tests/island_a.mjs out/ "manual" 1280 720
+tools/run_all.sh out/        # every playthrough, each checked for reaching its bloom (or the credits)
 ```
 
 ### Credits
