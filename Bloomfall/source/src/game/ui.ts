@@ -29,6 +29,7 @@ export interface MenuHandlers {
   onResetIsland(): void;
   onQuit(): void;
   onSettings(s: Settings): void;
+  onChapter(i: number): void;
 }
 
 function el(tag: string, attrs: Record<string, string> = {}, html = ''): HTMLElement {
@@ -232,6 +233,7 @@ export class UI {
         <div class="sub">The city made room from nothing, until it could not stop.</div>
         <button class="btn" data-a="continue">Continue</button>
         <button class="btn" data-a="new">New journey</button>
+        <button class="btn" data-a="chapters">Chapters</button>
         <button class="btn" data-a="settings">Settings</button>
         <button class="btn" data-a="controls">Controls</button>
         <div class="hint">A first-person puzzle game. Headphones help.</div>
@@ -291,7 +293,15 @@ export class UI {
         <div class="stats later" id="end-stats"></div>
         <button class="btn later" data-a="quit">Return to the title</button>
       </div>`);
-    for (const s of [title, pause, settings, controls, credits]) {
+    const chapters = el('div', { class: 'screen', id: 'chapters' }, `
+      <div class="shade"></div>
+      <div class="panel">
+        <h2>Chapters</h2>
+        <div class="stats">Replay any island you have reached.</div>
+        <div id="chapter-list"></div>
+        <button class="btn" data-a="back" style="margin-top:1.2em">Back</button>
+      </div>`);
+    for (const s of [title, pause, settings, controls, credits, chapters]) {
       document.body.appendChild(s);
       this.screens[s.id] = s;
     }
@@ -311,6 +321,8 @@ export class UI {
         case 'quit': this.handlers.onQuit(); break;
         case 'settings': this.syncSettings(); show('settings'); break;
         case 'controls': show('controls'); break;
+        case 'chapters': show('chapters'); break;
+        case 'chapter': this.handlers.onChapter(Number((e.target as HTMLElement).closest('[data-i]')!.getAttribute('data-i'))); break;
         case 'back': show(back); break;
       }
     };
@@ -356,6 +368,13 @@ export class UI {
     (root.querySelector('#set-music') as HTMLInputElement).value = String(s.music);
     (root.querySelector('#set-invert') as HTMLElement).textContent = s.invertY ? 'On' : 'Off';
     root.querySelector('#set-invert')!.classList.toggle('on', s.invertY);
+  }
+
+  setChapters(list: { numeral: string; name: string; enabled: boolean }[]): void {
+    const box = this.screens.chapters.querySelector('#chapter-list') as HTMLElement;
+    box.innerHTML = list.map((c, i) => `<button class="btn" data-a="chapter" data-i="${i}" ${c.enabled ? '' : 'disabled'}>` +
+      `<span class="num">${c.numeral}</span> ${c.enabled ? c.name : '&#8212;'}</button>`).join('');
+    (this.screens.title.querySelector('[data-a="chapters"]') as HTMLButtonElement).style.display = list.filter((c) => c.enabled).length > 1 ? '' : 'none';
   }
 
   setTitleContinue(enabled: boolean, label = 'Continue'): void {

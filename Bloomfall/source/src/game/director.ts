@@ -21,9 +21,12 @@ import world from '../../shared/world.json';
 export interface IslandPlan { key: string; origin: [number, number, number]; capacity: number; infinite?: boolean }
 
 const SAVE_KEY = 'bloomfall.save.v1';
+const TITLE_A = new THREE.Vector3(-60, 26, -70);
+const TITLE_B = new THREE.Vector3(-50, 21, -90);
+const TITLE_LOOK = new THREE.Vector3(20, 10, -190);
 const SETTINGS_KEY = 'bloomfall.settings.v1';
 
-interface SaveData { island: number; seeds: string[]; time: number; resets: number; falls: number; done?: boolean }
+interface SaveData { island: number; reached?: number; seeds: string[]; time: number; resets: number; falls: number; done?: boolean }
 
 function loadJSON<T>(key: string): T | null {
   try { const s = localStorage.getItem(key); return s ? (JSON.parse(s) as T) : null; } catch { return null; }
@@ -124,6 +127,12 @@ export class Director {
       onResetIsland: () => { this.resume(); this.resetIsland(); },
       onQuit: () => this.toTitle(),
       onSettings: (s) => this.applySettings(s),
+      onChapter: (i) => {
+        if (i === 0) return this.newGame();
+        this.save.island = i;
+        saveJSON(SAVE_KEY, this.save);
+        this.startAt(i, false);
+      },
     };
     this.applySettings(this.settings);
     window.addEventListener('keydown', (e) => {
@@ -151,13 +160,15 @@ export class Director {
     const s = loadJSON<SaveData>(SAVE_KEY);
     const label = s && s.island > 0 ? `Continue: ${CHAPTERS[this.plan[s.island]?.key]?.name ?? ''}` : 'Continue';
     this.ui.setTitleContinue(has, label);
+    const reached = Math.max(s?.reached ?? 0, s?.island ?? 0);
+    this.ui.setChapters(this.plan.map((p, i) => ({ numeral: CHAPTERS[p.key]?.numeral ?? '', name: CHAPTERS[p.key]?.name ?? p.key, enabled: i <= reached })));
     this.ui.showScreen('title');
     this.game.paused = true;
     this.titleT = 0;
   }
 
   newGame(): void {
-    this.save = { island: 0, seeds: [], time: 0, resets: 0, falls: 0 };
+    this.save = { island: 0, reached: Math.max(this.save.reached ?? 0, this.save.island ?? 0), seeds: this.save.seeds ?? [], time: 0, resets: 0, falls: 0 };
     saveJSON(SAVE_KEY, this.save);
     this.startAt(0, true);
   }
@@ -424,6 +435,7 @@ export class Director {
     this.index = i;
     g.current = g.islands[i];
     this.save.island = i;
+    this.save.reached = Math.max(this.save.reached ?? 0, i);
     // lattice stays with its island
     const held = g.graft.held;
     if (held && g.islands[prev].lattices.includes(held)) {
@@ -458,11 +470,16 @@ export class Director {
     });
     if (this.state === 'title') {
       this.titleT += dt;
-      const t = this.titleT * 0.05;
+      // a slow drift past the island chain, the sunset to the left and the Heart far ahead
+      const k = 0.5 - 0.5 * Math.cos(this.titleT * 0.035);
+      const shot = (window as any).__titleCam as number[] | undefined;
+      const a = shot ? new THREE.Vector3(shot[0], shot[1], shot[2]) : TITLE_A;
+      const b = shot ? new THREE.Vector3(shot[0], shot[1], shot[2]) : TITLE_B;
+      const look = shot ? new THREE.Vector3(shot[3], shot[4], shot[5]) : TITLE_LOOK;
       const c = g.r.camera;
-      c.position.set(Math.sin(t) * 55 + 10, 14 + Math.sin(t * 0.7) * 3, Math.cos(t) * 45 - 10);
-      c.lookAt(0, 0, -12);
-      g.r.focus.copy(c.position);
+      c.position.lerpVectors(a, b, k);
+      c.lookAt(look);
+      g.r.focus.copy(c.position).add(new THREE.Vector3(0, -8, -30));
       this.vm.show(false);
       return;
     }
