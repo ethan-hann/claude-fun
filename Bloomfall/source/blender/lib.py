@@ -14,7 +14,9 @@ import math
 import os
 import random
 import time
+import inspect
 from mathutils import Vector, Matrix, Euler
+from mathutils.bvhtree import BVHTree
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WORLD = json.load(open(os.path.join(ROOT, 'shared', 'world.json')))
@@ -105,6 +107,13 @@ class Island:
         return f'{base}_{self._n}'
 
     def _link(self, obj, mat, lm_weight=1.0):
+        # remember which line of the island script (or arch.py) made this piece, for warnings
+        for fr in inspect.stack()[1:]:
+            fn = os.path.basename(fr.filename)
+            if fn != 'lib.py':
+                obj['src'] = f'{fn}:{fr.lineno}'
+                if 'islands' in fr.filename:
+                    break
         bpy.context.scene.collection.objects.link(obj)
         obj.data.materials.append(get_material(mat))
         obj['lm_weight'] = lm_weight
@@ -528,6 +537,88 @@ def _uv_area(me, layer):
     return total
 
 
+def remove_hidden_faces(objs, label=''):
+    """Delete faces buried inside other solids (floor bottoms on rock, wall tops under a terrace...).
+    They are never seen, but they take lightmap space. A face goes when every sample point 1 cm in
+    front of it lies inside another object (nearest surface of that object faces away from it).
+    Also warns about visible coplanar faces from different objects: they z-fight and bake black."""
+    t0 = time.time()
+    solids = []
+    verts, polys, owner = [], [], []
+    for oi, o in enumerate(objs):
+        mw = o.matrix_world
+        wv = [mw @ v.co for v in o.data.vertices]
+        pl = [list(p.vertices) for p in o.data.polygons]
+        if not wv or not pl:
+            solids.append(None)
+            continue
+        lo = Vector((min(v.x for v in wv), min(v.y for v in wv), min(v.z for v in wv))) - Vector((0.02, 0.02, 0.02))
+        hi = Vector((max(v.x for v in wv), max(v.y for v in wv), max(v.z for v in wv))) + Vector((0.02, 0.02, 0.02))
+        solids.append((BVHTree.FromPolygons(wv, pl, all_triangles=False, epsilon=0.0), lo, hi))
+        base = len(verts)
+        verts.extend(wv)
+        for p in o.data.polygons:
+            polys.append([base + i for i in p.vertices])
+            owner.append(oi)
+    everything = BVHTree.FromPolygons(verts, polys, all_triangles=False, epsilon=0.0)
+
+    def inside_other(q, oi):
+        for k, sol in enumerate(solids):
+            if k == oi or sol is None:
+                continue
+            bvh, lo, hi = sol
+            if not (lo.x <= q.x <= hi.x and lo.y <= q.y <= hi.y and lo.z <= q.z <= hi.z):
+                continue
+            co, hn, idx, dist = bvh.find_nearest(q)
+            if co is not None and dist > 1e-5 and (q - co).dot(hn) < 0:
+                return True
+        return False
+
+    removed = 0
+    warned = set()
+    for oi, o in enumerate(objs):
+        if o.get('keep_uv') or solids[oi] is None:
+            continue  # props keep their authored topology
+        me = o.data
+        mw = o.matrix_world
+        nm = mw.to_3x3().inverted().transposed()
+        doomed = []
+        for p in me.polygons:
+            n = (nm @ p.normal).normalized()
+            c = mw @ p.center
+            samples = [c]
+            if p.area * abs(mw.determinant()) ** (2 / 3) > 0.04:
+                samples += [c.lerp(mw @ me.vertices[vi].co, 0.8) for vi in p.vertices]
+            if all(inside_other(sp + n * 0.01, oi) for sp in samples):
+                doomed.append(p.index)
+                continue
+            # a visible face lying on another object's face z-fights and bakes black
+            if p.area * abs(mw.determinant()) ** (2 / 3) < 0.02:
+                continue
+            for (co, hn, hi, dist) in everything.find_nearest_range(c, 0.0015):
+                if hi is None:
+                    continue
+                ooi = owner[hi]
+                if ooi != oi and hn.dot(n) > 0.98:
+                    key = (min(oi, ooi), max(oi, ooi))
+                    if key not in warned:
+                        warned.add(key)
+                        g = (round(c.x, 2), round(c.z, 2), round(-c.y, 2))
+                        print(f'[{label}] WARNING coplanar visible faces: {o.get("src", o.name)} and {objs[ooi].get("src", objs[ooi].name)} at game {g}, normal {(round(n.x, 2), round(n.z, 2), round(-n.y, 2))}')
+        if doomed:
+            bm = bmesh.new()
+            bm.from_mesh(me)
+            bm.faces.ensure_lookup_table()
+            bmesh.ops.delete(bm, geom=[bm.faces[i] for i in doomed], context='FACES_ONLY')
+            loose = [v for v in bm.verts if not v.link_faces]
+            bmesh.ops.delete(bm, geom=loose, context='VERTS')
+            bm.to_mesh(me)
+            bm.free()
+            me.update()
+            removed += len(doomed)
+    print(f'[{label}] removed {removed} hidden faces in {time.time() - t0:.1f}s')
+
+
 def join_static(island, margin=0.004):
     """Apply modifiers, make texture UVs and lightmap UVs, and join everything into one mesh.
     Lightmap UVs: rock is unwrapped before its displacement (so islands stay whole), props reuse
@@ -550,6 +641,7 @@ def join_static(island, margin=0.004):
     if rock:
         _smart_project(rock, margin)
     apply_modifiers(objs)
+    remove_hidden_faces(objs, island.key)
     arch = []
     for o in objs:
         me = o.data

@@ -24,6 +24,7 @@ function loading(): { set(p: number, s: string): void; done(): void } {
 
 async function boot(): Promise<void> {
   if (params.has('view')) return runViewer(params);
+  if (params.has('lmdebug')) (window as any).__lmDebug = +params.get('lmdebug')!;
   const load = loading();
   load.set(0.1, 'Waking the city');
   const game = new Game();

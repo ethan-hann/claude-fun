@@ -385,6 +385,13 @@ export class Audio {
     chord.forEach((s, i) => this.bell(this.midi(this.root + 12 + s), 3, 0.06, null, i * 0.09, this.musicBus));
   }
 
+  // The bloom flower opening: a slow rising arpeggio with a metallic shimmer.
+  bloomOpen(p: THREE.Vector3): void {
+    [0, 7, 12, 16, 19].forEach((s, i) => this.bell(this.midi(this.root + 12 + s), 2.6, 0.05, p, i * 0.22));
+    this.noiseBurst(1.8, 0.05, p, 3200, 5200, 'bandpass', 4, 0, 0.5);
+    this.tone(this.midi(this.root), 2.5, 'sine', 0.05, p, { attack: 0.8, rev: 0.5 });
+  }
+
   memory(): void {
     [0, 3, 7, 10, 14].forEach((s, i) => this.bell(this.midi(this.root + 24 + s), 3.5, 0.045, null, i * 0.18, this.musicBus));
   }

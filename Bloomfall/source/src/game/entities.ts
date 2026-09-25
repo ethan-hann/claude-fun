@@ -6,6 +6,7 @@ import type { Player, Platform } from './player';
 import type { EntityRec } from '../engine/assets';
 import { buildSurfaceMaterial, TextureSet } from '../engine/materials';
 import { DYNAMIC_LAYER } from '../engine/dynshadow';
+import type { LightPool, LightSource } from '../engine/lightpool';
 
 export interface EntityContext {
   phys: Physics;
@@ -16,6 +17,7 @@ export interface EntityContext {
   sets: Record<string, TextureSet>;
   emit: (event: string, data?: any) => void;
   origin: THREE.Vector3;
+  lights?: LightPool;
 }
 
 export abstract class Entity {
@@ -274,6 +276,8 @@ export class Zone extends Entity {
   center: THREE.Vector3;
   radius: number;
   height: number;
+  box: [number, number] | null; // half extents in x and z; a cylinder when null
+  grounded: boolean; // only counts while the player stands on something
   fired = false;
   inside = false;
   constructor(rec: EntityRec, ctx: EntityContext) {
@@ -281,13 +285,16 @@ export class Zone extends Entity {
     this.center = v3(rec.p).add(ctx.origin);
     this.radius = rec.r ?? 2;
     this.height = rec.h ?? 4;
+    this.box = rec.size ? [rec.size[0] / 2, rec.size[1] / 2] : null;
+    this.grounded = !!rec.grounded;
   }
   contains(p: THREE.Vector3): boolean {
     const dx = p.x - this.center.x, dz = p.z - this.center.z;
-    return dx * dx + dz * dz <= this.radius * this.radius && p.y >= this.center.y - 1 && p.y <= this.center.y + this.height;
+    const flat = this.box ? Math.abs(dx) <= this.box[0] && Math.abs(dz) <= this.box[1] : dx * dx + dz * dz <= this.radius * this.radius;
+    return flat && p.y >= this.center.y - (this.box ? 0.25 : 1) && p.y <= this.center.y + this.height;
   }
   fixedUpdate(_dt: number, ctx: EntityContext): void {
-    const inside = this.contains(ctx.player.feet);
+    const inside = this.contains(ctx.player.feet) && (!this.grounded || ctx.player.grounded);
     if (inside && !this.inside) ctx.emit('zone-enter', this);
     if (!inside && this.inside) ctx.emit('zone-exit', this);
     this.inside = inside;
@@ -305,7 +312,8 @@ export class Pickup extends Entity {
   object: THREE.Object3D;
   kind: string;
   private t = Math.random() * 10;
-  private light: THREE.PointLight | null = null;
+  private light: LightSource | null = null;
+  private shown = true;
   constructor(rec: EntityRec, ctx: EntityContext, object: THREE.Object3D) {
     super(rec);
     this.kind = rec.type;
@@ -313,19 +321,21 @@ export class Pickup extends Entity {
     this.object = object;
     object.position.copy(this.pos);
     ctx.scene.add(dyn(object));
-    if (rec.type === 'seed' || rec.type === 'upgrade') {
-      this.light = new THREE.PointLight(rec.type === 'seed' ? 0x9fffc8 : 0x7fe3ff, 2.2, 5, 2);
-      this.light.position.copy(this.pos);
-      ctx.scene.add(this.light);
+    if ((rec.type === 'seed' || rec.type === 'upgrade') && ctx.lights) {
+      this.light = ctx.lights.add(this.pos, new THREE.Color(rec.type === 'seed' ? 0x9fffc8 : 0x7fe3ff), 2.2, 5);
     }
   }
-  near(p: THREE.Vector3): boolean { return !this.taken && p.distanceTo(this.pos) < 2.2; }
+  near(p: THREE.Vector3): boolean { return !this.taken && this.shown && p.distanceTo(this.pos) < 2.2; }
   take(ctx: EntityContext): void {
     if (this.taken) return;
     this.taken = true;
-    this.object.visible = false;
-    if (this.light) this.light.visible = false;
+    this.setVisible(false);
     ctx.emit('pickup', this);
+  }
+  setVisible(v: boolean): void {
+    this.shown = v;
+    this.object.visible = v && !this.taken;
+    if (this.light) this.light.intensity = v && !this.taken ? 2.2 : 0;
   }
   frameUpdate(dt: number): void {
     this.t += dt;

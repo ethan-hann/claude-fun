@@ -98,6 +98,7 @@ interface GrowAnim { t: number; dur: number; fromSize: number; toSize: number; f
 
 export class FreeLattice extends Lattice {
   spawnPos: THREE.Vector3;
+  readonly authoredPos: THREE.Vector3;
   spawnRot: THREE.Quaternion;
   size: number; // current edge / diameter
   held = false;
@@ -111,6 +112,7 @@ export class FreeLattice extends Lattice {
   constructor(phys: Physics, vis: LatticeVisualFactory, id: string, kind: 'crate' | 'orb', pos: THREE.Vector3, level: number, rotY = 0) {
     super(phys, vis, id, kind, level, 2, kind === 'crate' ? vis.crate() : vis.orb());
     this.spawnPos = pos.clone();
+    this.authoredPos = pos.clone();
     this.spawnRot = new THREE.Quaternion().setFromAxisAngle(UP, rotY);
     this.size = FREE_SIZES[level];
     const R = phys.R;

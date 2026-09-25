@@ -52,7 +52,8 @@ export const MATERIAL_TUNING: Record<string, { tint?: number; rough?: number; me
   rust: { normal: 1.0 },
   lattice: { metal: 1.0, rough: 0.9, normal: 1.0 },
   steel: { metal: 1.0, rough: 1.0 },
-  plates: { metal: 1.0, rough: 1.0 },
+  plates: { metal: 1.0, rough: 1.25 },
+  crate_panel: { metal: 1.0, rough: 1.7, tint: 0xa9aeb8 },
   screen: { metal: 1.0, rough: 1.0, alphaTest: 0.5 },
 };
 

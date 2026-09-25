@@ -82,7 +82,8 @@ export class LatticeVisuals implements LatticeVisualFactory {
       }
       let mat = cache.get(mn);
       if (!mat) {
-        mat = buildSurfaceMaterial(mn, this.sets[mn] ?? this.set, { skyVis: { value: 1 }, uvScale });
+        // crate panels get their own tuning: darker and rougher than the architectural plates
+        mat = buildSurfaceMaterial(mn === 'plates' ? 'crate_panel' : mn, this.sets[mn] ?? this.set, { skyVis: { value: 1 }, uvScale });
         cache.set(mn, mat);
       }
       mesh.material = mat;

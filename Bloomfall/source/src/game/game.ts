@@ -1,6 +1,7 @@
 import RAPIER from '@dimforge/rapier3d-compat';
 import * as THREE from 'three';
 import { Renderer, Quality } from '../engine/renderer';
+import type { LightSource } from '../engine/lightpool';
 import { loadIslandVisual, loadModel } from '../engine/level';
 import { levelData, EntityRec } from '../engine/assets';
 import { textureSet, TextureSet, fogUniforms, buildSurfaceMaterial } from '../engine/materials';
@@ -15,6 +16,19 @@ import { Entity, EntityContext, Plate, Door, Zone, Pickup } from './entities';
 export const STEP = 1 / 60;
 
 export interface IslandDef { key: string; origin: [number, number, number] }
+
+interface Chunk {
+  node: THREE.Object3D | null;
+  body: RAPIER.RigidBody;
+  lattices: Lattice[];
+  entities: Entity[];
+  fall: { t: number; v: THREE.Vector3; w: THREE.Vector3 } | null;
+  home: THREE.Vector3;
+  homeQ: THREE.Quaternion;
+  bounds: THREE.Box3; // world bounds at rest
+}
+
+const FAR = new THREE.Vector3(0, -5000, 0);
 
 export class Island {
   key: string;
@@ -36,8 +50,8 @@ export class Island {
   private driftT = -1;
   private driftDir = new THREE.Vector3();
   private phys: Physics | null = null;
-  lights: THREE.PointLight[] = [];
-  chunks = new Map<string, { node: THREE.Object3D | null; body: RAPIER.RigidBody; lattices: Lattice[]; entities: Entity[]; fall: { t: number; v: THREE.Vector3; w: THREE.Vector3 } | null; home: THREE.Vector3; homeQ: THREE.Quaternion }>();
+  lights: { src: LightSource; base: number }[] = [];
+  chunks = new Map<string, Chunk>();
   constructor(def: IslandDef) {
     this.key = def.key;
     this.origin = new THREE.Vector3(...def.origin);
@@ -48,11 +62,10 @@ export class Island {
     this.attached = v;
     this.driftT = -1;
     if (this.group) { this.group.visible = v; this.group.position.copy(this.origin); }
-    const far = new THREE.Vector3(0, -5000, 0);
-    for (const c of this.chunks.values()) c.body.setTranslation(v ? this.origin : far, true);
-    for (const l of this.lattices) { l.object.visible = v; if (!v) l.body.setTranslation(far, false); }
+    for (const c of this.chunks.values()) c.body.setTranslation(v ? this.origin : FAR, true);
+    for (const l of this.lattices) { l.object.visible = v; l.disabled = !v; if (!v) l.body.setTranslation(FAR, false); }
     for (const e of this.entities) (e as any).setVisible?.(v);
-    for (const l of this.lights) l.visible = v;
+    for (const l of this.lights) l.src.intensity = v ? l.base : 0;
   }
   resetState(): void {
     this.graftTaken = false;
@@ -69,9 +82,18 @@ export class Island {
     if (!c) return;
     c.fall = null;
     if (c.node) { c.node.position.copy(c.home); c.node.quaternion.copy(c.homeQ); c.node.visible = true; }
-    c.body.setTranslation(this.origin, true);
+    c.body.setTranslation(this.attached ? this.origin : FAR, true);
     c.body.setRotation({ x: 0, y: 0, z: 0, w: 1 }, true);
-    for (const l of c.lattices) { l.object.visible = true; l.disabled = false; }
+    for (const l of c.lattices) {
+      l.object.visible = this.attached;
+      l.disabled = !this.attached;
+      if (l.free) (l as FreeLattice).spawnPos.copy((l as FreeLattice).authoredPos);
+    }
+    for (const e of c.entities) (e as any).setVisible?.(this.attached);
+  }
+  // Where free lattice carried off a fallen chunk returns to if it later falls.
+  rescuePoint(): THREE.Vector3 {
+    return this.spawn.clone().add(new THREE.Vector3(Math.sin(this.spawnYaw - 0.6), 0.6, -Math.cos(this.spawnYaw - 0.6)).multiplyScalar(1.6));
   }
   updateChunks(dt: number, onGone?: (name: string) => void): void {
     for (const [name, c] of this.chunks) {
@@ -94,8 +116,17 @@ export class Island {
       const t = c.body.translation();
       if (f.t < 2.4) c.body.setTranslation({ x: t.x + drop.x, y: t.y + drop.y, z: t.z + drop.z }, true);
       else if (t.y > -4000) {
-        c.body.setTranslation({ x: 0, y: -5000, z: 0 }, true);
-        for (const l of c.lattices) { l.object.visible = false; l.disabled = true; l.body.setTranslation({ x: 0, y: -5000, z: 0 }, false); }
+        c.body.setTranslation(FAR, true);
+        for (const l of c.lattices) {
+          // lattice the player carried off the chunk stays; it now belongs to the rest of the island
+          if (l.free) {
+            const fl = l as FreeLattice;
+            const p = fl.position();
+            const aboard = p.x > c.bounds.min.x && p.x < c.bounds.max.x && p.z > c.bounds.min.z && p.z < c.bounds.max.z;
+            if (fl.held || !aboard) { fl.spawnPos.copy(this.rescuePoint()); continue; }
+          }
+          l.object.visible = false; l.disabled = true; l.body.setTranslation(FAR, false);
+        }
         for (const e of c.entities) (e as any).setVisible?.(false);
         onGone?.(name);
       }
@@ -113,12 +144,11 @@ export class Island {
     this.driftT = 0;
     this.driftDir.set(Math.random() - 0.5, -0.35, 0.8).normalize();
     // the city takes back what the island held
-    const far = new THREE.Vector3(0, -5000, 0);
-    for (const c of this.chunks.values()) c.body.setTranslation(far, true);
-    for (const l of this.lattices) { l.body.setTranslation(far, false); }
+    for (const c of this.chunks.values()) c.body.setTranslation(FAR, true);
+    for (const l of this.lattices) { l.body.setTranslation(FAR, false); l.disabled = true; }
     for (const e of this.entities) (e as any).setVisible?.(false);
     for (const l of this.lattices) l.object.visible = false;
-    for (const l of this.lights) l.visible = false;
+    for (const l of this.lights) l.src.intensity = 0;
   }
   updateDrift(dt: number): void {
     if (this.driftT < 0 || !this.group) return;
@@ -150,7 +180,6 @@ export class Game {
   running = false;
   paused = false;
   listeners: ((ev: string, data?: any) => void)[] = [];
-  private lights: THREE.PointLight[] = [];
 
   async init(defs: IslandDef[], quality: Quality = 'high'): Promise<void> {
     this.r = new Renderer();
@@ -172,7 +201,7 @@ export class Game {
     this.graft = new Graft(this.phys);
     this.ctx = {
       phys: this.phys, scene: this.r.scene, player: this.player, lattices: this.lattices, entities: this.entities,
-      sets: this.sets, emit: (e, d) => this.emit(e, d), origin: new THREE.Vector3(),
+      sets: this.sets, emit: (e, d) => this.emit(e, d), origin: new THREE.Vector3(), lights: this.r.lights,
     };
     for (const d of defs) {
       const isl = new Island(d);
@@ -198,7 +227,11 @@ export class Game {
     const bodies = this.phys.addStatic(data.colliders, isl.origin);
     for (const [name, b] of bodies) {
       const node = name === 'main' ? null : vis.chunks.get(name) ?? null;
-      isl.chunks.set(name, { node, body: b.body, lattices: [], entities: [], fall: null, home: node ? node.position.clone() : new THREE.Vector3(), homeQ: node ? node.quaternion.clone() : new THREE.Quaternion() });
+      isl.chunks.set(name, {
+        node, body: b.body, lattices: [], entities: [], fall: null,
+        home: node ? node.position.clone() : new THREE.Vector3(), homeQ: node ? node.quaternion.clone() : new THREE.Quaternion(),
+        bounds: node ? new THREE.Box3().setFromObject(node) : new THREE.Box3(),
+      });
       isl.colliders.push(...b.colliders);
     }
     isl.staticBody = bodies.get('main')!.body;
@@ -285,11 +318,8 @@ export class Game {
         break;
       }
       case 'light': {
-        const l = new THREE.PointLight(new THREE.Color(rec.color[0], rec.color[1], rec.color[2]), rec.intensity, rec.range || 12, 2);
-        l.position.copy(v3(rec.p).add(o));
-        scene.add(l);
-        this.lights.push(l);
-        isl.lights.push(l);
+        const src = this.r.lights.add(v3(rec.p).add(o), new THREE.Color(rec.color[0], rec.color[1], rec.color[2]), rec.intensity, rec.range || 12);
+        isl.lights.push({ src, base: rec.intensity });
         break;
       }
       case 'bloom':

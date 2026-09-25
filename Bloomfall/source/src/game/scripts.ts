@@ -18,22 +18,27 @@ export interface IslandScript {
 export function islandScripts(d: Director): Record<string, IslandScript> {
   // Island II: the garden breaks away once the player stands on the terrace.
   let bFallen = false;
-  const bSpawn = { set: false, p: null as any, yaw: 0 };
+  let bSpawn: { p: any; yaw: number } | null = null;
+  const bIsland = () => d.game.islands.find((i) => i.key === 'b_terraces')!;
   return {
     b_terraces: {
-      reset() { bFallen = false; },
+      reset() {
+        bFallen = false;
+        if (bSpawn) { bIsland().spawn.copy(bSpawn.p); bIsland().spawnYaw = bSpawn.yaw; }
+      },
       zone(id) {
         if (id !== 'z_top' || bFallen) return;
         bFallen = true;
-        const isl = d.game.islands.find((i) => i.key === 'b_terraces')!;
-        if (!bSpawn.set) { bSpawn.set = true; bSpawn.p = isl.spawn.clone(); bSpawn.yaw = isl.spawnYaw; }
+        const isl = bIsland();
+        if (!bSpawn) bSpawn = { p: isl.spawn.clone(), yaw: isl.spawnYaw };
         setTimeout(() => {
-          isl.detachChunk('garden');
-          d.audio.rumble(isl.origin.clone().add(new (isl.origin.constructor as any)(0, 0, 0)), 6, 0.7);
-          d.echoOnce('b_fall', 2.0);
+          if (!bFallen) return;
           isl.spawn.set(isl.origin.x, isl.origin.y + 4.3, isl.origin.z - 14.2);
           isl.spawnYaw = 0;
-        }, 900);
+          isl.detachChunk('garden');
+          d.audio.rumble(isl.origin.clone().add(new (isl.origin.constructor as any)(0, 0, 3)), 6, 0.7);
+          d.echoOnce('b_fall', 2.0);
+        }, 700);
       },
       hints: () => bFallen ? [
         'The plate holds the gate open. The medium crate is heavy enough to hold it.',

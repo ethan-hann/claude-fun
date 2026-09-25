@@ -53,9 +53,9 @@ def build(b):
             b.box((x, 0.03, z), (1.1, 0.06, 1.1), mat='steel', bevel=0.01, collide=False)
 
     # ---------------------------------------------------------------- the retaining wall and terrace
-    b.box((0.0, (WALL - 0.1) / 2, -12.4), (21.6, WALL - 0.1, 1.2), mat='marble', bevel=0.05)  # retaining wall
-    b.box((0.0, WALL - 0.05, -12.4), (21.8, 0.1, 1.3), mat='marble', bevel=0.02)
-    upper = [(-10.8, -11.8), (10.8, -11.8), (10.8, -24.0), (8.0, -34.5), (-8.0, -34.5), (-10.8, -24.0)]
+    b.box((0.0, (WALL - 0.1) / 2, -12.4), (21.9, WALL - 0.1, 1.2), mat='marble', bevel=0.05)  # retaining wall
+    b.box((0.0, WALL - 0.03, -12.42), (22.1, 0.14, 1.36), mat='marble', bevel=0.02)  # coping, 4 cm proud of the floor
+    upper = [(-10.8, -12.2), (10.8, -12.2), (10.8, -24.0), (8.0, -34.5), (-8.0, -34.5), (-10.8, -24.0)]
     b.poly_prism(upper, -1.0, WALL - 0.1, mat='wall', bevel=0.04)
     b.poly_prism(upper, WALL - 0.1, WALL, mat='paving', bevel=0.01)
     b.underside(upper, -1.0, 20, seed=32)
@@ -66,9 +66,10 @@ def build(b):
     # the screened gate wall across the terrace at z = -20
     G = WALL  # terrace floor height
     arch.wall(b, -10.8, -20.0, 10.8, -20.0, G, G + 4.4, thick=0.8, mat='wall', openings=[(9.2, 12.4, 0.0, 3.6)], cap='marble')
-    b.box((-1.8, G + 1.8, -20.0), (0.4, 3.6, 1.1), mat='plates', bevel=0.03)
-    b.box((1.8, G + 1.8, -20.0), (0.4, 3.6, 1.1), mat='plates', bevel=0.03)
-    b.box((0.0, G + 3.8, -20.0), (4.0, 0.4, 1.1), mat='plates', bevel=0.03)
+    # the gate frame: posts stand 5 cm inside the opening, the lintel just above it
+    b.box((-1.75, G + 1.81, -20.0), (0.4, 3.62, 1.1), mat='plates', bevel=0.03)
+    b.box((1.75, G + 1.81, -20.0), (0.4, 3.62, 1.1), mat='plates', bevel=0.03)
+    b.box((0.0, G + 3.83, -20.0), (4.0, 0.42, 1.1), mat='plates', bevel=0.03)
     b.cyl((-4.0, G + 0.02, -15.4), 1.02, 0.06, mat='steel', segments=48, bevel=0.01, collide=False)  # plate base
     # the yard behind the gate: walls high enough that the garden cannot be seen from it
     arch.wall(b, -10.8, -20.4, -10.8, -24.0, G, G + 4.4, thick=0.8, mat='wall')
@@ -82,7 +83,6 @@ def build(b):
     b.box((0.0, G + 2.34, -27.05), (17.8, 0.08, 0.3), mat='marble', bevel=0.02)
     # the bloom dais on the ledge
     b.cyl((0.0, G + 2.45, -31.0), 2.2, 0.3, mat='marble', segments=48, bevel=0.03)
-    b.cyl((0.0, G + 2.62, -31.0), 1.75, 0.06, mat='steel', segments=48, bevel=0.01, collide=False)
     arch.lamp_post(b, -6.5, -30.0, G + 2.3, power=90.0)
     arch.lamp_post(b, 6.5, -16.0, G, power=90.0)
     # yard detail
@@ -95,7 +95,8 @@ def build(b):
     E('arrive', p=(0.0, 0.0, 17.2))
     E('zone', id='z_arrive', p=(0.0, 0.0, 13.0), r=3.0, echo='b_arrive')
     E('zone', id='z_ride', p=(0.0, 0.0, -8.5), r=4.5, card='ride')
-    E('zone', id='z_top', p=(0.0, G, -15.0), r=7.0, h=3.0)  # reaching the terrace: the garden falls
+    # standing on the terrace, clear of the edge: the garden falls
+    E('zone', id='z_top', p=(0.0, G, -16.4), size=(20.8, 6.4), h=3.0, grounded=True)
     E('zone', id='z_bloom', p=(0.0, G + 2.6, -31.0), r=1.8, bloom=True)
     E('bloom', id='bloom', p=(0.0, G + 2.6, -31.0))
 

@@ -141,7 +141,7 @@ def seed_pod(b, x, z, y, ry=0.0, open_=True, lit=True):
     b.box(local(0, 0.15, 0), (1.3, 0.3, 1.3), mat='steel', bevel=0.05, rot_y=ry)
     b.box(local(0, 1.25, -0.45), (1.2, 2.3, 0.18), mat='plates', bevel=0.04, rot_y=ry)
     for side in (-1, 1):
-        b.box(local(side * 0.58, 1.25, -0.1), (0.14, 2.3, 0.8), mat='plates', bevel=0.04, rot_y=ry)
+        b.box(local(side * 0.57, 1.25, -0.1), (0.14, 2.3, 0.8), mat='plates', bevel=0.04, rot_y=ry)
     b.box(local(0, 2.45, -0.1), (1.3, 0.2, 0.9), mat='steel', bevel=0.05, rot_y=ry)
     b.box(local(0, 0.36, -0.05), (0.9, 0.12, 0.7), mat='lattice', bevel=0.03, rot_y=ry, collide=False)
     if lit:

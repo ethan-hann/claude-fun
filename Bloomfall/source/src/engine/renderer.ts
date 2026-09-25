@@ -6,6 +6,7 @@ import {
 } from 'postprocessing';
 import { N8AOPostPass } from 'n8ao';
 import { Sky, sunDirection, SUN_COLOR, SUN_INTENSITY } from './sky';
+import { LightPool } from './lightpool';
 import { setMaxAnisotropy, fogUniforms } from './materials';
 import { DynamicShadow } from './dynshadow';
 import world from '../../shared/world.json';
@@ -48,6 +49,7 @@ export class Renderer {
   private smaaPass: EffectPass | null = null;
   private renderPass!: RenderPass;
   dynShadow: DynamicShadow;
+  lights: LightPool;
   focus = new THREE.Vector3();
 
   constructor(canvas?: HTMLCanvasElement) {
@@ -75,6 +77,7 @@ export class Renderer {
     this.sun.shadow.normalBias = 0.06;
     this.scene.add(this.sun);
     this.dynShadow = new DynamicShadow(sunDirection(), 2048, 24);
+    this.lights = new LightPool(this.scene, 8);
   }
 
   async init(): Promise<void> {
@@ -163,6 +166,7 @@ export class Renderer {
 
   render(dt: number): void {
     this.sky.update(this.camera);
+    this.lights.update(this.camera.position);
     this.dynShadow.update(this.renderer, this.scene, this.focus, PRESETS[this.quality].shadows);
     this.renderer.toneMappingExposure = this.exposure;
     this.composer.render(dt);

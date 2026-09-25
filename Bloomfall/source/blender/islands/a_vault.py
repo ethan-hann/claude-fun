@@ -48,12 +48,12 @@ def build(b):
     #   exit rm   x -3.5..3.5  z -8..1   (ledge y=2 for z -8..-4, ceiling 5.2)
     T = 0.8
     # pod bay
-    arch.wall(b, -5.3, 27.0, 5.3, 27.0, 0, ROOF, thick=T, mat='wall')  # south wall (z=27)
+    arch.wall(b, -5.26, 27.0, 5.26, 27.0, 0, ROOF - 0.04, thick=T, mat='wall')  # south wall (z=27)
     # west wall of the pod bay has a broken window looking at the sunset: sill 1.45 m
-    arch.wall(b, -4.9, 27.4, -4.9, 17.6, 0, WALL_H, thick=T, mat='wall', openings=[(2.2, 7.4, 1.45, 3.3)])
-    arch.wall(b, 4.9, 27.4, 4.9, 17.6, 0, WALL_H, thick=T, mat='wall')
-    arch.wall(b, -5.3, 18.0, -1.25, 18.0, 0, WALL_H, thick=T, mat='wall')
-    arch.wall(b, 1.25, 18.0, 5.3, 18.0, 0, WALL_H, thick=T, mat='wall')
+    arch.wall(b, -4.9, 27.36, -4.9, 17.64, 0, WALL_H, thick=T, mat='wall', openings=[(2.16, 7.36, 1.45, 3.3)])
+    arch.wall(b, 4.9, 27.36, 4.9, 17.64, 0, WALL_H, thick=T, mat='wall')
+    arch.wall(b, -5.26, 18.0, -1.25, 18.0, 0, WALL_H, thick=T, mat='wall')
+    arch.wall(b, 1.25, 18.0, 5.26, 18.0, 0, WALL_H, thick=T, mat='wall')
     b.box((0, WALL_H + 0.5, 22.5), (10.6, 1.0, 10.2), mat='concrete', bevel=0.05)  # roof slab
     # broken window: jagged edges and rubble outside and inside
     arch.rubble(b, -4.2, 0.0, 22.5, 1.4, 9, seed=3, mat='concrete', max_size=0.55, collide=False)
@@ -79,7 +79,7 @@ def build(b):
     # trench: floor gone, 1 m deep, rough edges
     b.box((0, -1.1, 14.0), (2.5, 0.2, 2.0), mat='rock', bevel=0.05)
     arch.rubble(b, 0.0, -1.0, 14.0, 0.9, 7, seed=8, mat='concrete', max_size=0.45, collide=False)
-    b.box((0, -0.35, 12.85), (2.5, 0.7, 0.3), mat='concrete', bevel=0.08, rot=(0.12, 0.0, 0.0))
+    b.box((0, -0.35, 12.95), (2.5, 0.7, 0.3), mat='concrete', bevel=0.08, rot=(0.12, 0.0, 0.0))
     arch.pipe_run(b, (0.0, 3.35, 17.8), (0.0, 3.35, 10.2), r=0.12)
     for z in (11.0, 16.8):
         b.glow_strip((-1.24, 0.3, z), (0.04, 0.05, 1.2), color='glow_warm')
@@ -87,17 +87,17 @@ def build(b):
     b.point_light((0.0, 3.0, 11.2), color=(1.0, 0.5, 0.22), power=45.0, radius=0.2)
 
     # plate room
-    arch.wall(b, -5.3, 10.0, -1.25, 10.0, 0, WALL_H, thick=T, mat='wall')
-    arch.wall(b, 1.25, 10.0, 5.3, 10.0, 0, WALL_H, thick=T, mat='wall')
-    arch.wall(b, -4.9, 10.4, -4.9, 0.6, 0, WALL_H, thick=T, mat='wall')
-    arch.wall(b, 4.9, 10.4, 4.9, 0.6, 0, WALL_H, thick=T, mat='wall')
+    arch.wall(b, -5.26, 10.0, -1.25, 10.0, 0, WALL_H, thick=T, mat='wall')
+    arch.wall(b, 1.25, 10.0, 5.26, 10.0, 0, WALL_H, thick=T, mat='wall')
+    arch.wall(b, -4.9, 10.36, -4.9, 0.64, 0, WALL_H, thick=T, mat='wall')
+    arch.wall(b, 4.9, 10.36, 4.9, 0.64, 0, WALL_H, thick=T, mat='wall')
     # north wall with the door opening (door 2.4 wide x 3 tall)
-    arch.wall(b, -5.3, 1.0, 5.3, 1.0, 0, WALL_H, thick=T, mat='wall', openings=[(4.1, 6.5, 0.0, 3.0)])
+    arch.wall(b, -5.26, 1.0, 5.26, 1.0, 0, WALL_H, thick=T, mat='wall', openings=[(4.06, 6.46, 0.0, 3.0)])
     b.box((0, WALL_H + 0.5, 5.5), (10.6, 1.0, 9.8), mat='concrete', bevel=0.05)
     # door frame
-    b.box((-1.35, 1.5, 1.0), (0.3, 3.0, 1.0), mat='plates', bevel=0.03)
-    b.box((1.35, 1.5, 1.0), (0.3, 3.0, 1.0), mat='plates', bevel=0.03)
-    b.box((0, 3.15, 1.0), (3.0, 0.3, 1.0), mat='plates', bevel=0.03)
+    b.box((-1.33, 1.5, 1.0), (0.3, 3.0, 1.0), mat='plates', bevel=0.03)
+    b.box((1.33, 1.5, 1.0), (0.3, 3.0, 1.0), mat='plates', bevel=0.03)
+    b.box((0, 3.14, 1.0), (3.0, 0.32, 1.0), mat='plates', bevel=0.03)
     # plate base ring (the moving top is the game's)
     b.cyl((-3.0, 0.02, 7.8), 1.02, 0.06, mat='steel', segments=48, bevel=0.01, collide=False)
     b.glow_strip((0, 3.3, 5.5), (0.1, 0.04, 6.0), color='glow_warm')
@@ -107,22 +107,22 @@ def build(b):
     b.box((3.7, 1.25, 9.2), (0.9, 0.7, 0.9), mat='rust', bevel=0.04, rot_y=0.3)
 
     # exit room: ledge 2 m high along its north side, taller ceiling
-    arch.wall(b, -4.3, 1.0, -4.3, -8.8, 0, 5.2, thick=T, mat='wall')
-    arch.wall(b, 4.3, 1.0, 4.3, -8.8, 0, 5.2, thick=T, mat='wall')
+    arch.wall(b, -4.3, 1.0, -4.3, -8.76, 0, 5.2, thick=T, mat='wall')
+    arch.wall(b, 4.3, 1.0, 4.3, -8.76, 0, 5.2, thick=T, mat='wall')
     b.box((0, 1.1, -6.0), (7.0, 2.2, 4.0), mat='concrete', bevel=0.04)  # ledge block (top y=2.2)
     b.box((0, 2.22, -4.1), (7.0, 0.04, 0.12), mat='steel', bevel=0.0, collide=False)
     # north wall: exit opening on the ledge level
-    arch.wall(b, -4.7, -8.4, 4.7, -8.4, 0, 5.2, thick=T, mat='wall', openings=[(3.4, 6.0, 2.2, 4.8)])
+    arch.wall(b, -4.66, -8.4, 4.66, -8.4, 0, 5.2, thick=T, mat='wall', openings=[(3.36, 5.96, 2.16, 4.8)])
     b.box((0, 5.7, -3.7), (9.4, 1.0, 9.8), mat='concrete', bevel=0.05)
     b.glow_strip((-3.45, 2.3, -6.0), (0.04, 0.05, 3.6), color='glow_cyan')
     b.glow_strip((3.45, 2.3, -6.0), (0.04, 0.05, 3.6), color='glow_cyan')
     b.point_light((0.0, 4.4, -2.0), color=(0.55, 0.8, 1.0), power=55.0, radius=0.3)
 
     # ribbed concrete facade on the bunker's north face, with the exit opening
-    arch.wall(b, -4.9, -8.95, 4.9, -8.95, 0, 6.2, thick=0.3, mat='ribbed', openings=[(3.6, 6.2, 2.2, 4.8)])
+    arch.wall(b, -4.9, -8.95, 4.9, -8.95, 0, 6.2, thick=0.3, mat='ribbed', openings=[(3.6, 6.2, 2.16, 4.8)])
 
     # ---------------------------------------------------------------- landing and stairs
-    b.box((0, 1.1, -10.0), (5.2, 2.2, 3.2), mat='marble', bevel=0.04)  # landing top y=2.2
+    b.box((0, 1.1, -9.8), (5.2, 2.2, 3.6), mat='marble', bevel=0.04)  # landing top y=2.2
     b.balustrade((-2.6, 2.2, -8.6), (-2.6, 2.2, -11.6), height=1.0, mat='marble')
     b.balustrade((2.6, 2.2, -8.6), (2.6, 2.2, -11.6), height=1.0, mat='marble')
     for i in range(11):
@@ -147,7 +147,7 @@ def build(b):
     # the fallen column's missing roof piece (a hole in the east roof) is suggested by rubble
     arch.rubble(b, 10.5, 0.0, -17.2, 1.3, 7, seed=21, mat='marble', max_size=0.5, collide=False)
     # north wall with the arch (bulkhead gate)
-    arch.wall(b, -12.4, -24.0, 12.4, -24.0, 0, 4.4, thick=0.8, mat='wall', openings=[(10.8, 14.0, 0.0, 3.3)], cap='marble')
+    arch.wall(b, -12.36, -24.0, 12.36, -24.0, 0, 4.4, thick=0.8, mat='wall', openings=[(10.76, 13.96, 0.0, 3.3)], cap='marble')
     b.box((-1.75, 1.75, -24.0), (0.4, 3.5, 1.0), mat='marble', bevel=0.03)
     b.box((1.75, 1.75, -24.0), (0.4, 3.5, 1.0), mat='marble', bevel=0.03)
     b.box((0, 3.55, -24.0), (3.9, 0.4, 1.0), mat='marble', bevel=0.03)
@@ -163,7 +163,7 @@ def build(b):
     b.box((-5.1, 2.3, -8.6), (0.8, 4.6, 0.8), mat='wall', bevel=0.04)
     b.box((5.1, 2.3, -8.6), (0.8, 4.6, 0.8), mat='wall', bevel=0.04)
     for side in (-1, 1):
-        b.box((side * 9.1, 2.2, -8.3), (6.6, 4.4, 0.6), mat='wall', bevel=0.04)
+        b.box((side * 9.08, 2.2, -8.3), (6.56, 4.4, 0.6), mat='wall', bevel=0.04)
 
     # ---------------------------------------------------------------- garden walk and terrace
     for side in (-1, 1):
@@ -184,7 +184,6 @@ def build(b):
     b.balustrade((9.3, 2.3, -30.4), (9.3, 2.3, -39.6), mat='marble')
     # the bloom platform at the tip: a round dais with the bridge mount
     b.cyl((0, 2.45, -46.5), 2.4, 0.3, mat='marble', segments=48, bevel=0.03)
-    b.cyl((0, 2.62, -46.5), 1.9, 0.06, mat='steel', segments=48, bevel=0.01, collide=False)
     for side in (-1, 1):
         b.balustrade((side * 9.3, 2.3, -40.4), (side * 5.0, 2.3, -51.2), mat='marble')
     lamp = arch.lamp_post

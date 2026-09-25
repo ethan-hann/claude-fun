@@ -245,10 +245,124 @@ def glove():
     export(objs, 'glove')
 
 
+# ------------------------------------------------------------------------------------------
+# The bloom: a metal flower on each island's exit dais. One petal mesh (hinged at its origin,
+# lying along +X when open) that the game instances six times; a base ring; a glowing core in a
+# cage. The game swings the petals from closed (a bud) to open (flat) and flares the core.
+# ------------------------------------------------------------------------------------------
+
+PETAL_LEN = 1.5
+
+
+def _leaf_outline(length, width, n=18):
+    """Leaf outline in the XY plane, base at x = 0, tip at x = length."""
+    right, left = [], []
+    for i in range(n + 1):
+        t = i / n
+        w = width * 0.5 * math.sin(math.pi * min(1.0, t ** 0.85)) * (1.0 - 0.25 * t)
+        w = max(w, 0.09 if t == 0 else 0.0)
+        right.append((t * length, -w))
+        left.append((t * length, w))
+    pts = right + left[::-1][1:-1]
+    return pts
+
+
+def bloom_petal():
+    bm = bmesh.new()
+    pts = _leaf_outline(PETAL_LEN, 0.56)
+    verts = [bm.verts.new((x + 0.02, y, 0.0)) for x, y in pts]
+    face = bm.faces.new(verts)
+    ext = bmesh.ops.extrude_face_region(bm, geom=[face])
+    top_verts = [e for e in ext['geom'] if isinstance(e, bmesh.types.BMVert)]
+    bmesh.ops.translate(bm, vec=Vector((0, 0, 0.055)), verts=top_verts)
+    bm.faces.ensure_lookup_table()
+    top = [f for f in bm.faces if f.normal.z > 0.9 and f.calc_center_median().z > 0.05][0]
+    # frame, glowing seam, recessed panel (same language as the crates)
+    r1 = bmesh.ops.inset_region(bm, faces=[top], thickness=0.05, depth=0.0)
+    r2 = bmesh.ops.inset_region(bm, faces=[top], thickness=0.016, depth=-0.008)
+    seam = set(r2['faces'])
+    r3 = bmesh.ops.inset_region(bm, faces=[top], thickness=0.006, depth=-0.012)
+    for f in bm.faces:
+        f.material_index = 0
+        f.smooth = False
+    for f in seam:
+        f.material_index = 1
+    top.material_index = 2
+    # cup the blade and curl the tip up
+    for v in bm.verts:
+        t = max(0.0, v.co.x / PETAL_LEN)
+        v.co.z += 0.10 * t * t + 0.16 * (v.co.y / 0.3) ** 2 * math.sin(math.pi * min(1.0, t))
+    obj = new_obj('petal', bm, ['lattice', 'glow_cyan', 'plates'])
+    m = obj.modifiers.new('b', 'BEVEL'); m.width = 0.008; m.segments = 2; m.limit_method = 'ANGLE'
+    m.angle_limit = math.radians(35); m.harden_normals = True
+    apply_mods(obj)
+    box_uvs(obj, 1.0)
+    return obj
+
+
+def bloom():
+    lib.reset_scene()
+    objs = [bloom_petal()]
+    # base ring with six hinge brackets
+    bm = bmesh.new()
+    bmesh.ops.create_cone(bm, cap_ends=True, cap_tris=False, segments=48, radius1=0.95, radius2=0.88, depth=0.14)
+    bmesh.ops.translate(bm, vec=Vector((0, 0, 0.07)), verts=bm.verts)
+    base = new_obj('base', bm, ['steel'])
+    m = base.modifiers.new('b', 'BEVEL'); m.width = 0.015; m.segments = 2; m.limit_method = 'ANGLE'
+    m.angle_limit = math.radians(40); m.harden_normals = True
+    apply_mods(base)
+    box_uvs(base, 1.0)
+    objs.append(base)
+    for k in range(6):
+        a = k / 6 * math.tau
+        br = _box(f'hinge{k}', (0.16, 0.34, 0.12), (math.cos(a) * 0.62, math.sin(a) * 0.62, 0.2), ['plates'], rot=(0, 0, a), bevel=0.012)
+        objs.append(br)
+        pin = _cyl(f'pin{k}', 0.035, 0.035, 0.42, (math.cos(a) * 0.66, math.sin(a) * 0.66, 0.24), (math.radians(90), 0, a + math.pi / 2), ['steel'], segs=12)
+        objs.append(pin)
+    # the socket ring the core sits in
+    objs.append(_cyl('socket', 0.36, 0.3, 0.16, (0, 0, 0.2), (0, 0, 0), ['lattice'], segs=32, bevel=0.01))
+    # glowing core in a cage of ribs
+    bm = bmesh.new()
+    bmesh.ops.create_uvsphere(bm, u_segments=32, v_segments=16, radius=0.2)
+    bmesh.ops.scale(bm, vec=Vector((1, 1, 1.3)), verts=bm.verts)
+    bmesh.ops.translate(bm, vec=Vector((0, 0, 0.5)), verts=bm.verts)
+    for f in bm.faces:
+        f.smooth = True
+    core = new_obj('core', bm, ['glow_white'])
+    box_uvs(core, 1.0)
+    objs.append(core)
+    for k in range(5):
+        a = k / 5 * math.tau
+        bm = bmesh.new()
+        n = 12
+        prev = None
+        ring = []
+        for i in range(n + 1):
+            t = i / n
+            ang = math.pi * t
+            r = 0.27 * math.sin(ang)
+            ring.append(Vector((math.cos(a) * r, math.sin(a) * r, 0.5 - 0.33 * math.cos(ang))))
+        # sweep a small square along the rib
+        for i in range(n):
+            p0, p1 = ring[i], ring[i + 1]
+            d = (p1 - p0)
+            mid = (p0 + p1) / 2
+            geom = bmesh.ops.create_cube(bm, size=1.0)
+            bmesh.ops.scale(bm, vec=Vector((0.022, 0.022, d.length + 0.01)), verts=geom['verts'])
+            rot = d.normalized().to_track_quat('Z', 'Y').to_matrix().to_4x4()
+            bmesh.ops.transform(bm, matrix=rot, verts=geom['verts'])
+            bmesh.ops.translate(bm, vec=mid, verts=geom['verts'])
+        rib = new_obj(f'rib{k}', bm, ['steel'])
+        box_uvs(rib, 0.3)
+        objs.append(rib)
+    export(objs, 'bloom')
+
+
 PROPS = {
     'lattice_crate': lattice_crate,
     'lattice_orb': lattice_orb,
     'glove': glove,
+    'bloom': bloom,
 }
 
 if __name__ == '__main__':

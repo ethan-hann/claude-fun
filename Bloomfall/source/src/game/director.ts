@@ -9,6 +9,8 @@ import { Zone, Pickup, Plate, Door } from './entities';
 import { FreeLattice, Lattice } from './lattice';
 import type { Quality } from '../engine/renderer';
 import { islandScripts, IslandScript } from './scripts';
+import { BloomFlower } from './bloom';
+import { loadModel } from '../engine/level';
 
 export interface IslandPlan { key: string; origin: [number, number, number]; capacity: number; infinite?: boolean }
 
@@ -32,6 +34,7 @@ export class Director {
   plan: IslandPlan[];
   index = 0;
   bridges: (Bridge | null)[] = [];
+  flowers: (BloomFlower | null)[] = [];
   state: 'title' | 'playing' | 'paused' | 'ending' | 'credits' = 'title';
   save: SaveData = { island: 0, seeds: [], time: 0, resets: 0, falls: 0 };
   settings: Settings;
@@ -81,6 +84,15 @@ export class Director {
         br.onSegment = (k, p) => this.audio.bridgeSegment(p, k);
         this.bridges.push(br);
       } else this.bridges.push(null);
+    }
+    // the bloom flower on each island's exit dais (a child of the island, so it drifts with it)
+    const bloomModel = await loadModel('bloom');
+    for (const isl of g.islands) {
+      if (!isl.bloomPoint || !isl.group) { this.flowers.push(null); continue; }
+      const f = new BloomFlower(bloomModel, g.sets, isl.bloomPoint.clone().sub(isl.origin), g.r.lights);
+      f.onOpen = () => this.audio.bloomOpen(isl.bloomPoint!.clone());
+      isl.group.add(f.group);
+      this.flowers.push(f);
     }
     g.listeners.push((ev, d) => this.onEvent(ev, d));
     g.player.onStep = () => this.audio.footstep(g.player.feet.clone(), 'stone', g.player.sprinting);
@@ -149,10 +161,13 @@ export class Director {
     this.firedEchoes.clear();
     this.arrived.clear();
     // islands before i are gone; the rest are in place
+    if (g.graft.held) g.graft.drop(false);
     g.islands.forEach((isl, k) => {
+      for (const l of isl.lattices) { l.disabled = false; l.reset(); }
       isl.setAttached(k >= i);
       isl.resetState();
     });
+    this.flowers.forEach((f) => f?.reset());
     this.bridges.forEach((b, k) => {
       if (!b) return;
       b.dispose();
@@ -161,7 +176,6 @@ export class Director {
       nb.onSegment = (n, p) => this.audio.bridgeSegment(p, n);
       this.bridges[k] = nb;
     });
-    for (const l of g.lattices.values()) { l.disabled = false; l.reset(); }
     for (const e of g.entities.values()) e.reset(g.ctx);
     this.index = i;
     g.current = g.islands[i];
@@ -276,8 +290,10 @@ export class Director {
           move: () => this.moveAccum > 5,
           jump: () => this.game.player.pos.z < this.game.current!.origin.z + 12.4 && this.game.player.grounded,
           step: () => this.game.player.feet.y > this.game.current!.origin.y + 1.9,
+          ride: () => this.game.player.feet.y > this.game.current!.origin.y + 2.9,
         };
-        this.showCard(key, tests[key], key === 'look' ? 0 : 0);
+        // cards without a completion test leave on their own after a while
+        this.showCard(key, tests[key], tests[key] || ['carry', 'take', 'give', 'graft', 'weight'].includes(key) ? 0 : 30);
       }
     }
     if (r.echo) this.echoOnce(r.echo as string, 0.3);
@@ -349,6 +365,7 @@ export class Director {
     const b = this.bridges[this.index];
     if (!b || b.state !== 'folded') return;
     b.grow();
+    this.flowers[this.index]?.bloom();
     this.audio.swell();
     this.audio.rumble(b.from, 2.5, 0.25);
     const key = this.island.key;
@@ -370,6 +387,13 @@ export class Director {
     this.index = i;
     g.current = g.islands[i];
     this.save.island = i;
+    // lattice stays with its island
+    const held = g.graft.held;
+    if (held && g.islands[prev].lattices.includes(held)) {
+      g.graft.drop(false);
+      held.respawn();
+      this.ui.toast('Lattice cannot leave its island. The city took it back.', 3.5);
+    }
     saveJSON(SAVE_KEY, this.save);
     this.setupGraft();
     this.ui.chapter(g.current.key);
@@ -388,6 +412,12 @@ export class Director {
     this.audio.update(dt);
     for (const b of this.bridges) b?.update(dt);
     for (const isl of g.islands) { isl.updateDrift(dt); isl.updateChunks(dt); }
+    const cur = g.current;
+    this.flowers.forEach((f, k) => {
+      if (!f) return;
+      const isl = g.islands[k];
+      f.update(dt, isl === cur && this.state === 'playing' ? g.player.feet.clone().sub(isl.origin) : null, isl.attached && !!isl.group?.visible);
+    });
     if (this.state === 'title') {
       this.titleT += dt;
       const t = this.titleT * 0.05;
