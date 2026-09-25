@@ -49,6 +49,8 @@ def build(b):
         b.balustrade((-4.3, 0.0, 18.2), (-4.3, 0.0, 11.1), height=1.05, mat='marble')
         b.balustrade((-4.3, 0.0, 7.9), (-4.3, 0.0, 4.4), height=1.05, mat='marble')
         arch.lamp_post(b, 3.3, 15.6, 0.0, power=80.0)
+        arch.urn(b, -3.6, 5.2, 0.0, s=1.2)
+        arch.urn(b, 3.6, 5.2, 0.0, s=1.2)
         arch.rubble(b, -2.8, 0.0, 16.8, 1.1, 6, seed=41, mat='marble', max_size=0.45, collide=False)
         # the lookout: a round balcony on its own column, with a memory on a plinth
         b.cyl((-11.2, -0.6, 9.5), 2.5, 1.2, mat='marble', segments=40, bevel=0.03)
@@ -93,6 +95,8 @@ def build(b):
         deck_rim(b, side * 3.6, -10.0, -20.0, UP)
         b.balustrade((side * 3.3, UP, -10.4), (side * 3.3, UP, -19.7), height=1.05, mat='marble')
     arch.lamp_post(b, -2.8, -12.2, UP, power=80.0)
+    for x in (-2.55, 2.55):
+        arch.bust(b, x, -18.7, UP, ry=math.pi / 2 if x < 0 else -math.pi / 2)
     arch.arch_ring(b, 0.0, -26.0, -20.0, UP - 7.6, 6.0, ring=1.0, start=0.0, end=0.32)
     E('span', id='s_b', p=(0.0, UP, -20.0), dir=(0.0, -1.0), width=2.4, lengths=[0.6, 6.0], level=0)
     E('zone', id='z_upper', p=(0.0, UP, -15.0), r=4.0, takeback=True)
@@ -124,7 +128,10 @@ def build(b):
     b.balustrade((-6.8, UP, -37.3), (-1.4, UP, -37.3), height=1.05, mat='marble')
     b.balustrade((6.8, UP, -37.3), (4.4, UP, -37.3), height=1.05, mat='marble')
     arch.planter(b, -4.8, -40.2, UP, r=1.2, h=0.5, tree='dead_quiver_trunk', tree_scale=1.5, tree_rot=2.2)
-    arch.lamp_post(b, -1.9, -42.6, UP, power=90.0)
+    arch.lamp_post(b, -1.9, -40.6, UP, power=90.0)
+    arch.bust(b, -3.9, -42.9, UP, ry=0.3)
+    arch.urn(b, 6.2, -41.8, UP, s=1.2)
+    arch.urn(b, -6.2, -46.0, UP, s=1.2)
 
     # the ram's channel: a steel strip in the floor from the ram to the slot
     b.box((3.4, UP + 0.005, -40.8), (1.5, 0.01, 6.4), mat='steel', bevel=0.0, collide=False, lm_weight=0.3)
@@ -134,12 +141,12 @@ def build(b):
     # ---------------------------------------------------------------- the shrine
     H = 6.4
     # south wall: the gate (x -1.2..1.2) and the alcove front (x 2.2..4.6) are openings
-    arch.wall(b, -5.0, SHRINE_S, 5.0, SHRINE_S, UP, UP + H, thick=0.8, mat='wall', cap='marble',
+    arch.wall(b, -5.0, SHRINE_S, 5.0, SHRINE_S, UP, UP + H, thick=0.8, mat='wall', style='classic',
               openings=[(3.8, 6.2, 0.0, 3.0), (7.2, 9.6, 0.0, 3.6)])
-    arch.wall(b, -5.0, SHRINE_S - 0.36, -5.0, SHRINE_N + 0.36, UP, UP + H, thick=0.8, mat='wall', cap='marble')
-    arch.wall(b, 5.0, SHRINE_S - 0.36, 5.0, SHRINE_N + 0.36, UP, UP + H, thick=0.8, mat='wall', cap='marble')
+    arch.wall(b, -5.0, SHRINE_S - 0.36, -5.0, SHRINE_N + 0.36, UP, UP + H, thick=0.8, mat='wall', style='classic', pilaster_every=3.0)
+    arch.wall(b, 5.0, SHRINE_S - 0.36, 5.0, SHRINE_N + 0.36, UP, UP + H, thick=0.8, mat='wall', style='classic', pilaster_every=3.0)
     # north wall: open above the mezzanine for the bloom's bridge
-    arch.wall(b, -5.36, SHRINE_N, 5.36, SHRINE_N, UP, UP + H, thick=0.8, mat='wall', cap='marble',
+    arch.wall(b, -5.36, SHRINE_N, 5.36, SHRINE_N, UP, UP + H, thick=0.8, mat='wall', style='classic',
               openings=[(2.36, 8.36, 4.3, 6.4)])
     b.box((0.0, UP + H + 0.2, -48.0), (10.8, 0.4, 8.8), mat='concrete', bevel=0.04)  # roof over the south half
     # gate frame and the alcove front: a screen above the slot the ram pushes through

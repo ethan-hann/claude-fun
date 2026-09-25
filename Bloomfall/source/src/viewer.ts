@@ -12,7 +12,7 @@ export async function runViewer(params: URLSearchParams): Promise<void> {
   if (params.has('lm')) (window as any).__lmDebug = Number(params.get('lm'));
   if (params.has('grade')) (window as any).__grade = params.get('grade')!.split(',').map(Number);
   await r.init();
-  const keys = (params.get('view') || 'test').split(',');
+  const keys = (params.get('view') || 'a_vault').split(',');
   for (const k of keys) {
     const isl = await loadIslandVisual(k);
     r.scene.add(isl.group);
@@ -21,12 +21,6 @@ export async function runViewer(params: URLSearchParams): Promise<void> {
   r.camera.position.set(cam[0], cam[1], cam[2]);
   r.camera.rotation.order = 'YXZ';
   r.camera.rotation.set(THREE.MathUtils.degToRad(cam[4]), THREE.MathUtils.degToRad(cam[3]), 0);
-  // a few dynamic test objects
-  const box = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.5 }));
-  box.position.set(3, 0.5, 6);
-  box.castShadow = box.receiveShadow = true;
-  box.layers.enable(1);
-  r.scene.add(box);
   r.focus.copy(r.camera.position);
   const num = (k: string, d: number) => (params.has(k) ? Number(params.get(k)) : d);
   fogUniforms.uFogDensity.value = num('fog', fogUniforms.uFogDensity.value);

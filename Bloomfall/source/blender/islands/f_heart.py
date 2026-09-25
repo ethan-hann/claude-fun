@@ -57,6 +57,10 @@ def build(b):
     b.underside(octagon(14.0), -1.2, 16, seed=72)
     octo_ring(b, 6.0, 9.0, 0.0, WALL - 0.1, 'wall')
     octo_ring(b, 5.9, 9.1, WALL - 0.1, WALL, 'marble', bevel=0.02)
+    # courses on the calyx wall: a plinth outside, a band under the coping on both faces
+    octo_ring(b, 8.9, 9.18, -0.02, 0.55, 'marble', bevel=0.02, collide=False)
+    octo_ring(b, 8.9, 9.16, WALL - 0.5, WALL - 0.3, 'marble', bevel=0.02, collide=False)
+    octo_ring(b, 5.84, 6.1, WALL - 0.5, WALL - 0.3, 'marble', bevel=0.02, collide=False)
     # a rail on the wall's inner edge, open on the east where the pillar rises
     pi = octagon(6.25)
     for k in range(8):

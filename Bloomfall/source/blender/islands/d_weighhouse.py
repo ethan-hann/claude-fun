@@ -71,6 +71,8 @@ def build(b):
         b.box((-3.3, 9.2, -5.7), (0.3, 0.3, 1.9), mat='steel', bevel=0.02, collide=False)  # strut to the facade
         # dressing: iron weights on plinths, a lamp, a planter, rubble
         giant_weight(b, 6.2, 9.0, 0.0)
+        arch.bust(b, 7.2, -5.4, 0.0, ry=-0.5)
+        arch.bust(b, 8.4, 12.4, 0.0, ry=-2.4)
         giant_weight(b, 7.4, 6.4, 0.0, r=0.42, h=0.6)
         giant_weight(b, -6.8, 10.6, 0.0, r=0.62, h=0.9)
         arch.planter(b, 5.6, -1.6, 0.0, r=1.4, h=0.55, tree='dead_quiver_trunk', tree_scale=1.8, tree_rot=0.9)
@@ -116,12 +118,24 @@ def build(b):
               openings=[(8.2, 10.6, 7.6, 11.8), (15.2, 17.6, 7.6, 11.8)], **dress)
     # the Weighhouse's emblem over the entrance: a balance in a stone roundel
     b.cyl((0.0, 11.35, -6.5), 1.15, 0.24, mat='marble', segments=48, bevel=0.03, collide=False).rotation_euler = (math.radians(90), 0, 0)
-    b.box((0.0, 11.75, -6.34), (1.5, 0.09, 0.06), mat='steel', bevel=0.01, collide=False)
-    b.box((0.0, 11.35, -6.34), (0.09, 0.9, 0.06), mat='steel', bevel=0.01, collide=False)
+    b.box((0.0, 11.75, -6.33), (1.5, 0.09, 0.06), mat='steel', bevel=0.01, collide=False)
+    b.box((0.0, 11.35, -6.35), (0.09, 0.9, 0.05), mat='steel', bevel=0.01, collide=False)
     for sx in (-0.62, 0.62):
         b.box((sx, 11.45, -6.34), (0.03, 0.55, 0.05), mat='steel', bevel=0.0, collide=False)
         b.box((sx, 11.15, -6.33), (0.42, 0.06, 0.06), mat='steel', bevel=0.01, collide=False)
     b.box((0.0, TOP + 0.3, -21.0), (24.3, 0.6, 29.0), mat='concrete', bevel=0.05)
+    # the lantern: a stone drum with tall slits, a cornice and a stepped cap
+    lt = TOP + 0.6
+    b.box((0.0, lt + 1.6, -21.0), (6.0, 3.2, 6.0), mat='wall', bevel=0.04, collide=False)
+    for sx, sz in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+        for k in (-1, 0, 1):
+            x = sx * 3.02 + (sz * k * 1.6 if sz else 0)
+            z = -21.0 + sz * 3.02 + (sx * k * 1.6 if sx else 0)
+            b.glow_strip((x, lt + 1.7, z), (0.04 if sx else 0.34, 1.9, 0.34 if sx else 0.04), color='glow_warm')
+    b.box((0.0, lt + 3.35, -21.0), (6.6, 0.3, 6.6), mat='marble', bevel=0.03, collide=False)
+    for i, w in enumerate((5.4, 4.2, 3.0, 1.6)):
+        b.box((0.0, lt + 3.7 + i * 0.36, -21.0), (w, 0.36, w), mat='marble', bevel=0.03, collide=False)
+    b.cyl((0.0, lt + 5.4, -21.0), 0.1, 1.4, mat='steel', segments=8, bevel=0.0, collide=False)
     # the entrance balcony outside, on two columns
     b.box((0.0, LANDING - 0.25, -5.2), (6.0, 0.5, 2.8), mat='marble', bevel=0.04)
     for x in (-2.6, 2.6):
@@ -179,6 +193,8 @@ def build(b):
     b.cyl((2.0, 9.0, -34.42), 2.2, 0.06, mat='plates', segments=64, bevel=0.01, collide=False)
     b.box((2.0, 9.75, -34.34), (0.12, 1.6, 0.04), mat='steel', bevel=0.0, collide=False)
     b.box((2.5, 8.85, -34.33), (1.1, 0.1, 0.04), mat='steel', bevel=0.0, collide=False)
+    arch.bust(b, 9.6, -31.2, 0.0, ry=-math.pi / 2)
+    arch.bust(b, -9.6, -31.2, 0.0, ry=math.pi / 2)
     # lamps hanging in the hall and along the galleries
     for x, z in ((-5.0, -15.0), (5.0, -15.0), (0.0, -30.0)):
         b.cyl((x, TOP - 2.6, z), 0.03, 5.2, mat='steel', segments=8, bevel=0.0, collide=False)

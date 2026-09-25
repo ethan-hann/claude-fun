@@ -229,6 +229,18 @@ def viaduct_pier(b, x, z, top, bottom=-34.0, w=5.2, d=3.2, mat='wall'):
     h = top - bottom
     b.box((x, bottom + h / 2, z), (w, h, d), mat=mat, bevel=0.06, collide=False, lm_weight=0.5)
     b.box((x, top - 1.05, z), (w + 0.3, 0.3, d + 0.3), mat='marble', bevel=0.04, collide=False, lm_weight=0.5)
+    # corner piers and stepped bands: the eye reads them as courses of cut stone
+    for sx in (-1, 1):
+        for sz in (-1, 1):
+            b.box((x + sx * (w / 2 - 0.25), bottom + 0.5 + (h - 1.7) / 2, z + sz * (d / 2 - 0.25)), (0.62, h - 1.7, 0.62), mat=mat,
+                  bevel=0.04, collide=False, lm_weight=0.3)
+    y = top - 3.2
+    k = 0
+    while y > top - 16.0:
+        b.box((x, y, z), (w + 0.16, 0.16 if k % 2 else 0.1, d + 0.16), mat='marble' if k == 0 else mat, bevel=0.02, collide=False,
+              lm_weight=0.3)
+        y -= 2.6
+        k += 1
 
 
 def fluted_shaft_bmesh(r, h, flutes=20, depth=0.04, rings=8):
@@ -309,7 +321,7 @@ def _classic_dress(b, x0, z0, x1, z1, y0, y1, thick, openings, trim, every, fram
     for i in range(0, len(edges), 2):
         a, c = edges[i], edges[i + 1]
         if c - a > 0.1:
-            at((a + c) / 2, y0 + 0.28, thick + 0.16, 0.56, c - a)
+            at((a + c) / 2, y0 + 0.27, thick + 0.16, 0.58, c - a)  # 2 cm below the wall's foot
     # cornice: a narrow band under a wider crown
     h = y1 - y0
     at(length / 2, y1 - 0.14, thick + 0.18, 0.28, length + 0.18)
@@ -334,7 +346,7 @@ def _classic_dress(b, x0, z0, x1, z1, y0, y1, thick, openings, trim, every, fram
                 at(uc, y0 + (v0 + top) / 2 + (0.28 if v0 < 0.05 else 0.0) / 2, thick + 0.16, top - v0 - (0.28 if v0 < 0.05 else 0.0), w)
             at((u0 + u1) / 2, y0 + v1 + w / 2 - 0.03, thick + 0.16, w, u1 - u0 + 0.02)
             if kind == 'window':
-                at((u0 + u1) / 2, y0 + v0 - 0.07, thick + 0.26, 0.14, u1 - u0 + 0.4)
+                at((u0 + u1) / 2, y0 + v0 - 0.05, thick + 0.26, 0.14, u1 - u0 + 0.4)  # sits 2 cm proud of the sill
 
 
 def bust(b, x, z, y, ry=0.0, scale=2.1, plinth_h=1.25):

@@ -58,8 +58,9 @@ def main():
             total += os.path.getsize(out)
         print(f'{key:10s} {size}px  {sum(os.path.getsize(os.path.join(DST, f"{key}_{n}.webp")) for n in ("color", "normal", "arm")) / 1024:.0f} KB')
     # Prop models from Poly Haven: their own texture sets, renamed prop_<asset>.
+    from fetch_assets import MODELS
     mdir = os.path.join(ROOT, '.cache', 'models')
-    for asset in sorted(os.listdir(mdir)) if os.path.isdir(mdir) else []:
+    for asset in MODELS:
         tdir = os.path.join(mdir, asset, 'textures')
         files = os.listdir(tdir)
         def find(tag):

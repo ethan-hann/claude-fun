@@ -147,7 +147,10 @@ def build(b):
     # the fallen column's missing roof piece (a hole in the east roof) is suggested by rubble
     arch.rubble(b, 10.5, 0.0, -17.2, 1.3, 7, seed=21, mat='marble', max_size=0.5, collide=False)
     # north wall with the arch (bulkhead gate)
-    arch.wall(b, -12.36, -24.0, 12.36, -24.0, 0, 4.4, thick=0.8, mat='wall', openings=[(10.76, 13.96, 0.0, 3.3)], cap='marble')
+    arch.wall(b, -12.36, -24.0, 12.36, -24.0, 0, 4.4, thick=0.8, mat='wall', openings=[(10.76, 13.96, 0.0, 3.3)],
+              style='classic', pilaster_every=3.0)
+    for x in (-3.6, 3.6):
+        arch.bust(b, x, -22.8, 0.0, ry=math.pi if x > 0 else 0.0)
     b.box((-1.75, 1.75, -24.0), (0.4, 3.5, 1.0), mat='marble', bevel=0.03)
     b.box((1.75, 1.75, -24.0), (0.4, 3.5, 1.0), mat='marble', bevel=0.03)
     b.box((0, 3.55, -24.0), (3.9, 0.4, 1.0), mat='marble', bevel=0.03)
@@ -167,7 +170,7 @@ def build(b):
 
     # ---------------------------------------------------------------- garden walk and terrace
     for side in (-1, 1):
-        arch.wall(b, side * 9.2, -24.4, side * 9.2, -30.0, 0, 2.6, thick=0.8, mat='wall', cap='marble')
+        arch.wall(b, side * 9.2, -24.4, side * 9.2, -30.0, 0, 2.6, thick=0.8, mat='wall', style='classic', pilaster_every=2.6)
     # terrace block: top y = 2, from z -30 to the north tip
     terrace = [(-9.6, -30.0), (9.6, -30.0), (9.6, -43.0), (5.0, -51.5), (-5.0, -51.5), (-9.6, -43.0)]
     b.poly_prism(terrace, 0.0, 2.2, mat='wall', bevel=0.04)
@@ -176,7 +179,13 @@ def build(b):
     # heavy plate base
     b.cyl((-3.2, 2.32, -35.2), 1.22, 0.06, mat='steel', segments=48, bevel=0.01, collide=False)
     # gate wall across the terrace at z = -40 with a 3 m opening
-    arch.wall(b, -9.6, -40.0, 9.6, -40.0, 2.3, 6.5, thick=0.8, mat='wall', openings=[(7.95, 11.25, 0.0, 3.8)], cap='marble')
+    arch.wall(b, -9.6, -40.0, 9.6, -40.0, 2.3, 6.5, thick=0.8, mat='wall', openings=[(7.95, 11.25, 0.0, 3.8)],
+              style='classic', pilaster_every=3.0)
+    for x in (-3.4, 3.4):
+        arch.bust(b, x, -38.8, 2.3, ry=0.4 if x > 0 else -0.4)
+    for x in (-8.4, 8.4):
+        arch.urn(b, x, -31.1, 2.3, s=1.1)
+        arch.urn(b, x * 1.3, -9.4, 0.0, s=1.2)
     b.box((-1.85, 4.2, -40.0), (0.5, 3.8, 1.1), mat='plates', bevel=0.03)
     b.box((1.85, 4.2, -40.0), (0.5, 3.8, 1.1), mat='plates', bevel=0.03)
     # terrace balustrades
@@ -186,6 +195,8 @@ def build(b):
     b.cyl((0, 2.45, -46.5), 2.4, 0.3, mat='marble', segments=48, bevel=0.03)
     for side in (-1, 1):
         b.balustrade((side * 9.3, 2.3, -40.4), (side * 5.0, 2.3, -51.2), mat='marble')
+    # a letter left on a plinth at the terrace's west edge, looking out over the gap
+    b.box((-6.9, 2.65, -43.8), (0.6, 0.7, 0.6), mat='marble', bevel=0.03)
     lamp = arch.lamp_post
     lamp(b, -7.5, -34.0, 2.3)
     lamp(b, 7.5, -45.0, 2.3)
@@ -212,6 +223,7 @@ def build(b):
     E('crate', id='c_step', p=(-2.0, 0.5, -1.2), level=1, ry=-8)
 
     E('pickup', id='graft', kind='graft', p=(4.2, 1.1, -15.6))
+    E('pickup', id='seed', kind='seed', p=(-6.9, 3.4, -43.8))
     E('bulkhead', id='bulk1', p=(0.0, 0.0, -24.0), size=(3.1, 3.3, 0.45), level=1)
     E('crate', id='c_garden', p=(3.0, 0.25, -26.6), level=0, ry=20)
     E('crate', id='c_heavy', p=(3.4, 2.8, -34.0), level=1, ry=-15)

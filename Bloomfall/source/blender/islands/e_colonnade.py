@@ -51,6 +51,8 @@ def build(b):
             arch.fluted_column(b, side * 5.4, 11.0, 0.0, h=COL_H)
             b.box((side * 5.4, COL_H + 0.4, 11.0), (1.3, 0.8, 1.3), mat='marble', bevel=0.03, collide=False)
         arch.lamp_post(b, -3.4, 15.4, 0.0, power=80.0)
+        arch.urn(b, 5.6, 14.6, 0.0, s=1.2)
+        arch.urn(b, -5.6, 5.0, 0.0, s=1.2)
         arch.planter(b, 4.3, 5.8, 0.0, r=1.3, h=0.55, tree='dead_quiver_trunk', tree_scale=1.7, tree_rot=1.9)
         arch.rubble(b, -4.4, 0.0, 6.0, 1.2, 6, seed=62, mat='marble', max_size=0.5, collide=False)
         E('toppler', id='t1', p=(0.0, 0.0, 4.0), height=COL_H, width=1.1, dir=(0.0, -1.0), endAngle=90)
@@ -121,7 +123,12 @@ def build(b):
     arch.lamp_post(b, -2.2, -21.5, 0.0, power=80.0)
 
     # the gate wall
-    arch.wall(b, -8.0, -24.0, 8.0, -24.0, 0.0, 5.6, thick=0.8, mat='wall', cap='marble', openings=[(6.5, 9.5, 0.0, 3.2)])
+    arch.wall(b, -8.0, -24.0, 8.0, -24.0, 0.0, 5.6, thick=0.8, mat='wall', openings=[(6.5, 9.5, 0.0, 3.2)],
+              style='classic', pilaster_every=3.0)
+    arch.bust(b, 5.4, -19.9, 0.0, ry=-0.6)
+    arch.bust(b, -5.6, -19.8, 0.0, ry=0.6)
+    for x in (-5.8, 5.8):
+        arch.bust(b, x, -45.6, 0.0, ry=math.pi / 2 if x < 0 else -math.pi / 2)
     b.box((-1.63, 1.6, -24.0), (0.3, 3.2, 1.0), mat='plates', bevel=0.03)
     b.box((1.63, 1.6, -24.0), (0.3, 3.2, 1.0), mat='plates', bevel=0.03)
     b.box((0.0, 3.35, -24.0), (3.6, 0.34, 1.0), mat='plates', bevel=0.03)

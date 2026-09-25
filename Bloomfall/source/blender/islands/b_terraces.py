@@ -48,6 +48,8 @@ def build(b):
         b.cyl((7.2, 1.5, 5.6), 0.42, 3.0, mat='marble', segments=20, bevel=0.0)
         b.box((7.2, 3.04, 5.6), (1.0, 0.08, 1.0), mat='marble', bevel=0.02)
         arch.lamp_post(b, -3.0, 9.0, 0.0, power=80.0)
+        arch.bust(b, -8.6, -1.0, 0.0, ry=math.pi / 2)
+        arch.bust(b, 8.6, 2.5, 0.0, ry=-math.pi / 2)
         # bollard sockets (the bollards themselves are lattice)
         for x, z in ((-5.6, -3.6), (5.8, -5.2), (0.4, 2.2)):
             b.box((x, 0.03, z), (1.1, 0.06, 1.1), mat='steel', bevel=0.01, collide=False)
@@ -65,17 +67,22 @@ def build(b):
 
     # the screened gate wall across the terrace at z = -20
     G = WALL  # terrace floor height
-    arch.wall(b, -10.8, -20.0, 10.8, -20.0, G, G + 4.4, thick=0.8, mat='wall', openings=[(9.2, 12.4, 0.0, 3.6)], cap='marble')
+    arch.wall(b, -10.8, -20.0, 10.8, -20.0, G, G + 4.4, thick=0.8, mat='wall', openings=[(9.2, 12.4, 0.0, 3.6)],
+              style='classic', pilaster_every=3.2)
     # the gate frame: posts stand 5 cm inside the opening, the lintel just above it
     b.box((-1.75, G + 1.81, -20.0), (0.4, 3.62, 1.1), mat='plates', bevel=0.03)
     b.box((1.75, G + 1.81, -20.0), (0.4, 3.62, 1.1), mat='plates', bevel=0.03)
     b.box((0.0, G + 3.83, -20.0), (4.0, 0.42, 1.1), mat='plates', bevel=0.03)
     b.cyl((-4.0, G + 0.02, -15.4), 1.02, 0.06, mat='steel', segments=48, bevel=0.01, collide=False)  # plate base
     # the yard behind the gate: walls high enough that the garden cannot be seen from it
-    arch.wall(b, -10.8, -20.4, -10.8, -24.0, G, G + 4.4, thick=0.8, mat='wall')
-    arch.wall(b, 10.8, -20.4, 10.8, -24.0, G, G + 4.4, thick=0.8, mat='wall')
-    arch.wall(b, -10.8, -24.0, -8.0, -34.5, G, G + 4.4, thick=0.8, mat='wall')
-    arch.wall(b, 10.8, -24.0, 8.0, -34.5, G, G + 4.4, thick=0.8, mat='wall')
+    for sx in (-1, 1):
+        arch.wall(b, sx * 10.8, -20.4, sx * 10.8, -24.0, G, G + 4.4, thick=0.8, mat='wall', style='classic')
+        arch.wall(b, sx * 10.8, -24.0, sx * 8.0, -34.5, G, G + 4.4, thick=0.8, mat='wall', style='classic', pilaster_every=3.4)
+        arch.urn(b, sx * 9.7, -13.6, G, s=1.2)
+    # buttresses on the garden face of the retaining wall
+    for x in (-3.0, 3.0, 7.0):
+        b.box((x, (WALL - 0.3) / 2, -11.66), (0.9, WALL - 0.3, 0.32), mat='marble', bevel=0.04)
+        b.box((x, WALL - 0.22, -11.6), (1.1, 0.16, 0.44), mat='marble', bevel=0.03, collide=False)
     # the ledge at the back of the yard: 2.3 m (needs a medium crate)
     ledge = [(-9.0, -27.0), (9.0, -27.0), (8.2, -34.3), (-8.2, -34.3)]
     b.poly_prism(ledge, G, G + 2.2, mat='marble', bevel=0.04)

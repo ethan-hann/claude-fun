@@ -38,7 +38,7 @@ HDRIS = {
 }
 
 # Poly Haven models used as static props (baked into the islands).
-MODELS = ['dead_tree_trunk', 'dead_quiver_trunk', 'marble_bust_01', 'boulder_01', 'rock_07', 'rock_09']
+MODELS = ['dead_quiver_trunk', 'marble_bust_01']
 
 
 def get(url):
