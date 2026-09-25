@@ -358,7 +358,33 @@ def bloom():
     export(objs, 'bloom')
 
 
+# ------------------------------------------------------------------------------------------
+# A toppling column: 8.5 m, the same shape as arch.fluted_column. Origin at the base centre.
+# ------------------------------------------------------------------------------------------
+
+def column():
+    import arch
+    lib.reset_scene()
+    objs = []
+    h, r = 8.5, 0.45
+    objs.append(_box('plinth', (1.1, 1.1, 0.35), (0, 0, 0.175), ['marble'], bevel=0.03))
+    objs.append(_cyl('torus', r + 0.08, r + 0.08, 0.2, (0, 0, 0.45), (0, 0, 0), ['marble'], segs=32, bevel=0.03))
+    shaft_h = h - 0.35 - 0.2 - 0.25 - 0.3
+    bm = arch.fluted_shaft_bmesh(r, shaft_h)
+    bmesh.ops.translate(bm, vec=Vector((0, 0, 0.55)), verts=bm.verts)
+    shaft = new_obj('shaft', bm, ['marble'])
+    box_uvs(shaft, 2.0)
+    objs.append(shaft)
+    top = 0.55 + shaft_h
+    objs.append(_cyl('echinus', r + 0.02, r + 0.2, 0.25, (0, 0, top + 0.125), (0, 0, 0), ['marble'], segs=32, bevel=0.03))
+    objs.append(_box('abacus', (1.1, 1.1, 0.3), (0, 0, top + 0.4), ['marble'], bevel=0.03))
+    for o in objs:
+        box_uvs(o, 2.0)
+    export(objs, 'column')
+
+
 PROPS = {
+    'column': column,
     'lattice_crate': lattice_crate,
     'lattice_orb': lattice_orb,
     'glove': glove,

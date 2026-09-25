@@ -11,7 +11,7 @@ import { Player, Platform, PLAYER } from './player';
 import { Graft } from './graft';
 import { Lattice, FreeLattice, AnchoredLattice, SpanLattice, isLatticeCollider } from './lattice';
 import { LatticeVisuals } from './visuals';
-import { Entity, EntityContext, Plate, Door, Zone, Pickup } from './entities';
+import { Entity, EntityContext, Plate, Door, Zone, Pickup, Balance, Toppler } from './entities';
 
 export const STEP = 1 / 60;
 
@@ -26,6 +26,7 @@ interface Chunk {
   home: THREE.Vector3;
   homeQ: THREE.Quaternion;
   bounds: THREE.Box3; // world bounds at rest
+  lights: { src: LightSource; base: number }[];
 }
 
 const FAR = new THREE.Vector3(0, -5000, 0);
@@ -90,6 +91,7 @@ export class Island {
       if (l.free) (l as FreeLattice).spawnPos.copy((l as FreeLattice).authoredPos);
     }
     for (const e of c.entities) (e as any).setVisible?.(this.attached);
+    for (const l of c.lights) l.src.intensity = this.attached ? l.base : 0;
   }
   // Where free lattice carried off a fallen chunk returns to if it later falls.
   rescuePoint(): THREE.Vector3 {
@@ -128,9 +130,13 @@ export class Island {
           l.object.visible = false; l.disabled = true; l.body.setTranslation(FAR, false);
         }
         for (const e of c.entities) (e as any).setVisible?.(false);
+        for (const l of c.lights) l.src.intensity = 0;
         onGone?.(name);
       }
-      if (f.t < 2.4) for (const l of c.lattices) if (!l.free) l.shift(drop);
+      if (f.t < 2.4) {
+        for (const l of c.lattices) if (!l.free) l.shift(drop);
+        for (const e of c.entities) (e as any).shift?.(drop);
+      }
       if (f.t > 20 && c.node) c.node.visible = false;
     }
   }
@@ -174,6 +180,7 @@ export class Game {
   private last = 0;
   running = false;
   paused = false;
+  shake = 0; // camera shake, decays by itself
   listeners: ((ev: string, data?: any) => void)[] = [];
 
   async init(defs: IslandDef[], quality: Quality = 'high'): Promise<void> {
@@ -184,6 +191,7 @@ export class Game {
     for (const k of ['plates', 'steel', 'lattice', 'marble', 'wall', 'rust', 'screen']) this.sets[k] = await textureSet(k);
     await this.vis.init();
     this.gloveModel = await loadModel('glove');
+    this.columnModel = await loadModel('column');
     this.gloveModel.traverse((o) => {
       const m = o as THREE.Mesh;
       if (!m.isMesh) return;
@@ -226,6 +234,7 @@ export class Game {
         node, body: b.body, lattices: [], entities: [], fall: null,
         home: node ? node.position.clone() : new THREE.Vector3(), homeQ: node ? node.quaternion.clone() : new THREE.Quaternion(),
         bounds: node ? new THREE.Box3().setFromObject(node) : new THREE.Box3(),
+        lights: [],
       });
       isl.colliders.push(...b.colliders);
     }
@@ -319,6 +328,7 @@ export class Game {
       case 'light': {
         const src = this.r.lights.add(v3(rec.p).add(o), new THREE.Color(rec.color[0], rec.color[1], rec.color[2]), rec.intensity, rec.range || 12);
         isl.lights.push({ src, base: rec.intensity });
+        if (rec.chunk) isl.chunks.get(rec.chunk)?.lights.push({ src, base: rec.intensity });
         break;
       }
       case 'bloom':
@@ -327,6 +337,16 @@ export class Game {
       case 'arrive':
         isl.arrivePoint = v3(rec.p).add(o);
         break;
+      case 'toppler': {
+        const e = new Toppler(rec, this.ctx, this.columnModel);
+        this.addEntity(isl, id, e);
+        break;
+      }
+      case 'balance': {
+        const e = new Balance(rec, this.ctx);
+        this.addEntity(isl, id, e);
+        break;
+      }
       case 'pickup': {
         const obj = this.pickupObject(rec.kind);
         const e = new Pickup({ ...rec, type: rec.kind }, this.ctx, obj);
@@ -339,6 +359,7 @@ export class Game {
   }
 
   private gloveModel: THREE.Object3D | null = null;
+  private columnModel: THREE.Object3D | null = null;
 
   private pickupObject(kind: string): THREE.Object3D {
     const g = new THREE.Group();
@@ -508,6 +529,14 @@ export class Game {
     if (!this.paused) {
       this.player.applyCamera(this.r.camera, alpha);
       this.r.focus.copy(this.player.pos);
+      if (this.shake > 0.001) {
+        const k = this.shake * this.shake * 0.09;
+        const c = this.r.camera;
+        c.position.x += (Math.random() - 0.5) * k;
+        c.position.y += (Math.random() - 0.5) * k;
+        c.position.z += (Math.random() - 0.5) * k;
+        this.shake = Math.max(0, this.shake - dt * 0.9);
+      }
     }
     for (const l of this.lattices.values()) l.highlight += ((l === this.graft.target ? 1 : 0) - l.highlight) * Math.min(1, dt * 12);
     this.r.render(dt);

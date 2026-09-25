@@ -8,6 +8,8 @@ export const PLAN: IslandPlan[] = [
   { key: 'a_vault', origin: [0, 0, 0], capacity: 1 },
   { key: 'b_terraces', origin: [6, 1.5, -97], capacity: 1 },
   { key: 'c_viaduct', origin: [14, 8.0, -173.2], capacity: 1 },
+  { key: 'd_weighhouse', origin: [8, 15.0, -271.2], capacity: 2 },
+  { key: 'e_colonnade', origin: [-4, 21.2, -355.2], capacity: 2 },
 ];
 
 const params = new URLSearchParams(location.search);

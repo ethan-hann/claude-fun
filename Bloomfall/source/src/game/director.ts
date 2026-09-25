@@ -5,12 +5,14 @@ import { Audio } from './audio';
 import { ECHOES, SEEDS, EPILOGUE, CHAPTERS } from './story';
 import { Bridge } from './bridge';
 import { ViewModel } from './viewmodel';
-import { Zone, Pickup, Plate, Door } from './entities';
+import { Zone, Pickup, Plate, Door, Toppler } from './entities';
+import { FREE_SIZES } from './lattice';
 import { FreeLattice, Lattice } from './lattice';
 import type { Quality } from '../engine/renderer';
 import { islandScripts, IslandScript } from './scripts';
 import { BloomFlower } from './bloom';
 import { loadModel } from '../engine/level';
+import { Dust } from './fx';
 
 export interface IslandPlan { key: string; origin: [number, number, number]; capacity: number; infinite?: boolean }
 
@@ -35,6 +37,7 @@ export class Director {
   index = 0;
   bridges: (Bridge | null)[] = [];
   flowers: (BloomFlower | null)[] = [];
+  dust!: Dust;
   state: 'title' | 'playing' | 'paused' | 'ending' | 'credits' = 'title';
   save: SaveData = { island: 0, seeds: [], time: 0, resets: 0, falls: 0 };
   settings: Settings;
@@ -73,6 +76,7 @@ export class Director {
   async init(): Promise<void> {
     const g = this.game;
     this.vm = new ViewModel(g.r.scene, g.r.camera);
+    this.dust = new Dust(g.r.scene);
     g.r.scene.add(g.r.camera);
     await this.vm.load(g.sets);
     // bridges between consecutive islands
@@ -244,6 +248,16 @@ export class Director {
       case 'door-open': this.audio.doorStop((d as Door).openPos); this.dismissCardOn('door'); break;
       case 'door-shut': this.audio.doorStop((d as Door).closedPos); break;
       case 'lattice-respawn': this.ui.toast('It fell into the haze. The city returned it.', 3); break;
+      case 'toppled': {
+        const t = d as Toppler;
+        const p = t.impactPoint();
+        this.dust.burst(p, 1.3, 90);
+        this.dust.burst(t.base.clone(), 0.8, 40);
+        this.audio.impact(p, 3, 60);
+        this.audio.rumble(p, 2.2, 0.55);
+        g.shake = Math.max(g.shake, 0.55);
+        break;
+      }
       case 'impact': {
         const { lattice, force } = d as { lattice: FreeLattice; force: number };
         const h = lattice.collider.handle;
@@ -420,6 +434,7 @@ export class Director {
     this.audio.update(dt);
     for (const b of this.bridges) b?.update(dt);
     for (const isl of g.islands) { isl.updateDrift(dt); isl.updateChunks(dt); }
+    this.dust.update(dt);
     const cur = g.current;
     this.flowers.forEach((f, k) => {
       if (!f) return;
@@ -469,6 +484,12 @@ export class Director {
         if (e.type === 'give') this.audio.give(e.point, size); else this.audio.take(e.point, size);
         this.audio.growHum(e.point, e.type === 'give');
         this.dismissCardOn(e.type);
+        // growing lattice against a column's base tips it over
+        if (e.type === 'give' && e.target.free) {
+          for (const en of this.island.entities) {
+            if (en instanceof Toppler && en.push(e.target, FREE_SIZES[e.target.level])) this.audio.groan(en.base.clone());
+          }
+        }
         this.scripts[this.island.key]?.graft?.(e.type, e.target);
       } else if (e.type === 'fail') {
         this.vm.action('fail', null);

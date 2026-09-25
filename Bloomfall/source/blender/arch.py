@@ -221,3 +221,57 @@ def viaduct_pier(b, x, z, top, bottom=-34.0, w=5.2, d=3.2, mat='wall'):
     h = top - bottom
     b.box((x, bottom + h / 2, z), (w, h, d), mat=mat, bevel=0.06, collide=False, lm_weight=0.5)
     b.box((x, top - 1.05, z), (w + 0.3, 0.3, d + 0.3), mat='marble', bevel=0.04, collide=False, lm_weight=0.5)
+
+
+def fluted_shaft_bmesh(r, h, flutes=20, depth=0.04, rings=8):
+    """A fluted column shaft as a bmesh in Blender space (Z up, from z = 0 to h), with a slight
+    swelling (entasis) in the lower third."""
+    import bmesh
+    bm = bmesh.new()
+    seg = flutes * 4
+    rows = []
+    for j in range(rings + 1):
+        t = j / rings
+        z = h * t
+        swell = 1.0 + 0.035 * math.sin(math.pi * min(1.0, t * 1.5)) - 0.06 * t
+        row = []
+        for i in range(seg):
+            a = i / seg * math.tau
+            # each flute is a shallow groove: depth follows a cosine across the flute
+            k = (i % 4) / 4.0
+            groove = depth * (0.5 + 0.5 * math.cos(k * math.tau))
+            rr = (r - groove) * swell
+            row.append(bm.verts.new((math.cos(a) * rr, math.sin(a) * rr, z)))
+        rows.append(row)
+    for j in range(rings):
+        for i in range(seg):
+            a, b2 = rows[j][i], rows[j][(i + 1) % seg]
+            c, d = rows[j + 1][(i + 1) % seg], rows[j + 1][i]
+            f = bm.faces.new([a, b2, c, d])
+            f.smooth = True
+    bm.faces.new(rows[0][::-1])
+    bm.faces.new(rows[-1])
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    return bm
+
+
+def fluted_column(b, x, z, y0, h=8.5, r=0.45, mat='marble', collide=True):
+    """Plinth, round base, fluted shaft, capital and abacus. Same proportions as the game's
+    toppling column (assets/models/column.glb)."""
+    import bpy
+    from lib import g2b
+    b.box((x, y0 + 0.175, z), (1.1, 0.35, 1.1), mat=mat, bevel=0.03, collide=collide)
+    b.cyl((x, y0 + 0.45, z), r + 0.08, 0.2, mat=mat, segments=32, bevel=0.03, collide=False)
+    shaft_h = h - 0.35 - 0.2 - 0.25 - 0.3
+    bm = fluted_shaft_bmesh(r, shaft_h)
+    me = bpy.data.meshes.new(b._name('shaft'))
+    bm.to_mesh(me)
+    bm.free()
+    obj = bpy.data.objects.new(me.name, me)
+    obj.location = g2b((x, y0 + 0.55, z))
+    b._link(obj, mat, 0.8)
+    if collide:
+        b.collider_cyl((x, y0 + 0.55 + shaft_h / 2, z), r, shaft_h)
+    top = y0 + 0.55 + shaft_h
+    b.cyl((x, top + 0.125, z), r + 0.02, 0.25, mat=mat, segments=32, bevel=0.03, collide=False, radius_top=r + 0.2)
+    b.box((x, top + 0.25 + 0.15, z), (1.1, 0.3, 1.1), mat=mat, bevel=0.03, collide=collide)

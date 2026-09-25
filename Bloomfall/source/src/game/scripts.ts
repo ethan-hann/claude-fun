@@ -25,7 +25,99 @@ export function islandScripts(d: Director): Record<string, IslandScript> {
   let cSaved: { spawn: any; yaw: number; cells: number } | null = null;
   const cIsland = () => d.game.islands.find((i) => i.key === 'c_viaduct')!;
   const localZ = (key: string) => d.game.player.pos.z - d.game.islands.find((i) => i.key === key)!.origin.z;
+  // Island IV: the forecourt breaks away once the player is inside; the memory rides pan B.
+  let dFallen = false;
+  let dSaved: { spawn: any; yaw: number } | null = null;
+  const dIsland = () => d.game.islands.find((i) => i.key === 'd_weighhouse')!;
+  // Island V: the south terrace falls once the player is across; the memory rides the first column.
+  let eFallen = false;
+  let eSaved: { spawn: any; yaw: number } | null = null;
+  const eIsland = () => d.game.islands.find((i) => i.key === 'e_colonnade')!;
   return {
+    e_colonnade: {
+      reset() {
+        eFallen = false;
+        if (eSaved) { const i = eIsland(); i.spawn.copy(eSaved.spawn); i.spawnYaw = eSaved.yaw; }
+      },
+      zone(id) {
+        if (id !== 'z_mid' || eFallen) return;
+        eFallen = true;
+        const isl = eIsland();
+        if (!eSaved) eSaved = { spawn: isl.spawn.clone(), yaw: isl.spawnYaw };
+        isl.spawn.set(isl.origin.x, isl.origin.y + 0.05, isl.origin.z - 6.5);
+        isl.spawnYaw = 0;
+        setTimeout(() => {
+          if (!eFallen) return;
+          isl.detachChunk('south');
+          d.game.shake = Math.max(d.game.shake, 0.45); d.audio.rumble(isl.origin.clone().add(new (isl.origin.constructor as any)(0, 0, 8)), 6, 0.7);
+        }, 2500);
+      },
+      update() {
+        const col = d.game.entities.get('e_colonnade.t1') as any;
+        const seed = d.game.entities.get('e_colonnade.seed') as any;
+        if (!col || !seed || seed.taken) return;
+        seed.pos.copy(col.pointAt(col.height + 0.35));
+      },
+      hints: () => {
+        const z = localZ('e_colonnade');
+        if (z > -4) return [
+          'Growing lattice pushes whatever stands in its way.',
+          'Shrink the crate, set it against the base of the column, then grow it again.',
+          'The column falls away from you, across the chasm.',
+        ];
+        if (z > -24) return [
+          'The plate is in the pit under the grate. Only the channel from the fountain leads in.',
+          'A medium orb will not fit through the slot at the bottom of the channel. A small one will.',
+          'Roll the orb down, then give it space through the grate until it weighs 16.',
+          'The bollard holds a cell of space too.',
+        ];
+        return [
+          'A fallen column can be a ramp.',
+          'Push the column from the side away from the plinth, so it falls against the plinth\'s edge.',
+        ];
+      },
+    },
+    d_weighhouse: {
+      reset() {
+        dFallen = false;
+        if (dSaved) { const i = dIsland(); i.spawn.copy(dSaved.spawn); i.spawnYaw = dSaved.yaw; }
+      },
+      zone(id) {
+        if (id !== 'z_inside' || dFallen) return;
+        dFallen = true;
+        const isl = dIsland();
+        if (!dSaved) dSaved = { spawn: isl.spawn.clone(), yaw: isl.spawnYaw };
+        isl.spawn.set(isl.origin.x + 1.0, isl.origin.y + 6.05, isl.origin.z - 8.7);
+        isl.spawnYaw = 0;
+        setTimeout(() => {
+          if (!dFallen) return;
+          isl.detachChunk('forecourt');
+          d.game.shake = Math.max(d.game.shake, 0.45); d.audio.rumble(isl.origin.clone().add(new (isl.origin.constructor as any)(0, 0, 4)), 6, 0.7);
+        }, 1500);
+      },
+      update() {
+        const scale = d.game.entities.get('d_weighhouse.scale') as any;
+        const seed = d.game.entities.get('d_weighhouse.seed') as any;
+        if (!scale || !seed || seed.taken) return;
+        const t = scale.pans[1].body.translation();
+        seed.pos.set(t.x + 0.9, t.y + 0.6, t.z - 0.9);
+      },
+      hints: () => {
+        const z = localZ('d_weighhouse');
+        if (!dFallen && z > -6.6) return [
+          'The heavier side sinks. The lift will only rise if the counterweight outweighs it.',
+          'The lift counts you, and anything resting on it.',
+          'Your Graft reaches the counterweight through the screens.',
+          'A large crate weighs 16. You can hold two cells: that is two steps of growth.',
+        ];
+        return [
+          'Pan A is low because of the large crate on it. Stand on pan A.',
+          'Take the large crate\'s space. Then give it to the small crate on pan B. The Graft reaches through the pan\'s floor.',
+          'When pan B outweighs pan A, pan A rises. Stay on it.',
+          'The memory rides on pan B. Bring pan B down to reach it, then set the scale right again.',
+        ];
+      },
+    },
     c_viaduct: {
       reset() {
         cFallen = false;
@@ -45,7 +137,7 @@ export function islandScripts(d: Director): Record<string, IslandScript> {
         setTimeout(() => {
           if (!cFallen) return;
           isl.detachChunk('abutment');
-          d.audio.rumble(isl.origin.clone().add(new (isl.origin.constructor as any)(0, 0, 10)), 6, 0.7);
+          d.game.shake = Math.max(d.game.shake, 0.45); d.audio.rumble(isl.origin.clone().add(new (isl.origin.constructor as any)(0, 0, 10)), 6, 0.7);
         }, 700);
       },
       hints: () => {
@@ -84,7 +176,7 @@ export function islandScripts(d: Director): Record<string, IslandScript> {
           isl.spawn.set(isl.origin.x, isl.origin.y + 4.3, isl.origin.z - 14.2);
           isl.spawnYaw = 0;
           isl.detachChunk('garden');
-          d.audio.rumble(isl.origin.clone().add(new (isl.origin.constructor as any)(0, 0, 3)), 6, 0.7);
+          d.game.shake = Math.max(d.game.shake, 0.45); d.audio.rumble(isl.origin.clone().add(new (isl.origin.constructor as any)(0, 0, 3)), 6, 0.7);
           d.echoOnce('b_fall', 2.0);
         }, 700);
       },
