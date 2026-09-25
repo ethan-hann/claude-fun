@@ -1,11 +1,11 @@
 # Claude Fun
 
-This repo is just some fun stuff I've made with Claude Code using a single prompt; the canonical "one-shot" and "make no mistakes".
+This repo is just some fun, small browser games I've made with Claude Code using a single prompt[^1].
 
 Every folder is a self contained "project". I use project loosely because most of these are single file deliverables.
 
 > [!IMPORTANT]
-> I am not a "vibe-coder". All of my projects (even personal ones) follow a strict planning and designing phase before any code ever gets written and I always review code that is produced.
+> I am not a "vibe-coder" and don't pretend to be. All of my projects (even personal ones) follow a strict planning and designing phase before any code ever gets written and I always review code that is produced.
 > 
 > That being said, it is fun to just see what Claude is capable of without a bunch of constraints. It is also [potentially very dangerous](https://www.anthropic.com/research/mythos-preview), so do this at your own risk.
 
@@ -37,6 +37,7 @@ STANDING RULES:
 
 I will not describe the game any more than that. You will continue until a complete, playable game has been produced. Do not surface design questions to me and do not ask me anything. You make the decisions. You may use any skill needed to help with the design and implementation.
 ```
+#### Model: Opus 5.5 - High
 
 ## The Tithe
 
@@ -70,3 +71,6 @@ Before you stop, use it the way a first-time player would. List the weakest part
 
 Make every decision yourself. Do not ask me anything. When you finish, tell me what you could not verify.
 ```
+#### Model: Opus 5.5 - Max
+
+[^1]: By single prompt, I mean a single kick-off prompt. I did have to steer each one a little during the work so something somewhat usable and fun was produced. The follow ups are recorded in the individual READMEs.
