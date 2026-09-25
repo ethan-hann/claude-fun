@@ -1,0 +1,19 @@
+{
+  "comment": "Shared lighting constants. Read by the Blender scripts and by the game so baked and real-time light agree. Directions are in game space (Y up).",
+  "sun": {
+    "azimuthDeg": -165.0,
+    "elevationDeg": 14.0,
+    "color": [1.0, 0.72, 0.5],
+    "intensity": 11.0,
+    "angleDeg": 1.2
+  },
+  "sky": {
+    "sourceGlowU": 0.6046,
+    "strength": 1.0,
+    "logMin": 0.08,
+    "logMax": 32.0
+  },
+  "lightmap": {
+    "scale": 4.0
+  }
+}
