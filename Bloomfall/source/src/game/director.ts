@@ -61,6 +61,12 @@ export class Director {
 
   get island(): Island { return this.game.islands[this.index]; }
 
+  // Bridges start at the edge of the bloom dais, facing the next island.
+  private bridgeStart(bloom: THREE.Vector3, to: THREE.Vector3): THREE.Vector3 {
+    const d = new THREE.Vector3(to.x - bloom.x, 0, to.z - bloom.z).normalize();
+    return bloom.clone().addScaledVector(d, 2.3);
+  }
+
   async init(): Promise<void> {
     const g = this.game;
     this.vm = new ViewModel(g.r.scene, g.r.camera);
@@ -71,7 +77,7 @@ export class Director {
       const a = g.islands[i];
       const b = g.islands[i + 1];
       if (a.bloomPoint && b.arrivePoint) {
-        const br = new Bridge(g.phys, g.r.scene, a.bloomPoint, b.arrivePoint, g.sets, null);
+        const br = new Bridge(g.phys, g.r.scene, this.bridgeStart(a.bloomPoint, b.arrivePoint), b.arrivePoint, g.sets, null);
         br.onSegment = (k, p) => this.audio.bridgeSegment(p, k);
         this.bridges.push(br);
       } else this.bridges.push(null);
@@ -151,11 +157,11 @@ export class Director {
       if (!b) return;
       b.dispose();
       const a = g.islands[k], c = g.islands[k + 1];
-      const nb = new Bridge(g.phys, g.r.scene, a.bloomPoint!, c.arrivePoint!, g.sets, null);
+      const nb = new Bridge(g.phys, g.r.scene, this.bridgeStart(a.bloomPoint!, c.arrivePoint!), c.arrivePoint!, g.sets, null);
       nb.onSegment = (n, p) => this.audio.bridgeSegment(p, n);
       this.bridges[k] = nb;
     });
-    for (const l of g.lattices.values()) l.reset();
+    for (const l of g.lattices.values()) { l.disabled = false; l.reset(); }
     for (const e of g.entities.values()) e.reset(g.ctx);
     this.index = i;
     g.current = g.islands[i];
@@ -275,6 +281,9 @@ export class Director {
       }
     }
     if (r.echo) this.echoOnce(r.echo as string, 0.3);
+    if (r.card === 'weight' && gr.owned && gr.cells === 0 && !gr.infinite) {
+      setTimeout(() => { if (this.game.graft.cells === 0 && this.ui.currentCard !== 'weight') this.showCard('takeback', undefined, 10); }, 9000);
+    }
     if (r.bloom) this.startBloom();
     if (r.arrive) this.arrive();
     this.scripts[this.island.key]?.zone?.(r.id ?? '', z);
@@ -327,7 +336,7 @@ export class Director {
     setTimeout(() => {
       if (g.graft.held) g.graft.drop(false);
       const isl = this.island;
-      for (const l of isl.lattices) l.reset();
+      for (const l of isl.lattices) if (!l.disabled) l.reset();
       for (const e of isl.entities) e.reset(g.ctx);
       g.graft.cells = isl.startCells;
       this.scripts[isl.key]?.resetIsland?.();
@@ -378,7 +387,7 @@ export class Director {
     this.ui.update(dt);
     this.audio.update(dt);
     for (const b of this.bridges) b?.update(dt);
-    for (const isl of g.islands) isl.updateDrift(dt);
+    for (const isl of g.islands) { isl.updateDrift(dt); isl.updateChunks(dt); }
     if (this.state === 'title') {
       this.titleT += dt;
       const t = this.titleT * 0.05;

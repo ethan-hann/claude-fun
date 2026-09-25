@@ -46,10 +46,19 @@ export class Physics {
     this.events.drainCollisionEvents(() => {});
   }
 
-  // Static colliders from a level JSON, offset by the island's world position.
-  addStatic(recs: ColRec[], offset: THREE.Vector3): RAPIER.Collider[] {
-    const out: RAPIER.Collider[] = [];
-    const body = this.world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(offset.x, offset.y, offset.z));
+  // Static colliders from a level JSON, offset by the island's world position. One fixed body per
+  // chunk, so a chunk can be moved as a whole.
+  addStatic(recs: ColRec[], offset: THREE.Vector3): Map<string, { body: RAPIER.RigidBody; colliders: RAPIER.Collider[] }> {
+    const out = new Map<string, { body: RAPIER.RigidBody; colliders: RAPIER.Collider[] }>();
+    const bodyFor = (c: string) => {
+      let e = out.get(c);
+      if (!e) {
+        e = { body: this.world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(offset.x, offset.y, offset.z)), colliders: [] };
+        out.set(c, e);
+      }
+      return e;
+    };
+    bodyFor('main');
     for (const r of recs) {
       let desc: RAPIER.ColliderDesc | null = null;
       if (r.t === 'box') {
@@ -63,8 +72,7 @@ export class Physics {
           desc.setRotation({ x: q.x, y: q.y, z: q.z, w: q.w });
         }
       } else if (r.t === 'hull') {
-        const pts = new Float32Array(r.v.flat());
-        desc = RAPIER.ColliderDesc.convexHull(pts);
+        desc = RAPIER.ColliderDesc.convexHull(new Float32Array(r.v.flat()));
       } else if (r.t === 'cyl') {
         desc = RAPIER.ColliderDesc.cylinder(r.hh, r.r);
         desc.setTranslation(r.p[0], r.p[1], r.p[2]);
@@ -73,9 +81,10 @@ export class Physics {
       const screen = r.k === 'screen';
       desc.setCollisionGroups(groups(screen ? G.SCREEN : G.STATIC, SOLID_FILTER));
       desc.setFriction(0.8);
-      const c = this.world.createCollider(desc, body);
+      const e = bodyFor((r as any).c ?? 'main');
+      const c = this.world.createCollider(desc, e.body);
       if (screen) this.owners.set(c.handle, { kind: 'screen' });
-      out.push(c);
+      e.colliders.push(c);
     }
     return out;
   }

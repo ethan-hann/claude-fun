@@ -16,7 +16,36 @@ export interface IslandScript {
 }
 
 export function islandScripts(d: Director): Record<string, IslandScript> {
+  // Island II: the garden breaks away once the player stands on the terrace.
+  let bFallen = false;
+  const bSpawn = { set: false, p: null as any, yaw: 0 };
   return {
+    b_terraces: {
+      reset() { bFallen = false; },
+      zone(id) {
+        if (id !== 'z_top' || bFallen) return;
+        bFallen = true;
+        const isl = d.game.islands.find((i) => i.key === 'b_terraces')!;
+        if (!bSpawn.set) { bSpawn.set = true; bSpawn.p = isl.spawn.clone(); bSpawn.yaw = isl.spawnYaw; }
+        setTimeout(() => {
+          isl.detachChunk('garden');
+          d.audio.rumble(isl.origin.clone().add(new (isl.origin.constructor as any)(0, 0, 0)), 6, 0.7);
+          d.echoOnce('b_fall', 2.0);
+          isl.spawn.set(isl.origin.x, isl.origin.y + 4.3, isl.origin.z - 14.2);
+          isl.spawnYaw = 0;
+        }, 900);
+      },
+      hints: () => bFallen ? [
+        'The plate holds the gate open. The medium crate is heavy enough to hold it.',
+        'The gate is a screen. Your Graft reaches through it. Bodies do not.',
+        'Once you are through, the crate on the plate is only holding space you need. Take it back through the screen.',
+      ] : [
+        'The wall is 4.3 m. Standing on a large crate you reach 3.5 m. On a medium crate stacked on a large one, 4.5 m.',
+        'Lattice lifts whatever stands on it. Stand on a small crate and give it space.',
+        'Carry the second crate while you ride. Set it on top, stand on it, and grow it too.',
+        'Three bollards hold one cell each. You can take from them while standing on a crate.',
+      ],
+    },
     a_vault: {
       hints: () => {
         const g = d.game.graft;

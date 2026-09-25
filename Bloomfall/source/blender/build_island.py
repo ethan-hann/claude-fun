@@ -36,8 +36,10 @@ if '--json-only' in args:
     print(f'[{key}] json written', flush=True)
     sys.exit(0)
 
-obj, _ = lib.join_static(island, margin=6.0 / size)
-print(f'[{key}] joined: {len(obj.data.polygons)} faces, {len(obj.data.vertices)} verts', flush=True)
+objs, _ = lib.join_static(island, margin=6.0 / size)
+obj = objs
+print(f'[{key}] joined: {len(objs)} chunk(s), {sum(len(o.data.polygons) for o in objs)} faces, '
+      f'{sum(len(o.data.vertices) for o in objs)} verts', flush=True)
 
 lib.lightmap_unwrap(obj, margin=6.0 / size)
 print(f'[{key}] unwrapped in {time.time() - t0:.1f}s', flush=True)

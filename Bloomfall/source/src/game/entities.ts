@@ -180,12 +180,25 @@ export class Door extends Entity implements Platform {
     const R = ctx.phys.R;
     this.body = ctx.phys.world.createRigidBody(R.RigidBodyDesc.kinematicPositionBased().setTranslation(this.closedPos.x, this.closedPos.y, this.closedPos.z)
       .setRotation({ x: this.rot.x, y: this.rot.y, z: this.rot.z, w: this.rot.w }));
+    const screen = !!rec.screen;
     this.collider = ctx.phys.world.createCollider(R.ColliderDesc.cuboid(this.half.x, this.half.y, this.half.z)
-      .setCollisionGroups(groups(G.KINEMATIC, SOLID_FILTER)), this.body);
+      .setCollisionGroups(groups(screen ? G.SCREEN : G.KINEMATIC, SOLID_FILTER)), this.body);
     ctx.phys.owners.set(this.collider.handle, { kind: 'door', door: this });
     const g = new THREE.Group();
-    const slab = new THREE.Mesh(new THREE.BoxGeometry(size.x, size.y, size.z), mat(ctx, 'plates'));
-    g.add(slab);
+    if (screen) {
+      // perforated panel in a steel frame: the Graft passes through, bodies do not
+      const panel = new THREE.Mesh(new THREE.BoxGeometry(size.x - 0.2, size.y - 0.2, 0.03), mat(ctx, 'screen'));
+      g.add(panel);
+      const frameMat = mat(ctx, 'steel');
+      for (const [w, h, x, y] of [[size.x, 0.12, 0, size.y / 2 - 0.06], [size.x, 0.12, 0, -size.y / 2 + 0.06], [0.12, size.y, -size.x / 2 + 0.06, 0], [0.12, size.y, size.x / 2 - 0.06, 0]]) {
+        const bar = new THREE.Mesh(new THREE.BoxGeometry(w, h, size.z), frameMat);
+        bar.position.set(x, y, 0);
+        g.add(bar);
+      }
+    } else {
+      const slab = new THREE.Mesh(new THREE.BoxGeometry(size.x, size.y, size.z), mat(ctx, 'plates'));
+      g.add(slab);
+    }
     this.lights = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xff5a2a, emissiveIntensity: 3, roughness: 1 });
     for (const sx of [-1, 1]) {
       const strip = new THREE.Mesh(new THREE.BoxGeometry(0.06, size.y * 0.7, size.z + 0.02), this.lights);

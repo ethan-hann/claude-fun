@@ -82,6 +82,22 @@ class Island:
         self.lights = []
         self.lm_size = 1024
         self._n = 0
+        self.current_chunk = 'main'
+
+    def chunk(self, name):
+        """Context manager: everything built inside belongs to the named chunk. Chunks share the
+        island's lightmap but are separate meshes and collider bodies, so the game can move them
+        (for example, a section that breaks off and falls)."""
+        island = self
+
+        class _C:
+            def __enter__(self_):
+                self_.prev = island.current_chunk
+                island.current_chunk = name
+
+            def __exit__(self_, *a):
+                island.current_chunk = self_.prev
+        return _C()
 
     # ------------------------------------------------------------------ helpers
     def _name(self, base):
@@ -92,22 +108,23 @@ class Island:
         bpy.context.scene.collection.objects.link(obj)
         obj.data.materials.append(get_material(mat))
         obj['lm_weight'] = lm_weight
+        obj['chunk'] = self.current_chunk
         self.objects.append(obj)
         return obj
 
     def collider_box(self, center, size, rot_y=0.0, kind='solid', tag=None):
         rec = {'t': 'box', 'p': list(map(float, center)), 'h': [size[0] / 2, size[1] / 2, size[2] / 2],
-               'ry': float(rot_y), 'k': kind}
+               'ry': float(rot_y), 'k': kind, 'c': self.current_chunk}
         if tag:
             rec['tag'] = tag
         self.colliders.append(rec)
 
     def collider_hull(self, points, kind='solid'):
-        self.colliders.append({'t': 'hull', 'v': [list(map(float, p)) for p in points], 'k': kind})
+        self.colliders.append({'t': 'hull', 'v': [list(map(float, p)) for p in points], 'k': kind, 'c': self.current_chunk})
 
     def collider_cyl(self, center, radius, height, kind='solid'):
         self.colliders.append({'t': 'cyl', 'p': list(map(float, center)), 'r': float(radius),
-                               'hh': float(height) / 2, 'k': kind})
+                               'hh': float(height) / 2, 'k': kind, 'c': self.current_chunk})
 
     # --------------------------------------------------------------- primitives
     def box(self, center, size, mat='wall', bevel=0.03, rot_y=0.0, collide=True, segments=2,
@@ -144,7 +161,7 @@ class Island:
             else:
                 self.colliders.append({'t': 'box', 'p': list(map(float, center)),
                                        'h': [size[0] / 2, size[1] / 2, size[2] / 2],
-                                       'r': list(map(float, rot)), 'k': kind})
+                                       'r': list(map(float, rot)), 'k': kind, 'c': self.current_chunk})
         return obj
 
     def cyl(self, center, radius, height, mat='wall', segments=24, bevel=0.02, collide=True, lm_weight=1.0,
@@ -323,6 +340,8 @@ class Island:
 
     def entity(self, etype, **kw):
         rec = {'type': etype}
+        if self.current_chunk != 'main':
+            rec['chunk'] = self.current_chunk
         for k, v in kw.items():
             if isinstance(v, tuple):
                 v = list(v)
@@ -425,6 +444,7 @@ class Island:
             o.data.materials.append(get_material(mat_override or f'prop_{asset}'))
             o['lm_weight'] = lm_weight
             o['keep_uv'] = True
+            o['chunk'] = self.current_chunk
             self.objects.append(o)
             objs.append(o)
         if collider:
@@ -560,21 +580,33 @@ def join_static(island, margin=0.004):
         o.select_set(True)
     bpy.context.view_layer.objects.active = objs[0]
     bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
-    bpy.ops.object.join()
-    obj = bpy.context.view_layer.objects.active
-    obj.name = f'island_{island.key}'
-    obj.data.name = obj.name
-    # UVMap first, Lightmap second (TEXCOORD_0 / TEXCOORD_1)
-    return obj, None
+    # one joined mesh per chunk
+    chunks = {}
+    for o in objs:
+        chunks.setdefault(o.get('chunk', 'main'), []).append(o)
+    out = []
+    for name, group in chunks.items():
+        bpy.ops.object.select_all(action='DESELECT')
+        for o in group:
+            o.select_set(True)
+        bpy.context.view_layer.objects.active = group[0]
+        if len(group) > 1:
+            bpy.ops.object.join()
+        obj = bpy.context.view_layer.objects.active
+        obj.name = f'island_{island.key}' if name == 'main' else f'chunk_{name}'
+        obj.data.name = obj.name
+        out.append(obj)
+    return out, None
 
 
-def lightmap_unwrap(obj, weight_of_material=None, margin=0.004):
-    """Pack the (already density-normalized) lightmap islands into the unit square."""
-    me = obj.data
-    me.uv_layers.active = me.uv_layers['Lightmap']
+def lightmap_unwrap(objs, weight_of_material=None, margin=0.004):
+    """Pack the (already density-normalized) lightmap islands of every chunk into one atlas."""
+    objs = objs if isinstance(objs, list) else [objs]
     bpy.ops.object.select_all(action='DESELECT')
-    obj.select_set(True)
-    bpy.context.view_layer.objects.active = obj
+    for o in objs:
+        o.data.uv_layers.active = o.data.uv_layers['Lightmap']
+        o.select_set(True)
+    bpy.context.view_layer.objects.active = objs[0]
     bpy.ops.object.mode_set(mode='EDIT')
     bpy.ops.mesh.select_all(action='SELECT')
     bpy.ops.uv.select_all(action='SELECT')
@@ -617,7 +649,7 @@ def setup_sun():
     return obj
 
 
-def bake_lightmap(obj, island, size, samples=(256, 128, 64), out_dir=None, quick=False):
+def bake_lightmap(objs, island, size, samples=(256, 128, 64), out_dir=None, quick=False):
     """Bake: A = sky + local lights (direct + indirect), B = sun bounce only, C = sun shadow mask.
     Lightmap RGB = A + B (irradiance / pi), alpha = C."""
     import numpy as np
@@ -632,20 +664,26 @@ def bake_lightmap(obj, island, size, samples=(256, 128, 64), out_dir=None, quick
     sc.cycles.glossy_bounces = 1
     sc.cycles.transmission_bounces = 0
     sc.cycles.use_adaptive_sampling = False
-    me = obj.data
-    me.uv_layers.active = me.uv_layers['Lightmap']
+    objs = objs if isinstance(objs, list) else [objs]
     img = bpy.data.images.new('lm_' + island.key, size, size, float_buffer=True, alpha=True)
-    for m in me.materials:
-        nt = m.node_tree
-        tex = nt.nodes.new('ShaderNodeTexImage')
-        tex.image = img
-        uvn = nt.nodes.new('ShaderNodeUVMap')
-        uvn.uv_map = 'Lightmap'
-        nt.links.new(uvn.outputs['UV'], tex.inputs['Vector'])
-        nt.nodes.active = tex
+    done = set()
+    for obj in objs:
+        obj.data.uv_layers.active = obj.data.uv_layers['Lightmap']
+        for m in obj.data.materials:
+            if m.name in done:
+                continue
+            done.add(m.name)
+            nt = m.node_tree
+            tex = nt.nodes.new('ShaderNodeTexImage')
+            tex.image = img
+            uvn = nt.nodes.new('ShaderNodeUVMap')
+            uvn.uv_map = 'Lightmap'
+            nt.links.new(uvn.outputs['UV'], tex.inputs['Vector'])
+            nt.nodes.active = tex
     bpy.ops.object.select_all(action='DESELECT')
-    obj.select_set(True)
-    bpy.context.view_layer.objects.active = obj
+    for obj in objs:
+        obj.select_set(True)
+    bpy.context.view_layer.objects.active = objs[0]
     bg = setup_world()
     sun = setup_sun()
 
@@ -739,10 +777,12 @@ def save_lightmap(rgb, mask, path, quality=92):
     return scale, clipped
 
 
-def export_glb(obj, path):
+def export_glb(objs, path):
+    objs = objs if isinstance(objs, list) else [objs]
     bpy.ops.object.select_all(action='DESELECT')
-    obj.select_set(True)
-    bpy.context.view_layer.objects.active = obj
+    for obj in objs:
+        obj.select_set(True)
+    bpy.context.view_layer.objects.active = objs[0]
     # remove bake helper nodes' influence: glTF exporter only reads principled inputs; fine
     bpy.ops.export_scene.gltf(filepath=path, export_format='GLB', use_selection=True, export_apply=True,
                               export_texcoords=True, export_normals=True, export_tangents=False,

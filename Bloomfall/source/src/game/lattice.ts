@@ -44,6 +44,7 @@ export abstract class Lattice implements Platform {
   glow = 0; // flash after a change
   highlight = 0; // targeted by the Graft
   locked = false;
+  disabled = false; // its chunk of the island has fallen away
   animating = false;
   protected phys: Physics;
   protected vis: LatticeVisualFactory;

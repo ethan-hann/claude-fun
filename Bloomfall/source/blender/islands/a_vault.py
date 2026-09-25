@@ -109,24 +109,24 @@ def build(b):
     # exit room: ledge 2 m high along its north side, taller ceiling
     arch.wall(b, -4.3, 1.0, -4.3, -8.8, 0, 5.2, thick=T, mat='wall')
     arch.wall(b, 4.3, 1.0, 4.3, -8.8, 0, 5.2, thick=T, mat='wall')
-    b.box((0, 1.0, -6.0), (7.0, 2.0, 4.0), mat='concrete', bevel=0.04)  # ledge block (top y=2)
-    b.box((0, 2.02, -4.1), (7.0, 0.04, 0.12), mat='steel', bevel=0.0, collide=False)
+    b.box((0, 1.1, -6.0), (7.0, 2.2, 4.0), mat='concrete', bevel=0.04)  # ledge block (top y=2.2)
+    b.box((0, 2.22, -4.1), (7.0, 0.04, 0.12), mat='steel', bevel=0.0, collide=False)
     # north wall: exit opening on the ledge level
-    arch.wall(b, -4.7, -8.4, 4.7, -8.4, 0, 5.2, thick=T, mat='wall', openings=[(3.4, 6.0, 2.0, 4.6)])
+    arch.wall(b, -4.7, -8.4, 4.7, -8.4, 0, 5.2, thick=T, mat='wall', openings=[(3.4, 6.0, 2.2, 4.8)])
     b.box((0, 5.7, -3.7), (9.4, 1.0, 9.8), mat='concrete', bevel=0.05)
     b.glow_strip((-3.45, 2.3, -6.0), (0.04, 0.05, 3.6), color='glow_cyan')
     b.glow_strip((3.45, 2.3, -6.0), (0.04, 0.05, 3.6), color='glow_cyan')
     b.point_light((0.0, 4.4, -2.0), color=(0.55, 0.8, 1.0), power=55.0, radius=0.3)
 
     # ribbed concrete facade on the bunker's north face, with the exit opening
-    arch.wall(b, -4.9, -8.95, 4.9, -8.95, 0, 6.2, thick=0.3, mat='ribbed', openings=[(3.6, 6.2, 2.0, 4.6)])
+    arch.wall(b, -4.9, -8.95, 4.9, -8.95, 0, 6.2, thick=0.3, mat='ribbed', openings=[(3.6, 6.2, 2.2, 4.8)])
 
     # ---------------------------------------------------------------- landing and stairs
-    b.box((0, 1.0, -10.0), (5.2, 2.0, 3.2), mat='marble', bevel=0.04)  # landing top y=2
-    b.balustrade((-2.6, 2.0, -8.6), (-2.6, 2.0, -11.6), height=1.0, mat='marble')
-    b.balustrade((2.6, 2.0, -8.6), (2.6, 2.0, -11.6), height=1.0, mat='marble')
-    for i in range(10):
-        h = 2.0 - 0.2 * (i + 1)
+    b.box((0, 1.1, -10.0), (5.2, 2.2, 3.2), mat='marble', bevel=0.04)  # landing top y=2.2
+    b.balustrade((-2.6, 2.2, -8.6), (-2.6, 2.2, -11.6), height=1.0, mat='marble')
+    b.balustrade((2.6, 2.2, -8.6), (2.6, 2.2, -11.6), height=1.0, mat='marble')
+    for i in range(11):
+        h = 2.2 - 0.2 * (i + 1)
         z = -11.6 - 0.32 * i - 0.16
         if h > 0.001:
             b.box((0, h / 2, z), (4.2, h, 0.32), mat='marble', bevel=0.012)
@@ -170,26 +170,26 @@ def build(b):
         arch.wall(b, side * 9.2, -24.4, side * 9.2, -30.0, 0, 2.6, thick=0.8, mat='wall', cap='marble')
     # terrace block: top y = 2, from z -30 to the north tip
     terrace = [(-9.6, -30.0), (9.6, -30.0), (9.6, -43.0), (5.0, -51.5), (-5.0, -51.5), (-9.6, -43.0)]
-    b.poly_prism(terrace, 0.0, 1.9, mat='wall', bevel=0.04)
-    b.poly_prism(terrace, 1.9, 2.0, mat='paving', bevel=0.01)
-    b.box((0, 2.08, -30.2), (18.8, 0.1, 0.4), mat='marble', bevel=0.02, collide=False)
+    b.poly_prism(terrace, 0.0, 2.2, mat='wall', bevel=0.04)
+    b.poly_prism(terrace, 2.2, 2.3, mat='paving', bevel=0.01)
+    b.box((0, 2.33, -30.15), (18.8, 0.08, 0.3), mat='marble', bevel=0.02, collide=False)
     # heavy plate base
-    b.cyl((-3.2, 2.02, -35.2), 1.22, 0.06, mat='steel', segments=48, bevel=0.01, collide=False)
+    b.cyl((-3.2, 2.32, -35.2), 1.22, 0.06, mat='steel', segments=48, bevel=0.01, collide=False)
     # gate wall across the terrace at z = -40 with a 3 m opening
-    arch.wall(b, -9.6, -40.0, 9.6, -40.0, 2.0, 6.2, thick=0.8, mat='wall', openings=[(7.95, 11.25, 0.0, 3.8)], cap='marble')
-    b.box((-1.85, 3.9, -40.0), (0.5, 3.8, 1.1), mat='plates', bevel=0.03)
-    b.box((1.85, 3.9, -40.0), (0.5, 3.8, 1.1), mat='plates', bevel=0.03)
+    arch.wall(b, -9.6, -40.0, 9.6, -40.0, 2.3, 6.5, thick=0.8, mat='wall', openings=[(7.95, 11.25, 0.0, 3.8)], cap='marble')
+    b.box((-1.85, 4.2, -40.0), (0.5, 3.8, 1.1), mat='plates', bevel=0.03)
+    b.box((1.85, 4.2, -40.0), (0.5, 3.8, 1.1), mat='plates', bevel=0.03)
     # terrace balustrades
-    b.balustrade((-9.3, 2.0, -30.4), (-9.3, 2.0, -39.6), mat='marble')
-    b.balustrade((9.3, 2.0, -30.4), (9.3, 2.0, -39.6), mat='marble')
+    b.balustrade((-9.3, 2.3, -30.4), (-9.3, 2.3, -39.6), mat='marble')
+    b.balustrade((9.3, 2.3, -30.4), (9.3, 2.3, -39.6), mat='marble')
     # the bloom platform at the tip: a round dais with the bridge mount
-    b.cyl((0, 2.15, -46.5), 2.4, 0.3, mat='marble', segments=48, bevel=0.03)
-    b.cyl((0, 2.32, -46.5), 1.9, 0.06, mat='steel', segments=48, bevel=0.01, collide=False)
+    b.cyl((0, 2.45, -46.5), 2.4, 0.3, mat='marble', segments=48, bevel=0.03)
+    b.cyl((0, 2.62, -46.5), 1.9, 0.06, mat='steel', segments=48, bevel=0.01, collide=False)
     for side in (-1, 1):
-        b.balustrade((side * 9.3, 2.0, -40.4), (side * 5.0, 2.0, -51.2), mat='marble')
+        b.balustrade((side * 9.3, 2.3, -40.4), (side * 5.0, 2.3, -51.2), mat='marble')
     lamp = arch.lamp_post
-    lamp(b, -7.5, -34.0, 2.0)
-    lamp(b, 7.5, -45.0, 2.0)
+    lamp(b, -7.5, -34.0, 2.3)
+    lamp(b, 7.5, -45.0, 2.3)
     lamp(b, -7.0, -12.0, 0.0, power=90.0)
 
     # ---------------------------------------------------------------- entities
@@ -200,12 +200,12 @@ def build(b):
     E('zone', id='z_jump', p=(0.0, 0.0, 16.6), r=1.8, card='jump')
     E('zone', id='z_carry', p=(0.0, 0.0, 8.0), r=4.0, card='carry')
     E('zone', id='z_step', p=(0.0, 0.0, -1.5), r=3.2, card='step')
-    E('zone', id='z_landing', p=(0.0, 2.0, -10.0), r=2.5, echo='landing')
+    E('zone', id='z_landing', p=(0.0, 2.2, -10.0), r=2.5, echo='landing')
     E('zone', id='z_graft', p=(4.2, 0.0, -15.6), r=3.2, card='graft')
     E('zone', id='z_take', p=(0.0, 0.0, -21.8), r=2.6, card='take')
     E('zone', id='z_give', p=(0.0, 0.0, -27.2), r=3.0, card='give')
-    E('zone', id='z_weight', p=(0.0, 2.0, -34.0), r=4.5, card='weight')
-    E('zone', id='z_bloom', p=(0.0, 2.3, -46.5), r=2.0, bloom=True)
+    E('zone', id='z_weight', p=(0.0, 2.3, -34.0), r=4.5, card='weight')
+    E('zone', id='z_bloom', p=(0.0, 2.6, -46.5), r=2.0, bloom=True)
 
     E('crate', id='c_plate', p=(2.9, 0.5, 6.9), level=1, ry=12)
     E('plate', id='plate1', p=(-3.0, 0.05, 7.8), r=0.95, threshold=4)
@@ -215,7 +215,7 @@ def build(b):
     E('pickup', id='graft', kind='graft', p=(4.2, 1.1, -15.6))
     E('bulkhead', id='bulk1', p=(0.0, 0.0, -24.0), size=(3.1, 3.3, 0.45), level=1)
     E('crate', id='c_garden', p=(3.0, 0.25, -26.6), level=0, ry=20)
-    E('crate', id='c_heavy', p=(3.4, 2.5, -34.0), level=1, ry=-15)
-    E('plate', id='plate2', p=(-3.2, 2.05, -35.2), r=1.15, threshold=16)
-    E('door', id='gate', p=(0.0, 2.0, -40.0), size=(3.3, 3.8, 0.4), openIf=['plate2'], mode='up', travel=3.7)
-    E('bloom', id='bloom', p=(0.0, 2.3, -46.5))
+    E('crate', id='c_heavy', p=(3.4, 2.8, -34.0), level=1, ry=-15)
+    E('plate', id='plate2', p=(-3.2, 2.35, -35.2), r=1.15, threshold=16)
+    E('door', id='gate', p=(0.0, 2.3, -40.0), size=(3.3, 3.8, 0.4), openIf=['plate2'], mode='up', travel=3.7)
+    E('bloom', id='bloom', p=(0.0, 2.6, -46.5))

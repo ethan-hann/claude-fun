@@ -113,9 +113,9 @@ export class ViewModel {
     });
     this.model = m;
     // model forward is -Z already (exported Y-up from Blender +Y forward -> game -Z)
-    m.position.set(0.2, -0.19, -0.34);
-    m.rotation.set(0.05, -0.14, 0.12);
-    m.scale.setScalar(0.92);
+    m.position.set(0.21, -0.2, -0.36);
+    m.rotation.set(0.08, -0.2, 0.18);
+    m.scale.setScalar(0.62);
     this.root.add(m);
     this.root.visible = false;
   }
@@ -179,8 +179,8 @@ export class ViewModel {
     this.recoil = Math.max(0, this.recoil - dt * 4);
     const bob = opts.bob;
     const lower = (1 - this.easeOut(this.equip)) * 0.35;
-    this.model.position.set(0.2 + this.swayX + bob * 0.25, -0.19 + this.swayY - Math.abs(bob) * 0.5 - lower, -0.34 + this.recoil * 0.04);
-    this.model.rotation.set(0.05 + this.recoil * 0.12 - lower, -0.14 + this.swayX * 0.8, 0.12 + this.swayX * 1.2);
+    this.model.position.set(0.21 + this.swayX + bob * 0.25, -0.2 + this.swayY - Math.abs(bob) * 0.5 - lower, -0.36 + this.recoil * 0.035);
+    this.model.rotation.set(0.08 + this.recoil * 0.12 - lower, -0.2 + this.swayX * 0.8, 0.18 + this.swayX * 1.2);
     // beam from the lens to the target
     const lens = this.petals.length ? this.model.localToWorld(new THREE.Vector3(0, 0, 0)) : this.lensWorld;
     this.model.updateWorldMatrix(true, false);

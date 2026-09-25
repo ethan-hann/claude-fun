@@ -22,6 +22,7 @@ export const CARDS: Record<string, Card> = {
   give: { title: 'Give', body: '{LMB} gives space back. The lattice grows. Your Graft can only give what it has taken.' },
   weight: { title: 'Weight', body: 'Bigger lattice weighs more. Small weighs 1, medium 4, large 16. You weigh 4. The notches on a plate show how much it needs.' },
   reset: { title: 'Stuck?', body: 'Hold {R} to reset this island.' },
+  takeback: { title: 'Out of space', body: 'Your Graft is empty. Space has to come from somewhere. Take it back from lattice you no longer need, even far away.' },
   throw: { title: 'Throw', body: '{F} throws what you carry.' },
   ride: { title: 'Grow under your feet', body: 'Lattice lifts whatever stands on it as it grows. That includes you, and anything you carry.' },
   capacity: { title: 'A second cell', body: 'Your Graft now holds two cells of space.' },

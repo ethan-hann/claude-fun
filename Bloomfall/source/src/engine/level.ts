@@ -8,7 +8,7 @@ export const gltfLoader = new GLTFLoader();
 gltfLoader.setMeshoptDecoder(MeshoptDecoder);
 const texLoader = new THREE.TextureLoader();
 
-export interface IslandVisual { group: THREE.Group; data: LevelData; lightmap: THREE.Texture | null }
+export interface IslandVisual { group: THREE.Group; data: LevelData; lightmap: THREE.Texture | null; chunks: Map<string, THREE.Object3D> }
 
 // Loads the baked static mesh of an island and gives every primitive its PBR material plus the
 // island's lightmap (RGB: sky and bounce light, A: baked sun visibility).
@@ -53,7 +53,14 @@ export async function loadIslandVisual(key: string): Promise<IslandVisual> {
     mesh.updateMatrix();
   }));
   group.add(gltf.scene);
-  return { group, data, lightmap };
+  // chunk nodes: 'chunk_<name>' (the main body is 'island_<key>')
+  const chunks = new Map<string, THREE.Object3D>();
+  gltf.scene.traverse((o) => {
+    const m = /^chunk_(.+)$/.exec(o.name);
+    if (m && !chunks.has(m[1])) chunks.set(m[1], o);
+  });
+  for (const node of chunks.values()) node.traverse((o) => { o.matrixAutoUpdate = true; });
+  return { group, data, lightmap, chunks };
 }
 
 export async function loadModel(name: string): Promise<THREE.Group> {

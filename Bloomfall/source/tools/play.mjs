@@ -28,6 +28,7 @@ for (const s of steps) {
   }
   if (res !== undefined) console.log(`[${s.name}]`, typeof res === 'string' ? res : JSON.stringify(res));
   if (s.shot) {
+    await page.evaluate(() => { if (window.__game && window.__game.paused === false || window.__game) { window.__game.renderFrame(1 / 60); } });
     const f = `${outDir}/${String(i).padStart(2, '0')}_${s.name}.png`;
     await page.screenshot({ path: f });
     i++;

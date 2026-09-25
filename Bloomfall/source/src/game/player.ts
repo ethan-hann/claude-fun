@@ -3,9 +3,14 @@ import * as THREE from 'three';
 import { Physics, G, groups } from './physics';
 import type { Input } from './input';
 
+// Floating capsule: the collider hovers HOVER above the feet and a sphere cast holds the feet
+// on the ground. Floor seams and small ledges never touch the capsule, and steps lower than
+// HOVER are climbed by the ground spring.
 export const PLAYER = {
   radius: 0.3,
-  halfHeight: 0.55, // capsule segment half length; total height = 2 * (0.55 + 0.3) = 1.7
+  halfHeight: 0.4, // capsule from feet+0.3 to feet+1.7
+  hover: 0.3,
+  probeRadius: 0.2,
   eye: 1.56, // above the feet
   walk: 4.3,
   sprint: 6.6,
@@ -53,6 +58,8 @@ export class Player {
   private tmp = new THREE.Vector3();
   private platVel = new THREE.Vector3();
   pushOut = new THREE.Vector3(); // accumulated depenetration requested by growing objects
+  groundY = 0;
+  private probeShape: RAPIER.Ball;
 
   constructor(phys: Physics) {
     this.phys = phys;
@@ -63,21 +70,25 @@ export class Player {
       .setFriction(0.0);
     this.collider = phys.world.createCollider(cd, this.body);
     phys.owners.set(this.collider.handle, { kind: 'player', player: this });
+    this.probeShape = new R.Ball(PLAYER.probeRadius);
     this.kcc = phys.world.createCharacterController(0.02);
     this.kcc.setUp({ x: 0, y: 1, z: 0 });
     this.kcc.setMaxSlopeClimbAngle(THREE.MathUtils.degToRad(50));
     this.kcc.setMinSlopeSlideAngle(THREE.MathUtils.degToRad(55));
-    this.kcc.enableAutostep(0.36, 0.18, false);
-    this.kcc.enableSnapToGround(0.28);
+    this.kcc.disableAutostep();
+    this.kcc.disableSnapToGround();
     this.kcc.setApplyImpulsesToDynamicBodies(true);
     this.kcc.setCharacterMass(60);
     this.kcc.setSlideEnabled(true);
   }
 
-  get feet(): THREE.Vector3 { return this.tmp.set(this.pos.x, this.pos.y - PLAYER.halfHeight - PLAYER.radius, this.pos.z); }
+  // capsule center sits this far above the feet
+  static readonly CENTER = PLAYER.hover + PLAYER.radius + PLAYER.halfHeight;
+
+  get feet(): THREE.Vector3 { return this.tmp.set(this.pos.x, this.pos.y - Player.CENTER, this.pos.z); }
 
   teleport(feet: THREE.Vector3, yaw?: number): void {
-    this.pos.set(feet.x, feet.y + PLAYER.halfHeight + PLAYER.radius + 0.02, feet.z);
+    this.pos.set(feet.x, feet.y + Player.CENTER + 0.02, feet.z);
     this.prevPos.copy(this.pos);
     this.vel.set(0, 0, 0);
     this.body.setTranslation(this.pos, true);
@@ -133,7 +144,6 @@ export class Player {
       this.onJump?.();
     }
     if (!this.grounded || jumped) this.vel.y -= PLAYER.gravity * dt;
-    else this.vel.y = Math.max(this.vel.y - PLAYER.gravity * dt, -2);
     this.vel.y = Math.max(this.vel.y, -55);
 
     // ride moving platforms
@@ -145,11 +155,18 @@ export class Player {
 
     const desired = new THREE.Vector3(
       (this.vel.x + this.platVel.x) * dt + this.pushOut.x,
-      (this.vel.y + Math.max(this.platVel.y, 0)) * dt + this.pushOut.y,
+      this.pushOut.y,
       (this.vel.z + this.platVel.z) * dt + this.pushOut.z,
     );
-    if (this.platVel.y < 0 && this.grounded) desired.y += this.platVel.y * dt;
     this.pushOut.set(0, 0, 0);
+    // vertical: follow the ground spring when grounded, else fall
+    if (this.grounded && !jumped) {
+      const err = this.groundY - this.feet.y; // positive: ground is above the feet
+      const follow = err > 0 ? Math.min(err, 9 * dt + err * 0.35) : Math.max(err, -12 * dt);
+      desired.y += follow + this.platVel.y * dt * (err > 0.02 ? 0 : 1);
+    } else {
+      desired.y += this.vel.y * dt;
+    }
 
     if (this.noclip) {
       this.pos.add(desired);
@@ -163,28 +180,15 @@ export class Player {
       groups(G.PLAYER, G.STATIC | G.SCREEN | G.DYNAMIC | G.KINEMATIC));
     const m = this.kcc.computedMovement();
     const wasGrounded = this.grounded;
-    this.grounded = this.kcc.computedGrounded();
     // hit the ceiling
     if (desired.y > 0 && m.y < desired.y * 0.3 && this.vel.y > 0) this.vel.y = 0;
     this.pos.x += m.x;
     this.pos.y += m.y;
     this.pos.z += m.z;
-    this.body.setNextKinematicTranslation(this.pos);
 
-    // what are we standing on?
-    this.groundCollider = null;
-    if (this.grounded) {
-      const hit = this.phys.castRay(new THREE.Vector3(this.pos.x, this.pos.y - PLAYER.halfHeight, this.pos.z), new THREE.Vector3(0, -1, 0),
-        PLAYER.radius + 0.35, G.STATIC | G.SCREEN | G.DYNAMIC | G.KINEMATIC, this.collider);
-      if (hit) { this.groundCollider = hit.collider; this.groundNormal.copy(hit.normal); }
-      else {
-        // edge of a ledge: find the collider among the controller's contacts
-        for (let i = 0; i < this.kcc.numComputedCollisions(); i++) {
-          const c = this.kcc.computedCollision(i);
-          if (c && c.collider && c.normal1.y > 0.5) { this.groundCollider = c.collider; break; }
-        }
-      }
-    }
+    // ground probe: a sphere cast down from inside the capsule
+    this.probeGround(jumped);
+    this.body.setNextKinematicTranslation(this.pos);
 
     if (this.grounded) {
       if (!wasGrounded) {
@@ -207,10 +211,34 @@ export class Player {
     this.landDip += this.landVel * dt;
   }
 
+  private probeGround(jumped: boolean): void {
+    const start = this.pos.clone();
+    const feetY = start.y - Player.CENTER;
+    // reach: to the feet plus the hover gap when grounded (so small steps down stay grounded)
+    const reach = (start.y - feetY) - PLAYER.probeRadius + (this.grounded ? 0.32 : 0.04);
+    const hit = this.phys.world.castShape(start, { x: 0, y: 0, z: 0, w: 1 }, { x: 0, y: -1, z: 0 }, this.probeShape, 0.0, reach, true,
+      RAPIER.QueryFilterFlags.EXCLUDE_SENSORS, groups(G.PLAYER, G.STATIC | G.SCREEN | G.DYNAMIC | G.KINEMATIC), this.collider);
+    const rising = this.vel.y > 0.5 || jumped;
+    if (hit && !rising) {
+      const n = hit.normal1;
+      const slopeOk = n.y > Math.cos(THREE.MathUtils.degToRad(52));
+      const contactY = hit.witness1.y;
+      if (slopeOk && contactY <= feetY + PLAYER.hover + 0.02) {
+        this.grounded = true;
+        this.groundCollider = hit.collider;
+        this.groundNormal.set(n.x, n.y, n.z);
+        this.groundY = contactY;
+        return;
+      }
+    }
+    this.grounded = false;
+    this.groundCollider = null;
+  }
+
   // Interpolated eye position for rendering.
   eyePosition(alpha: number, out: THREE.Vector3): THREE.Vector3 {
     out.lerpVectors(this.prevPos, this.pos, alpha);
-    out.y += PLAYER.eye - PLAYER.halfHeight - PLAYER.radius;
+    out.y += PLAYER.eye - Player.CENTER;
     const hspeed = Math.hypot(this.vel.x, this.vel.z);
     const bobAmt = this.grounded ? Math.min(hspeed / PLAYER.walk, 1.4) : 0;
     this.bob = Math.sin(this.bobPhase) * 0.028 * bobAmt;

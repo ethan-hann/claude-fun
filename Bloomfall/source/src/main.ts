@@ -6,6 +6,7 @@ import { Director, IslandPlan } from './game/director';
 // The world: islands in order, their positions, and the Graft's capacity on each.
 export const PLAN: IslandPlan[] = [
   { key: 'a_vault', origin: [0, 0, 0], capacity: 1 },
+  { key: 'b_terraces', origin: [6, 1.5, -97], capacity: 1 },
 ];
 
 const params = new URLSearchParams(location.search);

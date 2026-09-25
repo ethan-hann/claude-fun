@@ -37,6 +37,7 @@ export class Island {
   private driftDir = new THREE.Vector3();
   private phys: Physics | null = null;
   lights: THREE.PointLight[] = [];
+  chunks = new Map<string, { node: THREE.Object3D | null; body: RAPIER.RigidBody; lattices: Lattice[]; entities: Entity[]; fall: { t: number; v: THREE.Vector3; w: THREE.Vector3 } | null; home: THREE.Vector3; homeQ: THREE.Quaternion }>();
   constructor(def: IslandDef) {
     this.key = def.key;
     this.origin = new THREE.Vector3(...def.origin);
@@ -48,19 +49,72 @@ export class Island {
     this.driftT = -1;
     if (this.group) { this.group.visible = v; this.group.position.copy(this.origin); }
     const far = new THREE.Vector3(0, -5000, 0);
-    this.staticBody?.setTranslation(v ? this.origin : far, true);
+    for (const c of this.chunks.values()) c.body.setTranslation(v ? this.origin : far, true);
     for (const l of this.lattices) { l.object.visible = v; if (!v) l.body.setTranslation(far, false); }
     for (const e of this.entities) (e as any).setVisible?.(v);
     for (const l of this.lights) l.visible = v;
   }
-  resetState(): void { this.graftTaken = false; }
+  resetState(): void {
+    this.graftTaken = false;
+    for (const [name, c] of this.chunks) if (name !== 'main') this.restoreChunk(name);
+  }
+  // A section of the island breaks off: it shakes, drops, tilts and falls into the haze.
+  detachChunk(name: string): void {
+    const c = this.chunks.get(name);
+    if (!c || c.fall) return;
+    c.fall = { t: 0, v: new THREE.Vector3(0, 0, 0), w: new THREE.Vector3((Math.random() - 0.5) * 0.06, 0, (Math.random() - 0.5) * 0.06) };
+  }
+  restoreChunk(name: string): void {
+    const c = this.chunks.get(name);
+    if (!c) return;
+    c.fall = null;
+    if (c.node) { c.node.position.copy(c.home); c.node.quaternion.copy(c.homeQ); c.node.visible = true; }
+    c.body.setTranslation(this.origin, true);
+    c.body.setRotation({ x: 0, y: 0, z: 0, w: 1 }, true);
+    for (const l of c.lattices) { l.object.visible = true; l.disabled = false; }
+  }
+  updateChunks(dt: number, onGone?: (name: string) => void): void {
+    for (const [name, c] of this.chunks) {
+      if (!c.fall) continue;
+      const f = c.fall;
+      f.t += dt;
+      const shake = f.t < 1.6 ? (Math.random() - 0.5) * 0.05 * f.t : 0;
+      if (f.t > 1.6) {
+        f.v.y -= 6 * dt;
+        f.v.x += f.w.x * dt * 2;
+        f.v.z += f.w.z * dt * 2;
+      }
+      const drop = new THREE.Vector3().copy(f.v).multiplyScalar(dt);
+      if (c.node) {
+        c.node.position.add(drop);
+        c.node.position.x += shake;
+        if (f.t > 1.6) { c.node.rotation.x += f.w.x * dt; c.node.rotation.z += f.w.z * dt; }
+      }
+      // the colliders follow while the player could still be on it, then vanish
+      const t = c.body.translation();
+      if (f.t < 2.4) c.body.setTranslation({ x: t.x + drop.x, y: t.y + drop.y, z: t.z + drop.z }, true);
+      else if (t.y > -4000) {
+        c.body.setTranslation({ x: 0, y: -5000, z: 0 }, true);
+        for (const l of c.lattices) { l.object.visible = false; l.disabled = true; l.body.setTranslation({ x: 0, y: -5000, z: 0 }, false); }
+        for (const e of c.entities) (e as any).setVisible?.(false);
+        onGone?.(name);
+      }
+      for (const l of c.lattices) {
+        if (f.t < 2.4 && l.object.visible && !(l as any).held) {
+          const p = l.body.translation();
+          if (!l.free) l.body.setTranslation({ x: p.x + drop.x, y: p.y + drop.y, z: p.z + drop.z }, false);
+        }
+      }
+      if (f.t > 20 && c.node) c.node.visible = false;
+    }
+  }
   drift(): void {
     if (!this.attached || this.driftT >= 0) return;
     this.driftT = 0;
     this.driftDir.set(Math.random() - 0.5, -0.35, 0.8).normalize();
     // the city takes back what the island held
     const far = new THREE.Vector3(0, -5000, 0);
-    this.staticBody?.setTranslation(far, true);
+    for (const c of this.chunks.values()) c.body.setTranslation(far, true);
     for (const l of this.lattices) { l.body.setTranslation(far, false); }
     for (const e of this.entities) (e as any).setVisible?.(false);
     for (const l of this.lattices) l.object.visible = false;
@@ -103,7 +157,7 @@ export class Game {
     document.body.appendChild(this.r.renderer.domElement);
     this.r.quality = quality;
     await Promise.all([this.r.init(), this.phys.init()]);
-    for (const k of ['plates', 'steel', 'lattice', 'marble', 'wall', 'rust']) this.sets[k] = await textureSet(k);
+    for (const k of ['plates', 'steel', 'lattice', 'marble', 'wall', 'rust', 'screen']) this.sets[k] = await textureSet(k);
     await this.vis.init();
     this.gloveModel = await loadModel('glove');
     this.gloveModel.traverse((o) => {
@@ -141,13 +195,23 @@ export class Game {
     this.r.scene.add(vis.group);
     isl.group = vis.group;
     isl.title = data.title;
-    isl.colliders = this.phys.addStatic(data.colliders, isl.origin);
-    isl.staticBody = isl.colliders[0]?.parent() ?? null;
+    const bodies = this.phys.addStatic(data.colliders, isl.origin);
+    for (const [name, b] of bodies) {
+      const node = name === 'main' ? null : vis.chunks.get(name) ?? null;
+      isl.chunks.set(name, { node, body: b.body, lattices: [], entities: [], fall: null, home: node ? node.position.clone() : new THREE.Vector3(), homeQ: node ? node.quaternion.clone() : new THREE.Quaternion() });
+      isl.colliders.push(...b.colliders);
+    }
+    isl.staticBody = bodies.get('main')!.body;
     isl.bind(this.phys);
     isl.killY = isl.origin.y + (data.meta.killY ?? -30);
     isl.startCells = data.meta.startCells ?? 0;
     this.ctx.origin = isl.origin;
-    for (const rec of data.entities) this.createEntity(isl, rec);
+    for (const rec of data.entities) {
+      const nL = isl.lattices.length, nE = isl.entities.length;
+      this.createEntity(isl, rec);
+      const ch = this.chunkOf(isl, rec);
+      if (ch) { ch.lattices.push(...isl.lattices.slice(nL)); ch.entities.push(...isl.entities.slice(nE)); }
+    }
   }
 
   private createEntity(isl: Island, rec: EntityRec): void {
@@ -199,7 +263,7 @@ export class Game {
         const [w, h, d] = rec.size;
         const base = v3(rec.p).add(o);
         const obj = this.vis.bulkhead(w, h, d);
-        const l = new AnchoredLattice(this.phys, this.vis, id, 'bulkhead', obj, base, new THREE.Vector3(0, 1, 0), [-h / 2, h / 2], rec.level ?? 1,
+        const l = new AnchoredLattice(this.phys, this.vis, id, 'bulkhead', obj, base, new THREE.Vector3(0, 1, 0), [-h / 2 - 0.03, h / 2], rec.level ?? 1,
           new THREE.Vector3(w / 2, h / 2, d / 2), THREE.MathUtils.degToRad(rec.ry ?? 0), rec.speed ?? 2.6);
         this.addAnchored(isl, l);
         break;
@@ -286,6 +350,10 @@ export class Game {
     return !!hit;
   }
 
+  private chunkOf(isl: Island, rec: EntityRec) {
+    return rec.chunk ? isl.chunks.get(rec.chunk) : undefined;
+  }
+
   private addAnchored(isl: Island, l: AnchoredLattice): void {
     l.islandKey = isl.key;
     this.r.scene.add(l.object);
@@ -355,7 +423,7 @@ export class Game {
     const isl = this.current!;
     if (this.player.pos.y < isl.killY) this.emit('fell');
     for (const l of this.lattices.values()) {
-      if (!l.free) continue;
+      if (!l.free || l.disabled) continue;
       const fl = l as FreeLattice;
       if (fl.position().y < isl.killY - 10) {
         if (this.graft.held === fl) this.graft.drop(false);
