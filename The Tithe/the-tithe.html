@@ -57,7 +57,7 @@ kbd { display: inline-block; min-width: 1.7em; padding: 0 .4em; margin: 0 .1em; 
 #sorrow .n { font: 700 25px 'Cinzel', serif; color: var(--paper); text-shadow: 0 0 12px rgba(160,120,255,.35); }
 #sorrow .gain { display: block; font: 600 15px 'Cinzel', serif; color: #c9b8ff; height: 18px; opacity: 0; transition: opacity .3s; }
 
-#objective { position: absolute; right: 18px; top: 16px; max-width: 360px; text-align: right; font-size: 17px; color: #d8cfbd;
+#objective { transition: opacity .6s; position: absolute; right: 18px; top: 16px; max-width: 360px; text-align: right; font-size: 17px; color: #d8cfbd;
   text-shadow: 0 1px 4px #000, 0 0 10px #000; line-height: 1.3; padding: 10px 14px 10px 40px; background: linear-gradient(90deg, rgba(0,0,0,0), rgba(0,0,0,.55) 30%); }
 #objective b { display: block; font: 600 11px 'Cinzel', serif; letter-spacing: .2em; color: var(--gold); margin-bottom: 3px; }
 
@@ -164,8 +164,9 @@ table.controls td:first-child { white-space: nowrap; color: var(--gold-hi); }
 #loading { position: fixed; inset: 0; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
 #loading .t { font: 400 20px 'Cinzel', serif; letter-spacing: .3em; color: var(--dim); }
 #loading .e { max-width: 560px; text-align: center; font-size: 19px; color: #e7a090; line-height: 1.45; }
-#clickHint { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); padding: 14px 26px; background: var(--panel); border: 1px solid var(--line);
-  font-size: 20px; pointer-events: none; }
+#clickHint { position: fixed; left: 50%; top: 58%; transform: translate(-50%, -50%); padding: 12px 26px; background: var(--panel); border: 1px solid var(--line);
+  font-size: 20px; pointer-events: none; animation: hintPulse 2s ease-in-out infinite; }
+@keyframes hintPulse { 50% { border-color: var(--gold-hi); } }
 </style>
 </head>
 <body>
@@ -302,7 +303,7 @@ table.controls td:first-child { white-space: nowrap; color: var(--gold-hi); }
 </div>
 
 <div id="intro" class="screen hidden"><div class="lines" id="introLines"></div><div class="skipHint">Click or press any key to continue</div></div>
-<div id="clickHint" class="hidden">Click to take control</div>
+<div id="clickHint" class="hidden">Click to take control of the camera</div>
 <div id="loading"><div class="t" id="loadT">WEAVING HALCYON</div><div class="e" id="loadE"></div></div>
 
 <script>
@@ -648,6 +649,7 @@ function addSolid(s) {
   s.rot = s.rot || 0; s.cos = Math.cos(s.rot); s.sin = Math.sin(s.rot); s.stamp = 0;
   if (s.enabled === undefined) s.enabled = true;
   if (s.t === 'ramp') s.y1 = Math.max(s.ya, s.yb);
+  if (s.t === 'cyl' && s.hx < 0.95 && s.noRay === undefined) s.noRay = true;
   let ex, ez;
   if (s.t === 'cyl') ex = ez = s.hx;
   else { ex = Math.abs(s.hx * s.cos) + Math.abs(s.hz * s.sin); ez = Math.abs(s.hx * s.sin) + Math.abs(s.hz * s.cos); }
@@ -711,6 +713,54 @@ function collideCircle(p, yFeet, r, h, step = 0.6) {
     }
   }
   return hit;
+}
+// Local path finding. When a pew or a hedge stands between a body and its goal,
+// search a 20 m grid around both for a way around. Returns the farthest point on
+// that path the body can walk to in a straight line, or null.
+const NAV_N = 40, NAV_C = 0.5;
+const NAV = { g: new Uint8Array(NAV_N * NAV_N), cost: new Float32Array(NAV_N * NAV_N), from: new Int32Array(NAV_N * NAV_N), heap: [], budget: 2 };
+function navWaypoint(b, tx, tz, out) {
+  const N = NAV_N, C = NAV_C, ox = (b.pos.x + tx) / 2 - N * C / 2, oz = (b.pos.z + tz) / 2 - N * C / 2;
+  const si = Math.floor((b.pos.x - ox) / C), sj = Math.floor((b.pos.z - oz) / C), gi = Math.floor((tx - ox) / C), gj = Math.floor((tz - oz) / C);
+  if (Math.min(si, sj, gi, gj) < 0 || Math.max(si, sj, gi, gj) >= N) return null;
+  const { g, cost, from, heap } = NAV, sk = sj * N + si, gk = gj * N + gi;
+  g.fill(0); cost.fill(1e9); from.fill(-1); heap.length = 0;
+  const r = (b.radius || 0.45) * 0.85, h = b.height || 1.8, y = b.pos.y;
+  const free = k => {
+    if (k === sk || k === gk) return true;
+    if (!g[k]) { _v4.set(ox + (k % N + 0.5) * C, 0, oz + ((k / N | 0) + 0.5) * C); g[k] = collideCircle(_v4, y, r, h) ? 2 : 1; }
+    return g[k] === 1;
+  };
+  const hx = k => { const dx = Math.abs(k % N - gi), dz = Math.abs((k / N | 0) - gj); return Math.max(dx, dz) + 0.414 * Math.min(dx, dz); };
+  const push = (f, k) => { heap.push([f, k]); let i = heap.length - 1; while (i > 0) { const q = (i - 1) >> 1; if (heap[q][0] <= heap[i][0]) break; [heap[q], heap[i]] = [heap[i], heap[q]]; i = q; } };
+  const pop = () => {
+    const top = heap[0], last = heap.pop();
+    if (heap.length) { heap[0] = last; let i = 0; for (;;) { const l = 2 * i + 1, m0 = l + 1; let m = i; if (l < heap.length && heap[l][0] < heap[m][0]) m = l; if (m0 < heap.length && heap[m0][0] < heap[m][0]) m = m0; if (m === i) break; [heap[m], heap[i]] = [heap[i], heap[m]]; i = m; } }
+    return top;
+  };
+  cost[sk] = 0; push(hx(sk), sk);
+  let found = false;
+  for (let n = 0; heap.length && n < 700; n++) {
+    const [f, k] = pop();
+    if (k === gk) { found = true; break; }
+    if (f - hx(k) > cost[k] + 1e-6) continue;
+    const i = k % N, j = k / N | 0;
+    for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+      const ni = i + di, nj = j + dj;
+      if ((!di && !dj) || ni < 0 || nj < 0 || ni >= N || nj >= N) continue;
+      const nk = nj * N + ni; if (!free(nk)) continue;
+      if (di && dj && (!free(j * N + ni) || !free(nj * N + i))) continue;
+      const nc = cost[k] + (di && dj ? 1.414 : 1);
+      if (nc < cost[nk]) { cost[nk] = nc; from[nk] = k; push(nc + hx(nk), nk); }
+    }
+  }
+  if (!found) return null;
+  const chain = []; for (let k = gk; k !== -1 && k !== sk; k = from[k]) chain.push(k);
+  if (!chain.length) return null;
+  const yr = y + 0.62;
+  let pick = chain[chain.length - 1];
+  for (const c of chain) { const wx = ox + (c % N + 0.5) * C, wz = oz + ((c / N | 0) + 0.5) * C; if (raycast(b.pos.x, yr, b.pos.z, wx, yr, wz) > 0.999) { pick = c; break; } }
+  return out.set(ox + (pick % N + 0.5) * C, y, oz + ((pick / N | 0) + 0.5) * C);
 }
 // Segment A->B against all solids. Returns the hit fraction in [0, 1] (1 = clear).
 function raycast(ax, ay, az, bx, by, bz, skipGhost = true) {
@@ -997,12 +1047,17 @@ void main(){
   float bead = vBead >= 0.0 ? exp(-pow((vU - vBead) / 0.035, 2.0)) * 7.0 : 0.0;
   float fog = 1.0 - smoothstep(uFogNear, uFogFar, vDepth);
   float near = smoothstep(0.0, 0.25, vFade);
-  gl_FragColor = vec4(vColor * (a * (0.9 + pulse + bead)) * fog * uOpacity * vAlpha * (0.35 + 0.65 * vFade) * near, 1.0);
+  float k = fog * uOpacity * vAlpha * (0.35 + 0.65 * vFade) * near;
+  // Gold and white threads only add light. Red ones also cover what is behind
+  // them, so a red thread still reads as red against white marble.
+  float red = smoothstep(0.9, 1.3, vColor.r - max(vColor.g, vColor.b));
+  gl_FragColor = vec4(vColor * (a * (0.9 + pulse + bead)) * k * (1.0 - 0.25 * red), core * red * 0.92 * k);
 }`;
 function threadMaterial(sway) {
   return new THREE.ShaderMaterial({
     uniforms: { uTime: { value: 0 }, uSway: { value: sway }, uOpacity: { value: 1 }, uFogNear: { value: 80 }, uFogFar: { value: 600 } },
-    vertexShader: THREAD_VS, fragmentShader: THREAD_FS, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false
+    vertexShader: THREAD_VS, fragmentShader: THREAD_FS, transparent: true, depthWrite: false, fog: false,
+    blending: THREE.CustomBlending, blendEquation: THREE.AddEquation, blendSrc: THREE.OneFactor, blendDst: THREE.OneMinusSrcAlphaFactor
   });
 }
 // Build geometry for many static curves: each curve = array of Vector3
@@ -1060,7 +1115,7 @@ function flushWeb(name, sway = 0.12) {
    ===================================================================== */
 const UY = -20;                       // undercroft floor height
 const WORLD = { statues: [], plaques: [], zones: [] };
-const LOOM_Y = 70, LOOM_CENTER = V3(0, 88, 0);
+const LOOM_Y = 70, LOOM_CENTER = V3(0, 95, 0);
 
 function roomBox(cx, cz, w, d, y, h, wallMat, floorMat, doors = {}, doorH = 4.6) {
   slab(cx, cz, w + 2, d + 2, y, floorMat);
@@ -1231,7 +1286,7 @@ function buildUndercroft() {
   roomBox(0, 152, 18, 16, UY, 10, S, F, { n: 5.6, s: 4.4 });
   for (const sx of [-1, 1]) candleCluster(sx * 7.8, UY, 152, 6, 600 + sx);
   // --- the long stair up to the surface (z 143 -> 105, y -20 -> 0)
-  stairs(0, 124, 5.6, 38, UY, 0, Math.PI, F);
+  stairs(0, 125, 5.6, 38, UY, 0, Math.PI, F);   // top edge meets the landing floor at z = 106
   for (const sx of [-1, 1]) box(sx * 3.3, UY - 1, 124.5, 1, 27, 39.5, S, 0, true, false);
   for (let i = 0; i < 10; i++) { // stepped ceiling following the slope
     const z0 = 143 - i * 3.8, ytop = UY + (i * 3.8) / 38 * 20 + 6.5;
@@ -1505,9 +1560,21 @@ function buildChoir() {
     add(G.box, M.gold, T(x, 5.2, sz * (HW - 0.05), 0, 2.8, 0.2, 0.3));
   }
   // a congregation that never leaves
-  for (const sz of [-1, 1]) for (const x of [77.5, 84.5, 91.5, 98.5]) contented(x, 0, sz * (3 + ((x * 7) % 3)), Math.PI / 2, 'sSing');
-  // pews in the west half; the east half is open for the choir
-  for (const sz of [-1, 1]) for (let x = 74; x <= 102; x += 3.5) { box(x, 0, sz * 4.4, 0.8, 0.85, 4.6, M.wood); add(G.box, M.wood, T(x - 0.35, 1.1, sz * 4.4, 0, 0.12, 0.6, 4.6)); }
+  // each stands in the row in front of a pew, and a thread runs to the next one
+  for (const sz of [-1, 1]) {
+    const pts = [77.5, 84.5, 91.5, 98.5].map(x => contented(x + 1.05, 0, sz * (3 + ((x * 7) % 3)), Math.PI / 2, 'sSing'));
+    for (let i = 1; i < pts.length; i++) webThread(pts[i - 1], pts[i], 0.35, 0.02, GOLD_SOFT, 12);
+  }
+  // pews in the west half, facing the altar; the east half is open for the choir
+  for (const sz of [-1, 1]) for (let x = 74; x <= 102; x += 3.5) {
+    const z = sz * 4.4;
+    box(x, 0, z, 0.8, 0.85, 4.6, null);
+    add(G.box, M.wood, T(x - 0.34, 0.53, z, 0, 0.1, 1.06, 4.46));
+    add(G.box, M.wood, T(x - 0.02, 0.44, z, 0, 0.58, 0.07, 4.46));
+    add(G.box, M.wood, T(x + 0.22, 0.2, z, 0, 0.06, 0.4, 4.46), false);
+    for (const e of [-1, 1]) add(G.box, M.wood, T(x - 0.04, 0.5, z + e * 2.26, 0, 0.74, 1.0, 0.08));
+    add(G.box, M.gold, T(x - 0.34, 1.07, z, 0, 0.13, 0.03, 4.5), false);
+  }
   // chancel: one step up, an altar, candles
   box(137, 0, 0, 18, 0.35, 17, M.marbleWarm);
   box(142, 0.35, 0, 2.2, 1.0, 5, M.marble); add(G.box, M.gold, T(142, 1.37, 0, 0, 2.3, 0.05, 5.1));
@@ -1537,7 +1604,14 @@ function buildChoir() {
   }
   box(181.2, 0, 0, 2.2, 2.2, 17, M.marbleWarm);
   // light falling through the oculus
-  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(3.2, 4.6, 26, 32, 1, true), new THREE.MeshBasicMaterial({ color: new THREE.Color(0.55, 0.48, 0.34), transparent: true, opacity: 0.07, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
+  // soft at its edges and where it meets the floor, so it reads as light and not as glass
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(3.2, 4.6, 26, 32, 1, true), new THREE.ShaderMaterial({
+    uniforms: { uColor: { value: new THREE.Color(0.55, 0.48, 0.34) } },
+    vertexShader: `varying vec3 vN; varying vec3 vV; varying float vY;
+      void main() { vec4 wp = modelMatrix * vec4(position, 1.0); vN = normalize(mat3(modelMatrix) * normal); vV = normalize(cameraPosition - wp.xyz); vY = uv.y; gl_Position = projectionMatrix * viewMatrix * wp; }`,
+    fragmentShader: `uniform vec3 uColor; varying vec3 vN; varying vec3 vV; varying float vY;
+      void main() { float f = abs(dot(normalize(vN), normalize(vV))); float a = f * f * smoothstep(0.0, 0.3, vY) * 0.11; gl_FragColor = vec4(uColor * a, 1.0); }`,
+    transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
   shaft.position.set(164, 13, 0); scene.add(shaft);
   const dome = new THREE.SphereGeometry(1, 48, 16, 0, TAU, 0.2, Math.PI / 2 - 0.2);
   add(dome, M.marbleDS, T(164, 26, 0, 0, 19.7, 15, 19.7), false); dome.dispose();
@@ -1592,8 +1666,8 @@ function buildWorld() {
   buildUndercroft(); WORLD.gUnder = flushStatic('undercroft');
   buildPromenade(); buildPlaza(); buildAvenues(); WORLD.gCity = flushStatic('city');
   flushWeb('cityWeb', 0.25);
-  buildGardens(); WORLD.gGardens = flushStatic('gardens');
-  buildChoir(); WORLD.gChoir = flushStatic('choir');
+  buildGardens(); WORLD.gGardens = flushStatic('gardens'); flushWeb('gardensWeb', 0.25);
+  buildChoir(); WORLD.gChoir = flushStatic('choir'); flushWeb('choirWeb', 0.06);
   buildSkyline(); WORLD.gSky = flushStatic('skyline'); flushWeb('farWeb', 0.6);
 }
 
@@ -1734,7 +1808,7 @@ function makeNeedle(k = 1) {
   mesh(g, G.sphereLo, M.gold, 0, 0.075, 0, 0.026, 0.03, 0.026);
   for (let i = 0; i < 4; i++) mesh(g, new THREE.TorusGeometry(0.022, 0.004, 4, 12), red, 0, -0.05 + i * 0.022, 0, 1, 1, 1, Math.PI / 2 + 0.3);
   g.scale.setScalar(k);
-  return { group: g, tip: V3(0, -1.18, 0), base: V3(0, -0.62, 0) };
+  return { group: g, tip: V3(0, -1.18, 0), base: V3(0, -0.8, 0) };
 }
 // A hanging cloth tail: verlet chain anchored to a joint, drawn as a camera-agnostic flat ribbon.
 function makeTail(mat, n, w, seg) {
@@ -1994,7 +2068,7 @@ function moveBody(a, vx, vz, dt) {
    WEAPON TRAILS
    ===================================================================== */
 const TRAIL_N = 16;
-function makeTrail(color = [0.55, 0.5, 0.42]) {
+function makeTrail(color = [0.36, 0.33, 0.27]) {
   const g = new THREE.BufferGeometry(), pos = new Float32Array(TRAIL_N * 2 * 3), a = new Float32Array(TRAIL_N * 2), idx = [];
   for (let i = 0; i < TRAIL_N; i++) { a[i * 2] = i / (TRAIL_N - 1); a[i * 2 + 1] = i / (TRAIL_N - 1); }
   for (let i = 0; i < TRAIL_N - 1; i++) { const b = i * 2; idx.push(b, b + 1, b + 2, b + 1, b + 3, b + 2); }
@@ -2002,7 +2076,7 @@ function makeTrail(color = [0.55, 0.5, 0.42]) {
   const m = new THREE.Mesh(g, new THREE.ShaderMaterial({
     uniforms: { uColor: { value: new THREE.Vector3(...color) }, uOn: { value: 0 } },
     vertexShader: `attribute float aAge; varying float vA; void main(){ vA = aAge; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
-    fragmentShader: `uniform vec3 uColor; uniform float uOn; varying float vA; void main(){ float a = pow(1.0 - vA, 2.6) * uOn; gl_FragColor = vec4(uColor * a, 1.0); }`,
+    fragmentShader: `uniform vec3 uColor; uniform float uOn; varying float vA; void main(){ float a = pow(1.0 - vA, 3.0) * uOn; gl_FragColor = vec4(uColor * a, 1.0); }`,
     transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
   m.frustumCulled = false; scene.add(m);
   return { mesh: m, tips: Array.from({ length: TRAIL_N }, () => V3()), bases: Array.from({ length: TRAIL_N }, () => V3()), on: false, fade: 0, init: false };
@@ -2043,7 +2117,7 @@ class Player {
     this.healPending = 0; this.healTarget = 0; this.god = false; this.links = [];
   }
   revive() { this.alive = true; this.hp = this.maxHp; this.hpLag = this.hp; this.st = this.maxSt; this.nectar = this.nectarMax; this.healPending = 0; this.lock = null; this.setState('free'); this.anim.stop(0.01); this.flash = 0; this.buffer = null; this.vel.set(0, 0, 0); this.vy = 0; }
-  recalc() { this.maxHp = 100 + (this.stats.vig - 1) * 12; this.maxSt = 100 + (this.stats.end - 1) * 9; this.dmgMul = 1 + (this.stats.mig - 1) * 0.08; }
+  recalc() { this.maxHp = 100 + (this.stats.vig - 1) * 14; this.maxSt = 100 + (this.stats.end - 1) * 10; this.dmgMul = 1 + (this.stats.mig - 1) * 0.09; }
   get level() { return this.stats.vig + this.stats.end + this.stats.mig - 2; }
   place(x, y, z, yaw) {
     this.pos.set(x, y, z); this.vel.set(0, 0, 0); this.vy = 0; this.yaw = yaw; this.onGround = true;
@@ -2446,6 +2520,8 @@ function dmgNumber(p, text, cls = '') {
 }
 function updateHUD(dt) {
   const p = player;
+  const needClick = !TEST && Game.state === 'play' && !Input.locked && !Input.usingPad;
+  if (needClick !== hud.needClick) { hud.needClick = needClick; $('clickHint').classList.toggle('hidden', !needClick); }
   hud.hpBar.style.width = (150 + p.maxHp * 1.5) + 'px';
   hud.stBar.style.width = (150 + p.maxSt * 1.35) + 'px';
   hud.hpBar.querySelector('.fill').style.width = (p.hp / p.maxHp * 100) + '%';
@@ -2916,12 +2992,30 @@ class Enemy {
   }
   updChase(dt, d) {
     const p = player, def = this.def;
+    // No straight line to them? Walk the way around.
+    this.navT = (this.navT || 0) - dt;
+    if (this.navT <= 0) {
+      this.navT = 0.35 + Math.random() * 0.2;
+      this.navWp = d < 18 && !this.clearTo(p) && NAV.budget-- > 0 ? navWaypoint(this, p.pos.x, p.pos.z, this.navWp || V3()) : null;
+      if (!this.navWp && d < 18 && !this.clearTo(p)) this.navT = 1.2;
+    }
+    if (this.navWp) {
+      const dx = this.navWp.x - this.pos.x, dz = this.navWp.z - this.pos.z, L = Math.hypot(dx, dz);
+      if (L > 0.3) {
+        const sp = d > 7 ? (def.run || 3.6) : (def.walk || 2.2);
+        this.faceToward(this.navWp.x, this.navWp.z, def.turn || 6, dt);
+        this.vel.x = damp(this.vel.x, dx / L * sp, 6, dt); this.vel.z = damp(this.vel.z, dz / L * sp, 6, dt);
+        return;
+      }
+      this.navWp = null; this.navT = 0;
+    }
     this.faceToward(p.pos.x, p.pos.z, def.turn || 6, dt);
     this.thinkT -= dt;
     if (this.thinkT <= 0) {
       this.thinkT = 0.15 + Math.random() * 0.2;
       const a = this.pickAttack(d);
-      if (a && Math.random() < (def.aggression || 0.7)) { this.startAttack(a); return; }
+      // a swing from range needs open floor between us, or the lunge ends in a pew
+      if (a && Math.random() < (def.aggression || 0.7) && (d < 2.4 || !(a.hit || a.hits) || this.clearTo(p))) { this.startAttack(a); return; }
     }
     const want = def.keep || 1.8;
     let fwd = 0, side = 0;
@@ -2929,8 +3023,28 @@ class Enemy {
     else if (d < want - 0.8) fwd = -(def.walk || 2.2) * 0.6;
     else side = (def.walk || 2.2) * 0.7 * this.circleDir;
     if (Math.random() < dt * 0.3) this.circleDir *= -1;
+    // Walled off by something low, like a pew? Step around it for a moment.
+    if (this.sT <= dt * 1.5 || !this.stuckP) { this.stuckP = [this.pos.x, this.pos.z]; this.stuckT = 0; }
+    this.stuckT += dt;
+    if (this.stuckT > 0.6) {
+      const moved = Math.hypot(this.pos.x - this.stuckP[0], this.pos.z - this.stuckP[1]);
+      if (fwd > 0 && moved < 0.3 && !(this.detourT > 0)) { this.detourT = 1.2; this.detourDir = this.findDetour(); }
+      this.stuckP[0] = this.pos.x; this.stuckP[1] = this.pos.z; this.stuckT = 0;
+    }
+    if (this.detourT > 0) { this.detourT -= dt; side = (def.walk || 2.2) * this.detourDir; fwd *= 0.2; }
     const s = Math.sin(this.yaw), c = Math.cos(this.yaw);
     this.vel.x = damp(this.vel.x, s * fwd + c * side, 6, dt); this.vel.z = damp(this.vel.z, c * fwd - s * side, 6, dt);
+  }
+  // Nothing taller than a step between us and them.
+  clearTo(t) { return raycast(this.pos.x, this.pos.y + 0.62, this.pos.z, t.pos.x, t.pos.y + 0.62, t.pos.z) > 0.999; }
+  // The nearest side (1 or -1) with open floor a step ahead of us.
+  findDetour() {
+    const s = Math.sin(this.yaw), c = Math.cos(this.yaw), r = this.radius || 0.45, h = this.height || 1.8;
+    for (const k of [0.7, 1.3, 1.9, 2.6, 3.4, 4.2]) for (const dir of [1, -1]) {
+      _v4.set(this.pos.x + s * 1.0 + c * k * dir, 0, this.pos.z + c * 1.0 - s * k * dir);
+      if (!collideCircle(_v4, this.pos.y, r, h)) return dir;
+    }
+    return Math.random() < 0.5 ? 1 : -1;
   }
   updDead(dt) {
     this.deadT += dt; this.vel.multiplyScalar(Math.exp(-5 * dt));
@@ -3181,7 +3295,7 @@ const ENEMY_DEFS = {};
 function defineEnemies() {
   const base = { flinch: true, anchorH: 0.62 };
   ENEMY_DEFS.serene = Object.assign({}, base, {
-    name: 'Serene', hp: 60, poise: 12, radius: 0.36, height: 1.75, sight: 12, walk: 1.7, run: 3.4, keep: 1.4, turn: 7, aggression: 0.75, sorrow: 40,
+    name: 'Serene', hp: 60, poise: 12, radius: 0.36, height: 1.75, sight: 12, walk: 1.7, run: 3.4, keep: 1.4, turn: 7, aggression: 0.75, sorrow: 50,
     staggerT: 0.9, noticeT: 0.8, blood: [1.8, 1.5, 0.8],
     build: (o) => skinSerene(makeRig(1.74), o), guard: EP.sGuard, idlePose: EP.sIdle,
     clips: { hurt: EC.hurt, stagger: EC.stagger, death: EC.death, notice: EC.notice },
@@ -3191,7 +3305,7 @@ function defineEnemies() {
     ],
   });
   ENEMY_DEFS.warden = Object.assign({}, base, {
-    name: 'Warden', hp: 170, poise: 48, radius: 0.46, height: 2.05, sight: 14, walk: 1.8, run: 3.3, keep: 2.4, turn: 5, aggression: 0.6, sorrow: 120,
+    name: 'Warden', hp: 170, poise: 48, radius: 0.46, height: 2.05, sight: 14, walk: 1.8, run: 3.3, keep: 2.4, turn: 5, aggression: 0.6, sorrow: 150,
     staggerT: 1.1, noticeT: 0.7, armor: true, blood: [1.8, 1.6, 1.2],
     build: (o) => skinWarden(makeRig(2.05), o), guard: EP.wGuard, idlePose: EP.wIdle, flinch: false,
     clips: { hurt: EC.hurt, stagger: EC.stagger, death: EC.death, notice: EC.notice },
@@ -3203,7 +3317,7 @@ function defineEnemies() {
     ],
   });
   ENEMY_DEFS.cantor = Object.assign({}, base, {
-    name: 'Cantor', hp: 80, poise: 16, radius: 0.4, height: 2.0, sight: 13, walk: 1.8, run: 2.4, keep: 8, turn: 5, sorrow: 90, float: true, floatH: 0.35,
+    name: 'Cantor', hp: 80, poise: 16, radius: 0.4, height: 2.0, sight: 13, walk: 1.8, run: 2.4, keep: 8, turn: 5, sorrow: 110, float: true, floatH: 0.35,
     staggerT: 1.0, noticeT: 0.6, blood: [2.0, 1.7, 0.9], loco: locoFloat, noClip: false,
     build: (o) => skinCantor(makeRig(1.95), o), guard: EP.cGuard, idlePose: EP.cGuard,
     clips: { hurt: EC.hurt, stagger: EC.stagger, death: EC.death, notice: EC.notice },
@@ -3386,7 +3500,7 @@ function updateLinks(dt) {
     const a = L.pa, b = L.pb;
     const bx = lerp(a.x, b.x, L.grow), by = lerp(a.y, b.y, L.grow), bz = lerp(a.z, b.z, L.grow);
     const dist = Math.hypot(bx - a.x, by - a.y, bz - a.z), sag = 0.05 * dist + 0.1 + sagExtra;
-    const w = L.kind === 'heart' ? 0.12 : L.kind === 'bind' ? 0.035 : 0.03;
+    const w = L.kind === 'heart' ? 0.12 : L.kind === 'bind' ? 0.05 : 0.03;
     for (let i = 0; i < LINK_SEG; i++) {
       const u = i / (LINK_SEG - 1), v = (slot * LINK_SEG + i) * 2;
       const wob = Math.sin(Game.time * 3 + L.seed * 9 + u * 7) * 0.04 * Math.sin(u * Math.PI);
@@ -3504,7 +3618,7 @@ function defineSpawns() {
   for (const [id, x, z] of [['c2a', 110, -3.4], ['c2b', 110, 3.4], ['c2d', 113, -6.6], ['c2e', 113, 6.6]]) S(id, 'serene', x, 0, z, Math.PI / 2, { sight: 7, singer: true });
   Lstar('c2c', 'c2a', 'c2b', 'c2d', 'c2e');
   // the chancel guard and its two Cantors
-  S('c3w', 'warden', 134, 0.35, 0, -Math.PI / 2, { hp: 200 }); S('c3a', 'cantor', 139, 0.35, -6.5, -Math.PI / 2); S('c3b', 'cantor', 139, 0.35, 6.5, -Math.PI / 2);
+  S('c3w', 'warden', 128, 0.35, 0, -Math.PI / 2, { hp: 200 }); S('c3a', 'cantor', 131, 0.35, -6, -Math.PI / 2); S('c3b', 'cantor', 131, 0.35, 6, -Math.PI / 2);
   Lstar('c3w', 'c3a', 'c3b');
   S('c4w', 'warden', 100, 0, -16, Math.PI);
 }
@@ -3642,7 +3756,7 @@ function makeGreatsword() {
   mesh(g, G.box, M.gold, 0, -0.14, 0, 0.42, 0.06, 0.08);
   mesh(g, cylG(8), M.wood, 0, 0.02, 0, 0.03, 0.3, 0.03);
   mesh(g, G.sphereLo, M.gold, 0, 0.2, 0, 0.05, 0.05, 0.05);
-  return { group: g, tip: V3(0, -1.88, 0), base: V3(0, -0.5, 0) };
+  return { group: g, tip: V3(0, -1.88, 0), base: V3(0, -1.2, 0) };
 }
 function skinCastellan(rig) {
   skinWarden(rig, { enamel: 0xf4efe2 });
@@ -3725,18 +3839,18 @@ function groundBurst(p, R, dmg, src, knockdown = false) {
 function buildCastellanArena() {
   const A = V3(-172, 11, 0);
   const b = bossRecord('castellan', { name: 'Castellan Voss', title: 'Shield of Halcyon', arena: A, r: 16.5, sorrow: 2200, music: 'castellan',
-    curtain: makeCurtain(-154.4, 0, 9.4, 11, Math.PI / 2, 7),
+    curtain: makeCurtain(-154.4, 0, 11.8, 11, Math.PI / 2, 7),
     create: createCastellan,
     onStart() { subtitle('Castellan Voss', 'The Tithe, walking? Then I failed my oath once. I will not fail it twice.', 5); },
   });
   // lantern plinths are world geometry; the lanterns themselves are nodes
   b.lanternSpots = [45, 135, 225, 315].map(a => V3(A.x + Math.cos(a * DEG) * 12, A.y, A.z + Math.sin(a * DEG) * 12));
   for (const s of b.lanternSpots) box(s.x, s.y, s.z, 1.3, 0.5, 1.3, M.marbleWarm);
-  plaque(-150.5, 11, 5.6, 'INSCRIPTION', 'CASTELLAN VOSS, SHIELD OF HALCYON. <i>My oath is my strength, and the city shares my wounds.</i>');
+  plaque(-152.8, 11, 6.6, 'INSCRIPTION', 'CASTELLAN VOSS, SHIELD OF HALCYON. <i>My oath is my strength, and the city shares my wounds.</i>');
 }
 function createCastellan(b) {
   const def = Object.assign({}, ENEMY_DEFS.warden, {
-    name: 'Castellan Voss', hp: 1250, poise: 9999, radius: 0.85, height: 3.1, sight: 40, walk: 2.4, run: 3.4, keep: 3.2, turn: 4, boss: true, sorrow: 0, armor: true,
+    name: 'Castellan Voss', hp: 1150, poise: 9999, radius: 0.85, height: 3.1, sight: 40, walk: 2.4, run: 3.4, keep: 3.2, turn: 4, boss: true, sorrow: 0, armor: true,
     build: () => skinCastellan(makeRig(3.0)), guard: EP.casGuard, idlePose: EP.casGuard, flinch: false, stride: 2.6, step: 0.7, anchorH: 0.66,
     clips: { hurt: EC.hurt, stagger: EC.stagger, death: EC.death, notice: EC.notice },
     attacks: Object.values(CAS),
@@ -3746,10 +3860,10 @@ function createCastellan(b) {
   const [sx, sy, sz] = [b.arena.x - 6, b.arena.y, b.arena.z];
   const e = new Enemy(def, sx, sy, sz, Math.PI / 2, {});
   e.owner = b; e.bossId = 'castellan'; b.enemy = e; e.aware = false;
-  e.trail = makeTrail([0.5, 0.45, 0.4]);
+  e.trail = makeTrail([0.24, 0.22, 0.2]);
   e.shockDamage = () => e.maxHp * 0.07;
-  e.dmgTaken = () => b.parts.some(l => l.alive) ? 0.4 : 1;
-  e.bossNote = () => { const n = b.parts.filter(l => l.alive).length; return n ? `His Oath-Lanterns take most of his pain. ${n} still burn.` : 'Every oath is broken. He feels it all now.'; };
+  e.dmgTaken = () => b.parts.some(l => l.alive) ? 0.5 : 1;
+  e.bossNote = () => { const n = b.parts.filter(l => l.alive).length; return n ? `His Oath-Lanterns take half his pain. ${n} still burn.` : 'Every oath is broken. He feels it all now.'; };
   // the four Oath-Lanterns
   for (const s of b.lanternSpots) {
     const L = new Node({ pos: s.clone().setY(s.y + 0.5), hp: 55, radius: 0.55, height: 3.2, name: 'Oath-Lantern', anchorH: 0.92, sparks: [2.4, 1.9, 0.9] });
@@ -4006,10 +4120,13 @@ function buildSpire() {
   const loom = new THREE.Group(); loom.position.copy(LOOM_CENTER); scene.add(loom); SPIRE.loom = loom;
   const ringMat = std({ color: 0xe8b85a, metalness: 1, roughness: 0.22, emissive: 0x6b4412, emissiveIntensity: 0.5 });
   SPIRE.ringMat = ringMat;
-  for (const [R, tilt] of [[9, 0.3], [12.5, -0.5], [16, 0.15]]) {
-    const piv = new THREE.Group(); piv.rotation.x = tilt; loom.add(piv);
+  // Each ring hangs tilted and sweeps around the vertical axis. The lowest arc
+  // stays 10 m above the platform so it never cuts through the fight camera.
+  for (const [R, tilt, dir] of [[9, 0.3, 1], [12.5, -0.5, -1], [15, 0.15, 1]]) {
+    const spin = new THREE.Group(); spin.rotation.y = R; loom.add(spin);
+    const piv = new THREE.Group(); piv.rotation.x = tilt; spin.add(piv);
     const m = new THREE.Mesh(new THREE.TorusGeometry(R, 0.22, 10, 120), ringMat); m.castShadow = true; piv.add(m);
-    SPIRE.rings.push({ piv, m, speed: 0.08 + R * 0.004, R });
+    SPIRE.rings.push({ spin, piv, m, speed: 0.08 + R * 0.004, dir, R });
   }
   // threads from the rings down to the platform edge
   for (let i = 0; i < 24; i++) { const a = i / 24 * TAU; webThread(V3(Math.cos(a) * 12.5, LOOM_CENTER.y + Math.sin(a * 3) * 2, Math.sin(a) * 12.5), V3(Math.cos(a) * 19.6, LOOM_Y + 1.1, Math.sin(a) * 19.6), 1.2, 0.025, GOLD_SOFT, 16); }
@@ -4026,8 +4143,9 @@ function rideLift() {
 }
 function updateSpire(dt) {
   const t = Game.time;
-  for (const r of SPIRE.rings) { r.m.rotation.z += dt * r.speed * (SPIRE.ringState === 'return' ? 4 : 1); }
-  if (SPIRE.ringState === 'descend') SPIRE.loom.position.y = damp(SPIRE.loom.position.y, LOOM_Y + 7, 0.6, dt);
+  for (const r of SPIRE.rings) { const k = SPIRE.ringState === 'return' ? 4 : 1; r.m.rotation.z += dt * r.speed * k; r.spin.rotation.y += dt * r.speed * 0.6 * r.dir * k; }
+  // it comes down within reach, shrinking to the size of a person
+  if (SPIRE.ringState === 'descend') { SPIRE.loom.position.y = damp(SPIRE.loom.position.y, LOOM_Y + 3.4, 0.6, dt); SPIRE.loom.scale.setScalar(damp(SPIRE.loom.scale.x, 0.22, 0.6, dt)); }
   if (SPIRE.riding) {
     SPIRE.rideT += dt;
     const u = Math.min(1, SPIRE.rideT / 10), e = u * u * (3 - 2 * u);
@@ -4048,7 +4166,7 @@ function makeBaton() {
   mesh(g, new THREE.TorusGeometry(0.06, 0.012, 6, 16), M.gold, 0, -0.1, 0, 1, 1, 1, Math.PI / 2);
   mesh(g, cylG(8), M.gold, 0, 0.0, 0, 0.018, 0.2, 0.018);
   mesh(g, G.sphereLo, hdr(3, 2.4, 1.2), 0, 0.12, 0, 0.03, 0.03, 0.03);
-  return { group: g, tip: V3(0, -1.32, 0), base: V3(0, -0.5, 0) };
+  return { group: g, tip: V3(0, -1.32, 0), base: V3(0, -0.9, 0) };
 }
 function skinAurel(rig) {
   const { J, k } = rig;
@@ -4237,7 +4355,7 @@ function createAurel(b) {
   });
   const e = new Enemy(def, 0, LOOM_Y, -13, 0, {});
   e.owner = b; e.bossId = 'aurel'; b.enemy = e; e.aware = false;
-  e.trail = makeTrail([0.7, 0.6, 0.35]);
+  e.trail = makeTrail([0.3, 0.26, 0.16]);
   e.shockDamage = () => e.maxHp * 0.06;
   e.dmgTaken = () => b.parts.some(d => d.alive) ? 0.5 : 1;
   e.onHitShare = (dmg) => { for (const d of b.parts) if (d.alive) { const s = Math.max(1, Math.round(dmg * 0.3)); d.hp -= s; d.flash = 1; d.showBar = 4; dmgNumber(d.anchor(V3()).add(_v1.set(0, 0.5, 0)), s, 'self'); if (d.hp <= 0) d.die(player); } };
@@ -4339,7 +4457,7 @@ function showEndingText() {
   clearSave();
 }
 function resetExtraProgress() {
-  Game.loomReady = false; Game.ended = null; Game.endShown = false; SPIRE.ringState = 'idle'; SPIRE.loom.position.copy(LOOM_CENTER);
+  Game.loomReady = false; Game.ended = null; Game.endShown = false; SPIRE.ringState = 'idle'; SPIRE.loom.position.copy(LOOM_CENTER); SPIRE.loom.scale.setScalar(1);
   for (const r of SPIRE.rings) r.piv.position.set(0, 0, 0);
   SPIRE.ringMat.emissive.setHex(0x6b4412); SPIRE.ringMat.emissiveIntensity = 0.5; ENV.corruptionTarget = 0; ENV.corruption = 0;
   for (const m of WEB.meshes) m.material.uniforms.uOpacity.value = 1;
@@ -4464,7 +4582,6 @@ function requestLock() { try { const p = canvas.requestPointerLock(); if (p && p
 document.addEventListener('pointerlockchange', () => {
   Input.locked = document.pointerLockElement === canvas;
   if (!Input.locked && Game.state === 'play' && !TEST) Game.pause();
-  $('clickHint').classList.toggle('hidden', Input.locked || Game.state !== 'play' || TEST);
 });
 const intent = { mx: 0, mz: 0, lx: 0, ly: 0, sprint: false, light: false, heavy: false, dodge: false, lock: false, next: 0, heal: false,
   bind: false, interact: false, pause: false, anyKey: false, dodgeHeld: false };
@@ -4520,15 +4637,18 @@ const ENV = { under: 0, corruption: 0 };
 const cOutFog = new THREE.Color(0xe6dccd), cUnderFog = new THREE.Color(0x0e1117), cTmp = new THREE.Color();
 const cHemiSky = new THREE.Color(0xcfe0f5), cHemiGround = new THREE.Color(0xe9d4b2), cUnderSky = new THREE.Color(0x5a6a88), cUnderGround = new THREE.Color(0x2a221c);
 function isUnder(p) { return p.y < -4 && p.z > 104; }
+// inside the Choir the sky light is mostly roofed over; sun still comes in through the windows
+function isIndoor(p) { return p.x > 60 && p.x < 184 && Math.abs(p.z) < 19 && p.y > -2 && p.y < 20; }
 function updateEnvironment(dt, focus, time) {
   ENV.under = damp(ENV.under, isUnder(focus) ? 1 : 0, 2.2, dt);
-  const u = ENV.under, c = ENV.corruption;
+  ENV.indoor = damp(ENV.indoor || 0, isIndoor(focus) ? 1 : 0, 2.2, dt);
+  const u = ENV.under, c = ENV.corruption, ind = ENV.indoor * (1 - u);
   sun.intensity = 1.85 * (1 - u) * (1 - c * 0.25);
-  hemi.intensity = lerp(0.68, 1.15, u);
+  hemi.intensity = lerp(lerp(0.68, 1.15, u), 0.36, ind);
   hemi.color.copy(cHemiSky).lerp(cUnderSky, u); hemi.groundColor.copy(cHemiGround).lerp(cUnderGround, u);
   scene.fog.color.copy(cOutFog).lerp(cTmp.setRGB(0.95, 0.45, 0.3), c * 0.6).lerp(cUnderFog, u);
   scene.fog.near = lerp(90, 6, u); scene.fog.far = lerp(760, 60, u);
-  scene.environmentIntensity = lerp(0.55, 0.15, u);
+  scene.environmentIntensity = lerp(lerp(0.55, 0.15, u), 0.3, ind);
   sky.visible = u < 0.98;
   skyUniforms.uTime.value = time; skyUniforms.uBlood.value = c;
   // shadows follow the focus point
@@ -4565,7 +4685,7 @@ const Game = {
 };
 const SCREENS = ['title', 'pause', 'namesScreen', 'controlsScreen', 'settingsScreen', 'vigilScreen', 'choice', 'ending', 'intro'];
 let screenStack = [];
-function showScreen(id) { for (const s of SCREENS) $(s).classList.toggle('hidden', s !== id); $('clickHint').classList.add('hidden'); }
+function showScreen(id) { for (const s of SCREENS) $(s).classList.toggle('hidden', s !== id); $('clickHint').classList.add('hidden'); hud.needClick = false; }
 function areaName(p = player.pos) {
   if (p.y > LOOM_Y - 3) return 'The Loom';
   if (isUnder(p) || p.z > 96) return 'The Undercroft';
@@ -4631,6 +4751,8 @@ const VIGIL_DEFS = [
   { id: 'plaza', name: 'Vigil of the Plaza', x: 8.6, y: 0, z: 24.5, sx: 7.2, sz: 23.4, face: Math.PI },
   { id: 'gardens', name: 'Vigil of Plenty', x: -68, y: 0, z: 12.5, sx: -69.5, sz: 11.2, face: -Math.PI / 2 },
   { id: 'choir', name: 'Vigil of the Choir', x: 66, y: 0, z: -12.5, sx: 67.4, sz: -11, face: Math.PI / 2 },
+  { id: 'oath', name: 'Vigil of the Oath', x: -152.8, y: 11, z: -6.6, sx: -153.3, sz: -4.9, face: -Math.PI / 2 },
+  { id: 'apse', name: 'Vigil of the Apse', x: 143.2, y: 0.35, z: -6.8, sx: 142, sz: -5.4, face: Math.PI / 2 },
   { id: 'spire', name: 'Vigil of the Spire', x: -5.8, y: 0.32, z: 2.5, sx: -4.2, sz: 2.2, face: Math.PI / 2 },
 ];
 const VIGILS = [];
@@ -4682,11 +4804,11 @@ function rest(v) {
   });
 }
 const STAT_INFO = [
-  { k: 'vig', name: 'Vigor', d: '+12 health' },
-  { k: 'end', name: 'Endurance', d: '+9 stamina' },
-  { k: 'mig', name: 'Might', d: '+8% damage' },
+  { k: 'vig', name: 'Vigor', d: '+14 health' },
+  { k: 'end', name: 'Endurance', d: '+10 stamina' },
+  { k: 'mig', name: 'Might', d: '+9% damage' },
 ];
-function levelCost() { return 140 + 80 * (player.level - 1); }
+function levelCost() { return 120 + 60 * (player.level - 1); }
 function openVigilMenu(v) {
   showScreen('vigilScreen'); try { document.exitPointerLock(); } catch (e) {}
   renderVigilMenu(v);
@@ -4859,6 +4981,7 @@ function updateObjective() {
   } else if (!b.aurel) html = '<b>THE SPIRE</b>The Spire is open. Aurel waits at the top.';
   else html = '<b>THE LOOM</b>Touch the Loom.';
   if (html !== hud.objHtml) { hud.objHtml = html; $('objective').innerHTML = html; }
+  $('objective').style.opacity = Game.bossFight ? 0 : 1;
 }
 
 /* =====================================================================
@@ -5119,6 +5242,7 @@ function tick(dt) {
   const live = Game.state === 'play' || Game.state === 'dying';
   if (live || Game.state === 'menu') {
     player.update(sdt);
+    NAV.budget = 2;
     if (live) for (const e of ENEMIES) e.update(sdt);
     separateBodies();
     updateLinks(sdt);
@@ -5135,9 +5259,10 @@ function tick(dt) {
 }
 function titleCamera(dt) {
   Game.titleT += dt;
-  const t = Game.titleT * 0.035 + 2.2, R = 66;
-  camera.position.set(Math.sin(t) * R, 24 + Math.sin(t * 0.7) * 6, Math.cos(t) * R + 10);
-  camera.lookAt(0, 34, 0);
+  // a slow orbit far enough out to show the Loom, with the Spire right of the title
+  const t = Game.titleT * 0.03 + 2.2, R = 102;
+  camera.position.set(Math.sin(t) * R, 40 + Math.sin(t * 0.7) * 5, Math.cos(t) * R + 10);
+  camera.lookAt(0, 61, 0); camera.rotateY(0.2);
   updateEnvironment(dt, V3(camera.position.x * 0.5, 0, camera.position.z * 0.5), Game.time);
 }
 renderer.info.autoReset = false;
@@ -5193,7 +5318,7 @@ window.__T = {
     enemies: ENEMIES.filter(e => e.alive && e.pos.distanceTo(p.pos) < 30).map(e => (e.spawnId || e.name) + ':' + Math.round(e.hp) + ':' + e.state + '@' + e.pos.toArray().map(v => v.toFixed(1)).join(',')) }; },
   poseTest(name, t) { const c = CL[name] || EC[name]; player.anim.play(c, 0.0001, 0.0001, true); player.anim.t = t; player.anim.blend = 1; player.anim.update(0.0001, player.loco); },
   newGame, continueGame, showTitle, saveGame, loadSave, rest, VIGIL_DEFS, tearFree, takeNeedle, flags: () => Game.flags,
-  breakSeal, rideLift, chooseEnding, BOSSES, SPIRE, SEALS, TETHER, get WAVES() { return WAVES; }, Sfx, PROJ, get PILLARS() { return PILLARS; },
+  breakSeal, rideLift, chooseEnding, BOSSES, SPIRE, SEALS, TETHER, navWaypoint, get WAVES() { return WAVES; }, Sfx, PROJ, get PILLARS() { return PILLARS; },
 };
 try { boot(); } catch (e) { console.error(e); $('loadT').textContent = 'HALCYON DID NOT LOAD'; $('loadE').textContent = 'Startup failed: ' + e.message; }
 </script>
