@@ -32,7 +32,7 @@ You are Gaia, the clockwork earth. Typhon, Father of Monsters, sends his bronze 
 ### How the world works
 
 - Your organs are the Omphalos and four Pylons. Enemies attack them, and the Pylons feed your Pressure. Each Pylon that falls slows Pressure regeneration.
-- The sky reddens and the world's clock ticks faster as the Omphalos weakens.
+- The sky reddens and the music darkens as the Omphalos weakens.
 - Slain beasts return their metal to the heart and heal it a little.
 - If your Eye breaks, the Omphalos spends 100 strength to rebuild it.
 - Fallen Pylons are rebuilt between waves.
@@ -42,3 +42,10 @@ You are Gaia, the clockwork earth. Typhon, Father of Monsters, sends his bronze 
 The score is synthesized live and follows the game: a calm clockwork theme between waves, a driving battle theme, a choir and brass theme for Typhon, and a fanfare or a dirge at the end. A heartbeat rises under the music when the Omphalos drops below 35 percent. Wind, steam vents, turning gears, and a distant clock-tower chime fill the quiet moments.
 
 A short tutorial runs at the start. Press Enter to skip it.
+
+### What I had to fix
+
+The first pass was complete and playable. It took one follow-up prompt with two requests:
+
+- **The world felt dead.** The first pass had sound effects and a low drone but no music. Claude added an adaptive score (calm, battle, boss, victory, and defeat themes, plus a heartbeat when the Omphalos is low) and background sound: wind, steam vents, gears, and chimes.
+- **The gun was weak.** The Steam Lance overheated after about 2 seconds of fire and did too little damage to minotaurs and cyclopes. Claude raised sustained fire to about 6.5 seconds, raised damage from 14 to 18, added 45-damage hits on heads and eyes, and lowered the health of the two heavier enemies.
