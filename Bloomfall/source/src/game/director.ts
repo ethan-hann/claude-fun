@@ -291,12 +291,20 @@ export class Director {
           jump: () => this.game.player.pos.z < this.game.current!.origin.z + 12.4 && this.game.player.grounded,
           step: () => this.game.player.feet.y > this.game.current!.origin.y + 1.9,
           ride: () => this.game.player.feet.y > this.game.current!.origin.y + 2.9,
+          span: () => this.game.player.pos.z < this.game.current!.origin.z - 3.4,
+          pillar: () => this.game.player.feet.y > this.game.current!.origin.y + 2.5,
         };
         // cards without a completion test leave on their own after a while
         this.showCard(key, tests[key], tests[key] || ['carry', 'take', 'give', 'graft', 'weight'].includes(key) ? 0 : 30);
       }
     }
     if (r.echo) this.echoOnce(r.echo as string, 0.3);
+    // standing still with an empty Graft for a while: remind the player where space comes from
+    if (r.takeback && gr.owned && !gr.infinite) {
+      setTimeout(() => {
+        if (this.game.graft.cells === 0 && z.inside && !this.ui.currentCard && this.state === 'playing') this.showCard('takeback', undefined, 12);
+      }, 10000);
+    }
     if (r.card === 'weight' && gr.owned && gr.cells === 0 && !gr.infinite) {
       setTimeout(() => { if (this.game.graft.cells === 0 && this.ui.currentCard !== 'weight') this.showCard('takeback', undefined, 10); }, 9000);
     }

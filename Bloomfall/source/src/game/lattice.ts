@@ -22,6 +22,9 @@ export interface LatticeVisualFactory {
   pillar(w: number, d: number, h: number): THREE.Object3D;
   span(w: number, t: number, l: number): THREE.Object3D;
   bulkhead(w: number, h: number, d: number): THREE.Object3D;
+  framedMats(): { body: THREE.Material; rail: THREE.Material; seam: THREE.MeshStandardMaterial };
+  framedMesh(w: number, h: number, d: number, mats: { body: THREE.Material; rail: THREE.Material; seam: THREE.MeshStandardMaterial }): THREE.Group;
+  register(obj: THREE.Object3D, mats: { body: THREE.Material; rail: THREE.Material; seam: THREE.MeshStandardMaterial }): void;
   setGlow(obj: THREE.Object3D, glow: number, highlight: number): void;
   setLevelPips(obj: THREE.Object3D, level: number, levels: number): void;
 }
@@ -76,6 +79,9 @@ export abstract class Lattice implements Platform {
   }
 
   flash(): void { this.glow = 1; }
+
+  // Move with the chunk of island it is anchored to (free lattice falls on its own).
+  shift(_d: THREE.Vector3): void { /* free lattice */ }
 
   updateVisualState(dt: number): void {
     this.glow = Math.max(0, this.glow - dt * 1.4);
@@ -351,6 +357,7 @@ export class AnchoredLattice extends Lattice {
   rot: THREE.Quaternion;
   offset: number; // current
   speed: number;
+  private homeBase: THREE.Vector3;
   private vel = new THREE.Vector3();
   private prev = new THREE.Vector3();
   names: string;
@@ -359,6 +366,7 @@ export class AnchoredLattice extends Lattice {
     base: THREE.Vector3, axis: THREE.Vector3, offsets: number[], level: number, half: THREE.Vector3, rotY: number, speed = 2.4) {
     super(phys, vis, id, kind, level, offsets.length - 1, object);
     this.base = base.clone();
+    this.homeBase = base.clone();
     this.axis = axis.clone().normalize();
     this.offsets = offsets;
     this.half = half.clone();
@@ -443,7 +451,10 @@ export class AnchoredLattice extends Lattice {
     return out.copy(this.vel);
   }
 
+  shift(d: THREE.Vector3): void { this.base.add(d); }
+
   reset(): void {
+    this.base.copy(this.homeBase);
     this.level = this.initialLevel;
     this.offset = this.offsets[this.level];
     const p = this.positionFor(this.offset);
@@ -451,6 +462,152 @@ export class AnchoredLattice extends Lattice {
     this.body.setNextKinematicTranslation(p);
     this.prev.copy(p);
     this.object.position.copy(p);
+    this.flash();
+  }
+}
+
+// ------------------------------------------------------------------------------------------
+// Span: an anchored bridge that grows out from its anchor. Giving space unfolds it plate by
+// plate across a gap; taking space folds it back to a short stub. Its top is at anchor height.
+// ------------------------------------------------------------------------------------------
+
+const SPAN_SEG = 1.2;
+
+export class SpanLattice extends Lattice {
+  anchor: THREE.Vector3;
+  dir: THREE.Vector3;
+  rot: THREE.Quaternion;
+  width: number;
+  thick: number;
+  lengths: number[];
+  len: number;
+  speed: number;
+  private plates: THREE.Group[] = [];
+  private rootLen: number;
+  private homeAnchor: THREE.Vector3;
+
+  constructor(phys: Physics, vis: LatticeVisualFactory, id: string, anchor: THREE.Vector3, dir: THREE.Vector3, width: number, thick: number,
+    lengths: number[], level: number, speed = 5) {
+    const mats = vis.framedMats();
+    const group = new THREE.Group();
+    const rootLen = lengths[0];
+    const root = vis.framedMesh(width, thick, rootLen, mats);
+    root.position.set(0, -thick / 2, rootLen / 2);
+    group.add(root);
+    const reach = lengths[lengths.length - 1] - rootLen;
+    const n = Math.max(1, Math.round(reach / SPAN_SEG));
+    const seg = reach / n;
+    const plates: THREE.Group[] = [];
+    for (let i = 0; i < n; i++) {
+      const pivot = new THREE.Group();
+      pivot.position.set(0, -thick / 2, rootLen + i * seg);
+      const plate = vis.framedMesh(width - 0.04, thick - 0.02, seg - 0.03, mats);
+      plate.position.set(0, 0, seg / 2);
+      pivot.add(plate);
+      group.add(pivot);
+      plates.push(pivot);
+    }
+    vis.register(group, mats);
+    super(phys, vis, id, 'span', level, lengths.length - 1, group);
+    this.plates = plates;
+    this.rootLen = rootLen;
+    this.anchor = anchor.clone();
+    this.homeAnchor = anchor.clone();
+    this.dir = new THREE.Vector3(dir.x, 0, dir.z).normalize();
+    this.rot = new THREE.Quaternion().setFromAxisAngle(UP, Math.atan2(this.dir.x, this.dir.z));
+    this.width = width;
+    this.thick = thick;
+    this.lengths = lengths;
+    this.len = lengths[level];
+    this.speed = speed;
+    const R = phys.R;
+    this.body = phys.world.createRigidBody(R.RigidBodyDesc.kinematicPositionBased().setTranslation(anchor.x, anchor.y, anchor.z)
+      .setRotation({ x: this.rot.x, y: this.rot.y, z: this.rot.z, w: this.rot.w }));
+    const cd = R.ColliderDesc.cuboid(width / 2, thick / 2, this.len / 2).setTranslation(0, -thick / 2, this.len / 2)
+      .setCollisionGroups(groups(G.KINEMATIC, SOLID_FILTER)).setFriction(0.9);
+    this.collider = phys.world.createCollider(cd, this.body);
+    this.register();
+    this.object.position.copy(anchor);
+    this.object.quaternion.copy(this.rot);
+    this.applyLength();
+  }
+
+  weight(): number { return 0; }
+  label(): string { return 'Lattice span'; }
+
+  private applyLength(): void {
+    this.collider.setHalfExtents({ x: this.width / 2, y: this.thick / 2, z: this.len / 2 });
+    this.collider.setTranslationWrtParent({ x: 0, y: -this.thick / 2, z: this.len / 2 });
+    const seg = (this.lengths[this.lengths.length - 1] - this.rootLen) / this.plates.length;
+    this.plates.forEach((p, i) => {
+      const k = THREE.MathUtils.clamp((this.len - this.rootLen - i * seg) / seg, 0, 1);
+      const e = 1 - Math.pow(1 - k, 3);
+      p.visible = k > 0.001;
+      // a plate unfolds from hanging under the one before it
+      p.rotation.x = (1 - e) * 1.5;
+      p.scale.setScalar(0.35 + 0.65 * e);
+    });
+  }
+
+  // Is there room for the span to reach `to`?
+  private sweepBlocked(from: number, to: number): boolean {
+    if (to <= from) return false;
+    const mid = (from + to) / 2;
+    const c = this.anchor.clone().addScaledVector(this.dir, mid).add(new THREE.Vector3(0, -this.thick / 2, 0));
+    const half = new THREE.Vector3(this.width / 2, this.thick / 2, (to - from) / 2);
+    return this.phys.boxOverlaps(c, half, this.rot, G.STATIC | G.SCREEN | G.KINEMATIC, this.collider, 0.08);
+  }
+
+  tryGrow(): GrowResult {
+    if (this.locked) return 'locked';
+    if (this.level >= this.maxLevel) return 'max';
+    if (this.sweepBlocked(this.len + 0.05, this.lengths[this.level + 1])) return 'room';
+    this.level++;
+    this.flash();
+    return 'ok';
+  }
+
+  tryShrink(): GrowResult {
+    if (this.locked) return 'locked';
+    if (this.level <= this.minLevel) return 'min';
+    this.level--;
+    this.flash();
+    return 'ok';
+  }
+
+  update(dt: number): void {
+    const target = this.lengths[this.level];
+    const d = target - this.len;
+    if (Math.abs(d) > 1e-4) {
+      this.len += Math.sign(d) * Math.min(Math.abs(d), this.speed * dt);
+      this.animating = true;
+      this.applyLength();
+    } else if (this.animating) {
+      this.len = target;
+      this.animating = false;
+      this.applyLength();
+    }
+    this.body.setNextKinematicTranslation(this.anchor);
+    this.updateVisualState(dt);
+  }
+
+  syncObject(_alpha: number): void { /* the anchor never moves */ }
+
+  platformVelocity(_point: THREE.Vector3, out: THREE.Vector3): THREE.Vector3 { return out.set(0, 0, 0); }
+
+  shift(d: THREE.Vector3): void {
+    this.anchor.add(d);
+    this.object.position.copy(this.anchor);
+  }
+
+  reset(): void {
+    this.anchor.copy(this.homeAnchor);
+    this.object.position.copy(this.anchor);
+    this.level = this.initialLevel;
+    this.len = this.lengths[this.level];
+    this.animating = false;
+    this.body.setTranslation(this.anchor, true);
+    this.applyLength();
     this.flash();
   }
 }

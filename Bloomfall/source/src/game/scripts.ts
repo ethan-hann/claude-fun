@@ -20,7 +20,55 @@ export function islandScripts(d: Director): Record<string, IslandScript> {
   let bFallen = false;
   let bSpawn: { p: any; yaw: number } | null = null;
   const bIsland = () => d.game.islands.find((i) => i.key === 'b_terraces')!;
+  // Island III: the abutment falls away once the player takes the span they crossed.
+  let cFallen = false;
+  let cSaved: { spawn: any; yaw: number; cells: number } | null = null;
+  const cIsland = () => d.game.islands.find((i) => i.key === 'c_viaduct')!;
+  const localZ = (key: string) => d.game.player.pos.z - d.game.islands.find((i) => i.key === key)!.origin.z;
   return {
+    c_viaduct: {
+      reset() {
+        cFallen = false;
+        if (cSaved) { const i = cIsland(); i.spawn.copy(cSaved.spawn); i.spawnYaw = cSaved.yaw; i.startCells = cSaved.cells; }
+      },
+      graft(kind, target) {
+        if (cFallen || kind !== 'take' || !target.id.endsWith('.s_a')) return;
+        const zone = d.game.entities.get('c_viaduct.z_pier1') as Zone | undefined;
+        if (!zone?.active) return;
+        cFallen = true;
+        const isl = cIsland();
+        if (!cSaved) cSaved = { spawn: isl.spawn.clone(), yaw: isl.spawnYaw, cells: isl.startCells };
+        // from now on a reset starts on the pier, with the span's cell in hand
+        isl.spawn.set(isl.origin.x, isl.origin.y + 0.05, isl.origin.z - 4.4);
+        isl.spawnYaw = 0;
+        isl.startCells = 1;
+        setTimeout(() => {
+          if (!cFallen) return;
+          isl.detachChunk('abutment');
+          d.audio.rumble(isl.origin.clone().add(new (isl.origin.constructor as any)(0, 0, 10)), 6, 0.7);
+        }, 700);
+      },
+      hints: () => {
+        const z = localZ('c_viaduct');
+        if (!cFallen && z > -3) return [
+          'The span to the lookout holds a cell of space. Every unfolded span does.',
+          'Take that cell and give it to the folded span at the gap.',
+          'Visit the lookout before you fold its span.',
+        ];
+        if (z > -36) return [
+          'The span you crossed still holds its cell. Take it back from the far side.',
+          'Give the cell to the pillar and ride it up.',
+          'Once you are up, the pillar is behind you. Take it back too.',
+          'Bring the crate from the middle pier. You will need it at the shrine.',
+        ];
+        return [
+          'The ram pushes whatever sits in its channel through the slot.',
+          'The plate needs 16. A large crate weighs 16, but a large crate will not fit through the slot.',
+          'Your Graft reaches through the screen. Grow the crate once it is inside.',
+          'Inside, you can hold two cells. The crate on the plate holds two.',
+        ];
+      },
+    },
     b_terraces: {
       reset() {
         bFallen = false;

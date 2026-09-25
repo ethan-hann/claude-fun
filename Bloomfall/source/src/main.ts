@@ -7,6 +7,7 @@ import { Director, IslandPlan } from './game/director';
 export const PLAN: IslandPlan[] = [
   { key: 'a_vault', origin: [0, 0, 0], capacity: 1 },
   { key: 'b_terraces', origin: [6, 1.5, -97], capacity: 1 },
+  { key: 'c_viaduct', origin: [14, 8.0, -173.2], capacity: 1 },
 ];
 
 const params = new URLSearchParams(location.search);

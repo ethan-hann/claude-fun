@@ -107,6 +107,16 @@ export class Physics {
     return { collider: hit.collider, toi: hit.timeOfImpact, point: new THREE.Vector3(p.x, p.y, p.z), normal: new THREE.Vector3(hit.normal.x, hit.normal.y, hit.normal.z) };
   }
 
+  // A thin sphere swept along the Graft's ray: the first lattice it touches, if any.
+  sweepLattice(origin: THREE.Vector3, dir: THREE.Vector3, maxDist: number, radius: number, exclude?: RAPIER.Collider | null): { collider: RAPIER.Collider; toi: number; point: THREE.Vector3 } | null {
+    const shape = new RAPIER.Ball(radius);
+    const hit = this.world.castShape(origin, { x: 0, y: 0, z: 0, w: 1 }, dir, shape, 0, maxDist, true, undefined,
+      groups(0xffff, G.DYNAMIC | G.KINEMATIC | G.HELD), exclude ?? undefined, undefined,
+      (c) => this.owners.get(c.handle)?.kind === 'lattice');
+    if (!hit) return null;
+    return { collider: hit.collider, toi: hit.time_of_impact, point: origin.clone().addScaledVector(dir, hit.time_of_impact) };
+  }
+
   castRay(origin: THREE.Vector3, dir: THREE.Vector3, maxDist: number, filterMask: number, exclude?: RAPIER.Collider | null, excludeBody?: RAPIER.RigidBody | null): { collider: RAPIER.Collider; toi: number; normal: THREE.Vector3 } | null {
     const ray = new RAPIER.Ray(origin, dir);
     const hit = this.world.castRayAndGetNormal(ray, maxDist, true, undefined, groups(0xffff, filterMask), exclude ?? undefined, excludeBody ?? undefined);

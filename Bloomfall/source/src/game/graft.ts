@@ -45,17 +45,25 @@ export class Graft {
 
   failText(reason: string): string { return FAIL_TEXT[reason] ?? reason; }
 
-  // Aim from the camera. Screens let the ray through; a held object is skipped unless it is the
-  // only thing under the crosshair (so you can grow or shrink what you carry by looking down at it).
+  // Aim from the camera. Screens let the ray through. A held object is skipped unless no other
+  // lattice is under the crosshair (so you can grow or shrink what you carry by looking at it).
   aim(camera: THREE.Camera): void {
     const origin = camera.getWorldPosition(new THREE.Vector3());
     const dir = camera.getWorldDirection(new THREE.Vector3());
     this.target = null;
     let hit = this.phys.castGraft(origin, dir, GRAFT_RANGE + 2, this.held?.collider ?? null);
     let lat = hit ? isLatticeCollider(this.phys, hit.collider) : null;
-    if (this.held && (!lat || (hit && hit.toi > 3))) {
+    if (this.held && !lat) {
       const hh = this.phys.castGraft(origin, dir, 4, null);
       if (hh && isLatticeCollider(this.phys, hh.collider) === this.held) { hit = hh; lat = this.held; }
+    }
+    // aim assist: lattice within a hand's width of the ray counts, if nothing solid is well in front of it
+    if (!lat) {
+      const sw = this.phys.sweepLattice(origin, dir, GRAFT_RANGE, 0.16, this.held?.collider ?? null);
+      if (sw && (!hit || sw.toi <= hit.toi + 0.35)) {
+        lat = isLatticeCollider(this.phys, sw.collider);
+        hit = { collider: sw.collider, toi: sw.toi, point: sw.point, normal: new THREE.Vector3() };
+      }
     }
     if (hit && lat && hit.toi <= GRAFT_RANGE) {
       this.target = lat;

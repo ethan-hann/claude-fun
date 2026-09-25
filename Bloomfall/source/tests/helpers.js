@@ -12,7 +12,7 @@ window.T = (() => {
   }
   function lookAt(x, y, z) {
     const p = g().player;
-    const eye = p.pos.clone(); eye.y += 0.71;
+    const eye = p.pos.clone(); eye.y += 0.56;
     const dx = x - eye.x, dy = y - eye.y, dz = z - eye.z;
     p.yaw = Math.atan2(-dx, -dz);
     p.pitch = Math.atan2(dy, Math.hypot(dx, dz));

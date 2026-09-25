@@ -169,3 +169,55 @@ def lamp_post(b, x, z, y, h=3.6, color=(1.0, 0.62, 0.32), power=140.0):
     b.box((x, y + h + 0.1, z), (0.36, 0.2, 0.36), mat='steel', bevel=0.03, collide=False)
     b.glow_strip((x, y + h - 0.02, z), (0.26, 0.04, 0.26), color='glow_warm')
     b.point_light((x, y + h - 0.25, z), color=color, power=power, radius=0.15)
+
+
+def arch_ring(b, x, z0, z1, y_spring, width, ring=0.9, mat='wall', segs=18, start=0.0, end=1.0, lm_weight=0.6):
+    """Semicircular stone arch spanning z0..z1 (along Z), centred on x, springing at y_spring.
+    ring: radial depth of the voussoirs. start/end: the part of the half circle that is still
+    standing (0 = the z1 springer, 1 = the z0 springer), for broken arches. No collider."""
+    import bmesh
+    import bpy
+    from lib import g2b
+    zc = (z0 + z1) / 2
+    r_in = abs(z1 - z0) / 2
+    r_out = r_in + ring
+    bm = bmesh.new()
+    rows = []
+    for i in range(segs + 1):
+        a = math.pi * (start + (end - start) * i / segs)
+        ca, sa = math.cos(a), math.sin(a)
+        row = []
+        for side in (-1, 1):
+            xx = x + side * width / 2
+            row.append(bm.verts.new(g2b((xx, y_spring + r_in * sa, zc + r_in * ca))))
+            row.append(bm.verts.new(g2b((xx, y_spring + r_out * sa, zc + r_out * ca))))
+        rows.append(row)  # [left inner, left outer, right inner, right outer]
+    for i in range(segs):
+        a, c = rows[i], rows[i + 1]
+        bm.faces.new([a[0], c[0], c[2], a[2]])  # intrados
+        bm.faces.new([a[1], a[3], c[3], c[1]])  # extrados
+        bm.faces.new([a[0], a[1], c[1], c[0]])  # left face
+        bm.faces.new([a[2], c[2], c[3], a[3]])  # right face
+    for row in (rows[0], rows[-1]):
+        bm.faces.new([row[0], row[2], row[3], row[1]])
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    me = bpy.data.meshes.new(b._name('arch'))
+    bm.to_mesh(me)
+    bm.free()
+    obj = bpy.data.objects.new(me.name, me)
+    b._link(obj, mat, lm_weight)
+    mod = obj.modifiers.new('bevel', 'BEVEL')
+    mod.width = 0.03
+    mod.segments = 2
+    mod.limit_method = 'ANGLE'
+    mod.angle_limit = math.radians(30)
+    mod.harden_normals = True
+    return obj
+
+
+def viaduct_pier(b, x, z, top, bottom=-34.0, w=5.2, d=3.2, mat='wall'):
+    """A tall masonry pier under a deck, with a stepped base course and a cornice. No collider
+    below the deck (the player can never reach it)."""
+    h = top - bottom
+    b.box((x, bottom + h / 2, z), (w, h, d), mat=mat, bevel=0.06, collide=False, lm_weight=0.5)
+    b.box((x, top - 1.05, z), (w + 0.3, 0.3, d + 0.3), mat='marble', bevel=0.04, collide=False, lm_weight=0.5)

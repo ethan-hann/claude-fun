@@ -25,6 +25,8 @@ export const CARDS: Record<string, Card> = {
   takeback: { title: 'Out of space', body: 'Your Graft is empty. Space has to come from somewhere. Take it back from lattice you no longer need, even far away.' },
   throw: { title: 'Throw', body: '{F} throws what you carry.' },
   ride: { title: 'Grow under your feet', body: 'Lattice lifts whatever stands on it as it grows. That includes you, and anything you carry.' },
+  span: { title: 'Spans', body: 'A span is anchored lattice. Give it space and it unfolds across the gap. Take the space and it folds back.' },
+  pillar: { title: 'Pillars', body: 'A pillar rises one step for each cell you give it, and carries whatever stands on it.' },
   capacity: { title: 'A second cell', body: 'Your Graft now holds two cells of space.' },
   heavier: { title: 'Counterweight', body: 'The heavier side sinks. The lighter side rises.' },
   topple: { title: 'Downfall', body: 'Lattice pushes as it grows. Some things only stand until something pushes them.' },

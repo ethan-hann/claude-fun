@@ -9,7 +9,7 @@ import { Physics, G, v3 } from './physics';
 import { Input } from './input';
 import { Player, Platform, PLAYER } from './player';
 import { Graft } from './graft';
-import { Lattice, FreeLattice, AnchoredLattice, isLatticeCollider } from './lattice';
+import { Lattice, FreeLattice, AnchoredLattice, SpanLattice, isLatticeCollider } from './lattice';
 import { LatticeVisuals } from './visuals';
 import { Entity, EntityContext, Plate, Door, Zone, Pickup } from './entities';
 
@@ -130,12 +130,7 @@ export class Island {
         for (const e of c.entities) (e as any).setVisible?.(false);
         onGone?.(name);
       }
-      for (const l of c.lattices) {
-        if (f.t < 2.4 && l.object.visible && !(l as any).held) {
-          const p = l.body.translation();
-          if (!l.free) l.body.setTranslation({ x: p.x + drop.x, y: p.y + drop.y, z: p.z + drop.z }, false);
-        }
-      }
+      if (f.t < 2.4) for (const l of c.lattices) if (!l.free) l.shift(drop);
       if (f.t > 20 && c.node) c.node.visible = false;
     }
   }
@@ -279,16 +274,20 @@ export class Game {
         break;
       }
       case 'span': {
+        const dir = new THREE.Vector3(rec.dir[0], 0, rec.dir[1]);
+        const l = new SpanLattice(this.phys, this.vis, id, v3(rec.p).add(o), dir, rec.width ?? 2.4, rec.thickness ?? 0.36,
+          rec.lengths ?? [0.6, rec.length], rec.level ?? 0, rec.speed ?? 5);
+        this.addAnchored(isl, l);
+        break;
+      }
+      case 'piston': {
+        // a ram: anchored lattice that slides horizontally along its track
+        const [w, h, d] = rec.size;
         const dir = new THREE.Vector3(rec.dir[0], 0, rec.dir[1]).normalize();
-        const len = rec.length;
-        const t = rec.thickness ?? 0.4;
-        const w = rec.width ?? 2;
-        const anchor = v3(rec.p).add(o);
-        const base = anchor.clone().addScaledVector(dir, -len / 2).add(new THREE.Vector3(0, -t / 2, 0));
-        const ry = Math.atan2(dir.x, dir.z);
-        const obj = this.vis.span(w, t, len);
-        const l = new AnchoredLattice(this.phys, this.vis, id, 'span', obj, base, dir, rec.extensions ?? [0, len], rec.level ?? 0,
-          new THREE.Vector3(w / 2, t / 2, len / 2), ry, rec.speed ?? 3.0);
+        const obj = this.vis.bulkhead(w, h, d);
+        const l = new AnchoredLattice(this.phys, this.vis, id, 'bulkhead', obj, v3(rec.p).add(o), dir, [0, rec.travel], rec.level ?? 0,
+          new THREE.Vector3(w / 2, h / 2, d / 2), Math.atan2(dir.x, dir.z), rec.speed ?? 2.2);
+        l.names = 'Lattice ram';
         this.addAnchored(isl, l);
         break;
       }
@@ -384,7 +383,7 @@ export class Game {
     return rec.chunk ? isl.chunks.get(rec.chunk) : undefined;
   }
 
-  private addAnchored(isl: Island, l: AnchoredLattice): void {
+  private addAnchored(isl: Island, l: Lattice): void {
     l.islandKey = isl.key;
     this.r.scene.add(l.object);
     isl.lattices.push(l);
