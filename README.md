@@ -84,3 +84,20 @@ The LORE file should try to not spoil anything. It's mostly to serve as a world 
 ```
 your README still has spoilers btw
 ```
+
+```
+Frames are solid on my PC. No issues there.
+
+1. When rolling, the character animation does a full 360 rotation after the roll animation ends.
+2. The death particles stick around after an enemy is already dead.
+3. There are some z-fighting issues throughout the world.
+4. Some citizens are spawned in trees.
+5. the character walking and running animation look silly. the character just wobbles like a penguin back and forth.
+6. AOE attacks are still hitting me even when I roll through them. Mother Seraphine attacks relentlessly and provides barely any openings. I actually can't even make it past her. In fact, it seems like most attacks can still hit me as I roll away.
+7. The difficulty scale seems off. I can easily almost one shot some enemies by the time I get to Mother Seraphine but I barely do anything to her health.
+8. The bind ability should be unlocked after defeating the first boss.
+9. The text on screen is too small to read. The whole HUD is scaled really small on my 2560x1440 display.
+
+
+Overall, I'm pretty impressed lol
+```

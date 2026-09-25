@@ -7,6 +7,10 @@ This file gives away the boss fights, where things are hidden, the late game, an
 - **Nectar Vials.** Two lie off the main path. One is at the north end of the middle terrace in the Gardens. The other is in the Choir's side chapel, off the north aisle. Each one adds a Nectar to what you carry, up to five.
 - **The eight Vigils.** In the Undercroft, at the Gate of Descent, in the Plaza, at the foot of the Gardens, outside Castellan's court, inside the Choir's doors, beside the Choir's altar, and inside the Spire. The one outside Castellan's court and the one beside the altar exist so a boss attempt never starts with a long walk.
 
+## Learning Bind
+
+The Undercroft does not teach Bind. When the first of the three dies, whichever one you kill first, their pain comes back down the Heartstring and into you. A few seconds later a card explains Bind, both diamonds of Grief fill, and the Bind slot appears on the HUD.
+
 ## Castellan Voss, Shield of Halcyon
 
 He is a giant in white plate with a tower shield and a greatsword. He waits in a round court at the top of the Gardens, beside a golden Tree of Plenty. An inscription at the top of the grand stair warns you before you go in.

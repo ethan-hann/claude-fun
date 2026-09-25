@@ -46,7 +46,7 @@ Tonight the threads frayed. You tore free of the seat, and on the altar in front
 
 The Concord will not let its Tithe die. When you fall, the threads drag you back to the last Vigil where you rested.
 
-Thirty years of the city's pain are still inside you. The game calls it Grief. When you are hurt, it grows. When you hurt them, it grows. Spend it, and you can tie threads of your own. Yours are red.
+Thirty years of the city's pain are still inside you. The game calls it Grief. When you are hurt, it grows. When you hurt them, it grows. In time you learn to spend it and tie threads of your own. Yours are red.
 
 ![Bind: the Tithe ties a red thread between two of them](images/bind.jpg)
 

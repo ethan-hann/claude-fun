@@ -48,6 +48,7 @@ kbd { display: inline-block; min-width: 1.7em; padding: 0 .4em; margin: 0 .1em; 
 .slot canvas { position: absolute; inset: 7px; width: 52px; height: 52px; }
 .slot .count { position: absolute; right: 5px; bottom: 2px; font: 700 17px 'Cinzel', serif; color: var(--paper); text-shadow: 0 1px 3px #000; }
 .slot .key { position: absolute; left: 50%; bottom: -12px; transform: translateX(-50%); }
+.unlearned { display: none !important; }
 .slot.off { opacity: .45; }
 .slot .name { position: absolute; left: 0; right: 0; top: -19px; text-align: center; font: 600 10px 'Cinzel', serif; letter-spacing: .14em; color: var(--dim); text-shadow: 0 1px 3px #000; }
 
@@ -167,6 +168,31 @@ table.controls td:first-child { white-space: nowrap; color: var(--gold-hi); }
 #clickHint { position: fixed; left: 50%; top: 58%; transform: translate(-50%, -50%); padding: 12px 26px; background: var(--panel); border: 1px solid var(--line);
   font-size: 20px; pointer-events: none; animation: hintPulse 2s ease-in-out infinite; }
 @keyframes hintPulse { 50% { border-color: var(--gold-hi); } }
+
+/* ---------- Interface scale: --ui comes from the window size and the Interface size setting ---------- */
+:root { --ui: 1; }
+#bars { transform: scale(var(--ui)); transform-origin: 0 0; left: calc(28px * var(--ui)); top: calc(24px * var(--ui)); }
+#quick { transform: scale(var(--ui)); transform-origin: 0 100%; left: calc(28px * var(--ui)); bottom: calc(26px * var(--ui)); }
+#sorrow { transform: scale(var(--ui)); transform-origin: 100% 100%; right: calc(30px * var(--ui)); bottom: calc(28px * var(--ui)); }
+#objective { transform: scale(var(--ui)); transform-origin: 100% 0; right: calc(18px * var(--ui)); top: calc(16px * var(--ui)); }
+#bossbar { transform: translateX(-50%) scale(var(--ui)); transform-origin: 50% 100%; width: min(calc(62vw / var(--ui)), 820px); bottom: calc(58px * var(--ui)); }
+#prompt { transform: translateX(-50%) scale(var(--ui)); transform-origin: 50% 50%; }
+#tut { transform: translateX(-50%) scale(var(--ui)); transform-origin: 50% 0; width: min(600px, calc(90vw / var(--ui))); }
+#toast { transform: translateX(-50%) scale(var(--ui)); transform-origin: 50% 0; }
+#sub { transform: translateX(-50%) scale(var(--ui)); transform-origin: 50% 100%; width: min(820px, calc(90vw / var(--ui))); bottom: calc(128px * var(--ui)); }
+#reticle, .ebar { transform: scale(var(--ui)); }
+.dmg { font-size: calc(17px * var(--ui)); }
+.dmg.shock { font-size: calc(21px * var(--ui)); }
+/* menus zoom as a whole; zoom also scales vw and vh, so those are divided back out */
+.screen, #big, #clickHint { zoom: var(--ui); }
+.panel { max-width: calc(92vw / var(--ui)); max-height: calc(88vh / var(--ui)); }
+#title .inner { margin-left: calc(8vw / var(--ui)); }
+#title .foot { left: calc(8vw / var(--ui)); }
+#title h1 { font-size: clamp(48px, calc(7.2vw / var(--ui)), 104px); }
+#ending h2 { font-size: clamp(34px, calc(5vw / var(--ui)), 60px); }
+#intro { padding: 0 calc(8vw / var(--ui)); }
+#intro .lines p { font-size: clamp(22px, calc(2.4vw / var(--ui)), 30px); }
+#big .t { font-size: clamp(38px, calc(6.4vw / var(--ui)), 84px); }
 </style>
 </head>
 <body>
@@ -265,6 +291,7 @@ table.controls td:first-child { white-space: nowrap; color: var(--gold-hi); }
     <h2>SETTINGS</h2>
     <div class="set"><span style="width:170px">Mouse sensitivity</span><input type="range" id="sSens" min="0.3" max="2.5" step="0.05"><span id="sSensV"></span></div>
     <div class="set"><span style="width:170px">Volume</span><input type="range" id="sVol" min="0" max="1" step="0.05"><span id="sVolV"></span></div>
+    <div class="set"><span style="width:170px">Interface size</span><input type="range" id="sUi" min="0.7" max="1.4" step="0.05"><span id="sUiV"></span></div>
     <div class="set"><label style="display:flex;gap:10px;align-items:center;cursor:pointer"><input type="checkbox" id="sInvert"> Invert vertical look</label></div>
     <div class="set"><label style="display:flex;gap:10px;align-items:center;cursor:pointer"><input type="checkbox" id="sLow"> Low graphics (faster)</label></div>
     <div class="row"><button class="btn" data-back>Back</button></div>
@@ -372,7 +399,7 @@ const canvas = $('view');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
 const settings = loadSettings();
 function loadSettings() {
-  const d = { sens: 1, vol: 0.8, invert: false, low: false };
+  const d = { sens: 1, vol: 0.8, invert: false, low: false, ui: 1 };
   try { return Object.assign(d, JSON.parse(localStorage.getItem('tithe-settings') || '{}')); } catch (e) { return d; }
 }
 function saveSettings() { try { localStorage.setItem('tithe-settings', JSON.stringify(settings)); } catch (e) {} }
@@ -382,7 +409,7 @@ renderer.setSize(innerWidth, innerHeight, false);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFShadowMap;
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(56, innerWidth / innerHeight, 0.1, 2000);
+const camera = new THREE.PerspectiveCamera(56, innerWidth / innerHeight, 0.15, 2000);
 const rtScene = new THREE.WebGLRenderTarget(innerWidth, innerHeight, { type: THREE.HalfFloatType, samples: settings.low || LOWFX ? 0 : 4 });
 const composer = new EffectComposer(renderer, rtScene);
 composer.addPass(new RenderPass(scene, camera));
@@ -392,8 +419,14 @@ const outPass = new OutputPass();
 composer.addPass(outPass);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 0.92;
+// Interface scale: sized for a 1366 x 768 window, grown or shrunk with the window, times the player's setting.
+function applyUiScale() {
+  const auto = clamp(Math.min(innerWidth / 1366, innerHeight / 768), 0.8, 2.6);
+  document.documentElement.style.setProperty('--ui', (auto * (settings.ui || 1)).toFixed(3));
+}
 function onResize() {
   const w = innerWidth, h = innerHeight;
+  applyUiScale();
   renderer.setPixelRatio(settings.low ? 1 : Math.min(window.devicePixelRatio, 1.5));
   renderer.setSize(w, h, false); composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(w, h);
   camera.aspect = w / h; camera.updateProjectionMatrix();
@@ -560,6 +593,7 @@ function buildMaterials() {
   M.candle = hdr(5.0, 3.0, 1.2);
   M.goldGlow = hdr(3.0, 2.1, 0.8);
   M.stained = [hdr(2.4, 0.6, 0.5), hdr(0.6, 1.1, 2.6), hdr(2.6, 1.9, 0.6), hdr(0.7, 1.9, 1.0), hdr(1.8, 0.8, 2.2)];
+  for (const m of M.stained) { m.polygonOffset = true; m.polygonOffsetFactor = -2; m.polygonOffsetUnits = -2; }
   M.rock = std({ color: 0xe8e0d0, roughness: 0.95, flatShading: true });
   M.statueMarble = std({ map: TEX.marble, color: 0xf2ece0, roughness: 0.45 }, 3);
   M.statueStone = std({ map: TEX.stone, color: 0x9a948c, roughness: 0.9 }, 2);
@@ -1114,7 +1148,7 @@ function flushWeb(name, sway = 0.12) {
    the Gardens west, the Choir east. The Undercroft lies under the south quarter.
    ===================================================================== */
 const UY = -20;                       // undercroft floor height
-const WORLD = { statues: [], plaques: [], zones: [] };
+const WORLD = { statues: [], plaques: [], zones: [], citizens: [] };
 const LOOM_Y = 70, LOOM_CENTER = V3(0, 95, 0);
 
 function roomBox(cx, cz, w, d, y, h, wallMat, floorMat, doors = {}, doorH = 4.6) {
@@ -1187,12 +1221,20 @@ function building(x, z, w, d, h, rot, style = 0, colonnade = false) {
   }
 }
 function fountain(x, y0, z, r = 2.6) {
-  cyl(x, y0, z, r, 0.75, M.marble, 32);
-  add(cylG(32), M.gold, T(x, y0 + 0.77, z, 0, r + 0.02, 0.05, r + 0.02), false);
-  add(cylG(32), WATER_MAT, T(x, y0 + 0.62, z, 0, r - 0.2, 0.02, r - 0.2), false, false);
-  cyl(x, y0 + 0.75, z, 0.45, 1.6, M.marble, 16, false);
-  add(cylG(24, 1.6), M.marble, T(x, y0 + 2.45, z, 0, 0.7, 0.3, 0.7));
-  add(cylG(24), WATER_MAT, T(x, y0 + 2.55, z, 0, 1.0, 0.04, 1.0), false, false);
+  // an open basin: marble wall, a flat rim with a gold lip, and water you can see
+  add(cylG(40, 1, true), M.marbleDS, T(x, y0 + 0.375, z, 0, r, 0.75, r));
+  const rim = new THREE.RingGeometry(r - 0.24, r + 0.02, 48, 1).rotateX(-Math.PI / 2);
+  add(rim, M.marble, T(x, y0 + 0.75, z)); rim.dispose();
+  const lip = new THREE.RingGeometry(r - 0.02, r + 0.05, 48, 1).rotateX(-Math.PI / 2);
+  add(lip, M.gold, T(x, y0 + 0.79, z), false); lip.dispose();
+  add(cylG(40), M.marbleShade, T(x, y0 + 0.1, z, 0, r - 0.02, 0.2, r - 0.02), false);
+  add(cylG(40), WATER_MAT, T(x, y0 + 0.6, z, 0, r - 0.03, 0.02, r - 0.03), false, false);
+  addSolid({ t: 'cyl', x, z, hx: r, y0, y1: y0 + 0.75 });
+  // the column and the upper bowl, open at the top with water in it
+  cyl(x, y0 + 0.2, z, 0.45, 2.15, M.marble, 16, false);
+  add(cylG(24, 1.6, true), M.marbleDS, T(x, y0 + 2.45, z, 0, 0.7, 0.3, 0.7));
+  add(cylG(24), M.marbleShade, T(x, y0 + 2.34, z, 0, 0.72, 0.08, 0.72), false);
+  add(cylG(24), WATER_MAT, T(x, y0 + 2.53, z, 0, 1.07, 0.02, 1.07), false, false);
   add(G.sphereLo, M.gold, T(x, y0 + 2.9, z, 0, 0.28, 0.4, 0.28));
   FOUNTAINS.push(V3(x, y0 + 3.0, z));
 }
@@ -1212,6 +1254,7 @@ function statueSpot(x, y, z, rot, pose, scale = 1.25, mat = 'marble') {
 }
 // Citizens of Halcyon who do not move, and do not need to: they are content.
 function contented(x, y, z, rot, pose = 'sIdle') {
+  WORLD.citizens.push([x, y, z]);
   const rig = makeRig(1.74); skinSerene(rig, { unarmed: true });
   const map = new Map([[0xf1ece0, M.citRobe], [0xcfae62, M.citTrim], [0xe9c46a, M.citMask], [0xe3cfb9, M.citSkin]]);
   bakeFigure(rig, EP[pose] || P[pose], x, y, z, rot, 1, mm => mm.side === THREE.DoubleSide ? M.citHood : ((mm.color && map.get(mm.color.getHex())) || mm));
@@ -1294,7 +1337,7 @@ function buildUndercroft() {
   }
   for (let i = 0; i < 6; i++) candleCluster((i % 2 ? 1 : -1) * 2.3, UY + (i * 6.4 + 3) / 38 * 20 + 0.1, 140 - i * 6.4, 3, 700 + i);
   // --- landing (z 96..105) and the Gate of Descent
-  roomBox(0, 100.5, 12, 9, 0, 9, M.marbleShade, M.tile, { n: 5.2, s: 5.6 }, 7.4);
+  roomBox(0, 100.5, 12, 9, 0, 9, M.marbleShade, M.tile, { n: 5.32, s: 5.6 }, 7.4);
   WORLD.zones.push({ name: 'undercroft', minx: -30, maxx: 30, minz: 105, maxz: 290, miny: -40, maxy: -1 });
 }
 
@@ -1303,7 +1346,7 @@ function buildPromenade() {
   slab(0, 64, 20, 62, 0, M.tile);                 // z 33..95
   for (const sx of [-1, 1]) slab(sx * 13, 64, 6, 62, 0, M.grass);
   // Gate of Descent facade
-  archWall(0, 0, 95.2, 36, 17, 1.6, 5.2, 7.4, 0, M.marble);
+  archWall(0, 0, 95.12, 36, 17, 1.6, 5.2, 7.4, 0, M.marble);
   add(G.box, M.gold, T(0, 9.2, 94.3, 0, 12, 0.3, 0.3));
   add(G.box, M.marbleWarm, T(0, 17.3, 95.2, 0, 37, 0.7, 2.4));
   for (const sx of [-1, 1]) { column(sx * 4.4, 0, 93.8, 9, 0.5); column(sx * 8.4, 0, 93.8, 9, 0.5); }
@@ -1340,9 +1383,10 @@ function buildPromenade() {
   statueSpot(-7.2, 0.9, 36.5, Math.PI * 0.85, 'bless', 1.35); statueSpot(7.2, 0.9, 36.5, -Math.PI * 0.85, 'bless', 1.35);
   for (const sx of [-1, 1]) box(sx * 7.2, 0, 36.5, 1.8, 0.9, 1.8, M.marbleWarm);
   // the Contented: they stand where they have always stood
-  contentedGroup([[-13.4, 0, 52, Math.PI / 2], [-13.6, 0, 54.2, Math.PI / 2 + 0.3], [-12.9, 0, 56.6, Math.PI / 2 - 0.2]], 'sIdle');
-  contentedGroup([[13.2, 0, 77.5, -Math.PI / 2], [13.4, 0, 79.8, -Math.PI / 2 + 0.2]], 'pray');
-  contentedGroup([[12.8, 0, 43.5, -Math.PI / 2 - 0.4], [13.6, 0, 45.8, -Math.PI / 2]], 'sSing');
+  // on the lawn between the lamps and the tree lane, clear of trunks and flower beds
+  contentedGroup([[-10.6, 0, 53.6, Math.PI / 2], [-10.9, 0, 55.8, Math.PI / 2 + 0.3], [-10.3, 0, 57.9, Math.PI / 2 - 0.2]], 'sIdle');
+  contentedGroup([[11.7, 0, 72.8, -Math.PI / 2], [11.9, 0, 75.0, -Math.PI / 2 + 0.2]], 'pray');
+  contentedGroup([[9.2, 0, 44.6, -Math.PI / 2 - 0.4], [9.3, 0, 46.9, -Math.PI / 2]], 'sSing');
   // the web over the avenue
   for (let z = 38; z <= 92; z += 6) webThread(V3(-17, 16 + (z % 7), z), V3(17, 18 - (z % 5), z + 3), 2.2, 0.03);
   for (let z = 38; z <= 92; z += 9) webThread(V3(-10.2, 7.7, z), V3(10.2, 7.7, z + 4.5), 1.4, 0.022);
@@ -1496,16 +1540,16 @@ function buildGardens() {
     for (let x = -108; x <= -68; x += 10) tree(x, 0, sz * 30, 1.2);
   }
   // retaining wall to the middle terrace with two stairs
-  box(-115, 0, 0, 2, 5.5, 70, M.marbleShade);
+  box(-115, 0, 0, 2, 5.48, 70, M.marbleShade);
   for (const sz of [-1, 1]) stairs(-108.5, sz * 21, 6, 11, 0, 5.5, -Math.PI / 2, M.marble, M.marbleWarm);
   // middle terrace (y 5.5): x -150..-116, orchard
   slab(-133, 0, 36, 68, 5.5, M.grass);
-  slab(-133, 0, 36, 7, 5.51, M.tile);
+  slab(-133, 0, 36, 7, 5.52, M.tile);
   for (const sz of [-1, 1]) balustrade(-116, sz * 34, -151, sz * 34, 5.5);
   balustrade(-115.6, -34, -115.6, -24.6, 5.5); balustrade(-115.6, -17.4, -115.6, 17.4, 5.5); balustrade(-115.6, 24.6, -115.6, 34, 5.5);
   for (let x = -146; x <= -122; x += 8) for (const sz of [-1, 1]) for (let z = 8; z <= 28; z += 10) tree(x, 5.5, sz * z, 1.0, (x + z) % 3 === 0 ? 3 : 0);
   // grand stair to the upper terrace
-  box(-152, 0, 0, 2, 11, 70, M.marbleShade);
+  box(-152, 0, 0, 2, 10.98, 70, M.marbleShade);
   stairs(-145.5, 0, 9, 11, 5.5, 11, -Math.PI / 2, M.marble, M.marbleWarm);
   // upper terrace (y 11): the arena of the Castellan, circle r=18 at (-172, 0)
   slab(-155.5, 0, 7, 16, 11, M.tile);
@@ -1535,7 +1579,7 @@ function buildChoir() {
   const ped = new THREE.Shape(); ped.moveTo(-13.5, 0); ped.lineTo(13.5, 0); ped.lineTo(0, 5); ped.lineTo(-13.5, 0);
   const pg = new THREE.ExtrudeGeometry(ped, { depth: 2.4, bevelEnabled: false }); pg.translate(0, 0, -1.2); add(pg, M.marbleWarm, T(X0 - 2.2, 13.8, 0, Math.PI / 2)); pg.dispose();
   add(G.torus, M.gold, T(X0 - 0.75, 18.5, 0, Math.PI / 2, 3, 3, 3 * 3));
-  add(cylG(24), M.stained[1], T(X0 - 0.7, 18.5, 0, 0, 2.9, 0.2, 2.9, 0, Math.PI / 2), false, false);
+  add(cylG(24), M.stained[1], T(X0 - 0.84, 18.5, 0, 0, 2.9, 0.2, 2.9, 0, Math.PI / 2), false, false);
   // floor and outer walls (a chapel opens off the north aisle)
   slab((X0 + X1) / 2, 0, X1 - X0, 2 * HW, 0, M.tile);
   wallSeg(X0, HW + 0.6, X1, HW + 0.6, 0, H, 1.2, M.marble);
@@ -1550,7 +1594,7 @@ function buildChoir() {
   box((X0 + X1) / 2, 22.6, 0, X1 - X0, 1, 18, null);
   // nave columns and entablature
   for (const sz of [-1, 1]) for (let x = 70; x <= 138; x += 8) column(x, 0, sz * 8.7, 14, 0.62);
-  for (const sz of [-1, 1]) add(G.box, M.marbleWarm, T((X0 + X1) / 2 + 2, 14.2, sz * 8.7, 0, X1 - X0 - 8, 0.6, 1.6));
+  for (const sz of [-1, 1]) add(G.box, M.marbleWarm, T((X0 + X1) / 2 + 2, 14.3, sz * 8.7, 0, X1 - X0 - 8, 0.6, 1.6));
   // stained glass along the aisles
   let k = 0;
   for (const sz of [-1, 1]) for (let x = 74; x <= 134; x += 8) {
@@ -1592,7 +1636,7 @@ function buildChoir() {
     const a = i / 12 * TAU; if (Math.abs(angTo(a, Math.PI)) < 0.45) continue;
     column(164 + Math.cos(a) * 16.8, 0, Math.sin(a) * 16.8, 18, 0.7);
     const b = a + TAU / 24; if (Math.abs(angTo(b, Math.PI)) < 0.45) continue;
-    add(G.box, M.stained[i % 5], T(164 + Math.cos(b) * 18.45, 11, Math.sin(b) * 18.45, -b + Math.PI / 2, 2.8, 12, 0.2), false, false);
+    add(G.box, M.stained[i % 5], T(164 + Math.cos(b) * 18.22, 11, Math.sin(b) * 18.22, -b + Math.PI / 2, 2.8, 12, 0.2), false, false);
     add(G.box, M.gold, T(164 + Math.cos(b) * 18.3, 17.2, Math.sin(b) * 18.3, -b + Math.PI / 2, 3.2, 0.3, 0.4));
   }
   const cornice = new THREE.TorusGeometry(18.2, 0.35, 6, 64); add(cornice, M.gold, T(164, 18.4, 0, 0, 1, 1, 1, Math.PI / 2), false); cornice.dispose();
@@ -1920,8 +1964,13 @@ class Animator {
       target = this.tmp;
     }
     this.blend = Math.min(1, this.blend + dt / Math.max(1e-4, this.blendDur));
-    const b = smooth(this.blend), cur = this.cur, from = this.from;
-    for (let i = 0; i < NCH; i++) cur[i] = from[i] + (target[i] - from[i]) * b;
+    const b = smooth(this.blend), cur = this.cur, from = this.from, NA = NJ * 3;
+    // angles blend the short way round (a roll ends at 360 degrees, which is 0)
+    for (let i = 0; i < NCH; i++) {
+      let d = target[i] - from[i];
+      if (i < NA) d -= Math.round(d / TAU) * TAU;
+      cur[i] = b >= 1 ? target[i] : from[i] + d * b;
+    }
     const L = this.rig.list;
     for (let j = 0; j < NJ; j++) L[j].rotation.set(cur[j * 3], cur[j * 3 + 1], cur[j * 3 + 2]);
     const bb = this.rig.bodyBase, k = this.rig.k;
@@ -2023,27 +2072,49 @@ function defineClips() {
 }
 
 // ---------- Locomotion for two-legged rigs ----------
+// Length of one full stride (two steps) at a given ground speed. Faster means longer strides,
+// not just faster legs. scale stretches it for bigger bodies.
+const strideLen = (hv, scale = 1) => (1.7 + hv * 0.32) * scale;
+// Procedural walk and run. Each leg swings forward while cos(its phase) > 0: the knee folds
+// through that swing and is nearly straight when the foot lands. Running adds lean, a dip
+// into each planted step, and bent-elbow arm swing. The hips turn with the legs and the chest
+// turns against them; there is almost no side-to-side rock.
 function locoLegged(out, s) {
   out.set(s.base);
-  const f = clamp(s.v / 5, 0, 1.6), ph = s.phase, sw = Math.sin(ph), cw = Math.cos(ph);
-  const amp = Math.min(1, f) * 36 + Math.max(0, f - 1) * 26;
+  const f = clamp(s.v / 5, 0, 1.6);
+  const m = smooth(clamp(s.v / 1.2, 0, 1));                    // eases in from standing still
+  const run = smooth(clamp((s.v - 2.2) / 2.0, 0, 1));          // 0 walk .. 1 run
+  const ph = s.phase, sw = Math.sin(ph), cw = Math.cos(ph);
   const fw = s.fwd, sd = s.side;
   const add = (j, x, y, z) => { const b = JI[j] * 3; out[b] += x * DEG; out[b + 1] += y * DEG; out[b + 2] += z * DEG; };
-  // legs: forward swing plus sideways swing for strafing
-  add('thighL', -sw * amp * fw, 0, -sw * amp * 0.45 * sd); add('thighR', sw * amp * fw, 0, sw * amp * 0.45 * sd);
-  add('shinL', Math.max(0, -cw) * amp * 1.5 + f * 6, 0, 0); add('shinR', Math.max(0, cw) * amp * 1.5 + f * 6, 0, 0);
-  add('footL', -Math.max(0, cw) * amp * 0.3, 0, 0); add('footR', -Math.max(0, -cw) * amp * 0.3, 0, 0);
-  // body bob, sway and lean
-  out[NCH - 2] += (Math.abs(cw) - 0.6) * 0.07 * Math.min(1, f) - Math.max(0, f - 1) * 0.08;
-  add('pelvis', 0, -sw * 7 * f * Math.abs(fw), sw * 3 * f);
-  add('spine', 5 * f + (s.sprint ? 10 : 0), 0, 0); add('chest', 2 * f, sw * 9 * f * Math.abs(fw), 0);
-  // arms swing against the legs
-  add('armL', sw * amp * 0.9 * fw, 0, 0); add('foreL', -Math.abs(sw) * 16 * f, 0, 0);
+  const A = lerp(24, 36, run) + Math.max(0, f - 1) * 18;       // thigh swing
+  const bias = -lerp(2, 9, run);                                // running thighs sit a little forward
+  const kSwing = lerp(38, 92, run) + Math.max(0, f - 1) * 20, kLoad = lerp(5, 16, run);
+  const leg = (thigh, shin, foot, q) => {
+    const sq = Math.sin(q), swing = Math.max(0, Math.cos(q));
+    add(thigh, (-sq * A * fw + bias) * m, 0, -sq * A * 0.35 * sd * m);
+    add(shin, (swing > 0 ? Math.pow(swing, 0.85) * kSwing : -Math.cos(q) * kLoad) * m, 0, 0);
+    add(foot, -sq * 10 * m, 0, 0);                              // toe up as it reaches, pointed as it trails
+  };
+  leg('thighL', 'shinL', 'footL', ph);
+  leg('thighR', 'shinR', 'footR', ph + Math.PI);
+  // hips and shoulders counter-rotate
+  add('pelvis', 0, -sw * 6 * m * Math.abs(fw), sw * 1.2 * m);
+  add('chest', 0, sw * 9 * m * Math.abs(fw), -sw * 0.8 * m);
+  // lean into the run, keep the head level
+  const lean = lerp(3, 10, run) * m + (s.sprint ? 8 : 0);
+  add('spine', lean * 0.6, 0, 0); add('chest', lean * 0.4, 0, 0); add('head', -lean * 0.55, 0, 0);
+  // bob: a walk rises over the planted leg, a run dips into it
+  const bob = lerp((Math.abs(cw) - 0.5) * 0.035, (0.45 - Math.abs(cw)) * 0.06, run);
+  out[NCH - 2] += (bob - run * 0.03) * m;
+  // arms swing against the legs; elbows bend as the pace rises
+  const B = lerp(26, 42, run) * m;
+  add('armL', sw * B * fw, 0, lerp(0, 5, run) * m); add('foreL', -lerp(14, 74, run) * m, 0, 0);
   if (s.sprint) { add('armR', 42, 0, 0); add('foreR', -10, 0, 0); add('handR', 30, 0, 0); }
-  else add('armR', -sw * amp * 0.35 * fw, 0, 0);
+  else { add('armR', -sw * B * 0.5 * fw, 0, 0); add('foreR', -lerp(0, 26, run) * m, 0, 0); }
   // idle breathing
   const br = Math.sin(s.t * 1.9);
-  add('chest', br * 1.6 * (1 - Math.min(1, f)), 0, 0); out[NCH - 2] += br * 0.004;
+  add('chest', br * 1.6 * (1 - m), 0, 0); out[NCH - 2] += br * 0.004;
   return out;
 }
 
@@ -2169,7 +2240,7 @@ class Player {
     const r = this.rig; r.root.position.copy(this.pos); r.root.rotation.y = this.yaw;
     const hv = Math.hypot(this.vel.x, this.vel.z);
     const prevStep = Math.floor(this.phase / Math.PI);
-    this.phase += dt * hv * (TAU / 1.9);
+    this.phase += dt * hv * (TAU / strideLen(hv));
     if (Math.floor(this.phase / Math.PI) !== prevStep && this.onGround && hv > 1 && (this.state === 'free' || this.state === 'drink')) Sfx.step(ENV.under > 0.5, Math.min(1.4, hv / 4));
     let fwd = 1, side = 0;
     if (hv > 0.1) { const lx = this.vel.x / hv, lz = this.vel.z / hv, c = Math.cos(this.yaw), s = Math.sin(this.yaw); fwd = lx * s + lz * c; side = lx * c - lz * s; }
@@ -2249,7 +2320,7 @@ class Player {
   updRoll(dt) {
     const t = this.sT, sp = t < 0.4 ? 7.4 : Math.max(0, 7.4 * (1 - (t - 0.4) / 0.2));
     this.vel.x = this.rollDir.x * sp; this.vel.z = this.rollDir.z * sp;
-    this.iframe = t > 0.03 && t < 0.4;
+    this.iframe = t < 0.46;
     if (t >= 0.44 && this.buffer && this.buffer.a !== 'dodge') { this.setState('free'); this.anim.stop(0.12); this.consumeBuffer(); return; }
     if (t >= 0.6) { this.setState('free'); this.anim.stop(0.12); this.consumeBuffer(); }
   }
@@ -2260,7 +2331,7 @@ class Player {
   updBackstep(dt) {
     const t = this.sT, sp = t < 0.24 ? -5.6 : -5.6 * Math.max(0, 1 - (t - 0.24) / 0.14);
     this.vel.x = Math.sin(this.yaw) * sp; this.vel.z = Math.cos(this.yaw) * sp;
-    this.iframe = t > 0.02 && t < 0.24;
+    this.iframe = t < 0.28;
     if (t >= 0.42) { this.setState('free'); this.consumeBuffer(); }
   }
   startDrink() {
@@ -2531,6 +2602,8 @@ function updateHUD(dt) {
   for (let i = 0; i < 2; i++) { const f = clamp((p.grief - i * 50) / 50, 0, 1); hud.pips[i].firstChild.style.height = (f * 100) + '%'; hud.pips[i].classList.toggle('full', f >= 1); }
   hud.nectar.querySelector('.count').textContent = p.nectar; hud.nectar.classList.toggle('off', p.nectar <= 0);
   hud.bind.classList.toggle('off', p.grief < 50);
+  const learned = !!Game.flags.bindUnlocked && !Game.bindUnseen;
+  if (learned !== hud.bindShown) { hud.bindShown = learned; hud.bind.classList.toggle('unlearned', !learned); $('grief').classList.toggle('unlearned', !learned); }
   hud.sorrowN.textContent = Game.sorrow.toLocaleString('en-US');
   if (hud.gainT > 0) { hud.gainT -= dt; if (hud.gainT <= 0) { hud.sorrowGain.style.opacity = 0; hud.gainAmt = 0; } }
   if (hud.toastT > 0) { hud.toastT -= dt; if (hud.toastT <= 0) $('toast').classList.remove('show'); }
@@ -2886,7 +2959,8 @@ class Enemy {
     dmg = Math.max(1, Math.round(dmg * mult));
     this.hp -= dmg; this.flash = 1; this.showBar = 6;
     if (this.onHitShare) this.onHitShare(dmg);
-    dmgNumber(this.anchor(_v1).add(_v2.set(0, 0.5, 0)), dmg, mult < 1 ? 'self' : '');
+    // a halved hit says so: the rest of the wound went down a thread
+    dmgNumber(this.anchor(_v1).add(_v2.set(0, 0.5, 0)), mult < 1 ? dmg + ' \u00bd' : dmg, mult < 1 ? 'self' : '');
     spawnBurst(this.anchor(_v1), 8, this.def.blood || [1.8, 1.4, 0.8], 2.4, 0.45, 0.1);
     Sfx.hit(this.def.armor ? 1 : 0, atk.heavy, this.pos);
     if (!this.aware) this.alert(from);
@@ -2928,7 +3002,7 @@ class Enemy {
       if (this.trail) this.trail.on = hits.some(h => t >= h[0] - 0.05 && t <= h[1]);
       if (w >= 0 && !this.hitSet.has(p)) {
         if (a.custom) a.custom(this, t, w);
-        else if (enemyArcHits(this, a, p) && p.hurt(a.dmg, this.pos, a)) this.hitSet.add(p);
+        else if (enemyArcHits(this, a, p) && p.hurt(Math.round(a.dmg * (this.dmgMul || 1)), this.pos, a)) this.hitSet.add(p);
       }
     }
     if (a.update) a.update(this, t, dt);
@@ -3047,6 +3121,7 @@ class Enemy {
     return Math.random() < 0.5 ? 1 : -1;
   }
   updDead(dt) {
+    if (this.gone) return;
     this.deadT += dt; this.vel.multiplyScalar(Math.exp(-5 * dt));
     if (this.deadT > 2.2) {
       const k = (this.deadT - 2.2) / 1.2;
@@ -3062,7 +3137,7 @@ class Enemy {
     r.root.rotation.y = this.yaw;
     const hv = Math.hypot(this.vel.x, this.vel.z);
     const ps = Math.floor(this.phase / Math.PI);
-    this.phase += dt * hv * (TAU / (def.stride || 1.8));
+    this.phase += dt * hv * (TAU / strideLen(hv, (def.stride || 1.8) / 1.8));
     if (this.isBoss && !def.float && Math.floor(this.phase / Math.PI) !== ps && hv > 1) Sfx.step(true, 3, this.pos);
     let fwd = 1, side = 0;
     if (hv > 0.1) { const lx = this.vel.x / hv, lz = this.vel.z / hv, c = Math.cos(this.yaw), s = Math.sin(this.yaw); fwd = lx * s + lz * c; side = lx * c - lz * s; }
@@ -3312,8 +3387,8 @@ function defineEnemies() {
     attacks: [
       { name: 'sweep', clip: EC.wSweep, range: [0, 3.0], weight: 3, hit: [0.76, 0.94], dmg: 24, arc: 170, reach: 3.3, lunge: [0.7, 0.9, 2.5], track: 0.66, dur: 1.6, cd: 1.0 },
       { name: 'chop', clip: EC.wChop, range: [0, 3.1], weight: 2, hit: [0.92, 1.04], dmg: 32, arc: 44, reach: 3.5, lunge: [0.85, 1.0, 3], track: 0.8, trackRate: 5, dur: 1.8, cd: 1.5, armor: true, stagger: true },
-      { name: 'thrust', clip: EC.wThrust, range: [3.2, 7.5], weight: 3, hit: [0.6, 0.86], dmg: 22, arc: 36, reach: 3.3, lunge: [0.55, 0.85, 8.5], track: 0.5, dur: 1.35, cd: 2.0 },
-      { name: 'combo', clip: EC.wCombo, range: [0, 2.8], weight: 1.2, hits: [[0.7, 0.88], [1.3, 1.42]], dmg: 24, arc: 150, reach: 3.3, lunge: [0.65, 1.4, 2.4], track: 1.1, dur: 2.1, cd: 4, armor: true },
+      { name: 'thrust', clip: EC.wThrust, range: [3.2, 7.5], weight: 3, hit: [0.6, 0.74], dmg: 22, arc: 36, reach: 3.3, lunge: [0.5, 0.72, 7.5], track: 0.5, dur: 1.35, cd: 2.0 },
+      { name: 'combo', clip: EC.wCombo, range: [0, 2.8], weight: 1.2, hits: [[0.7, 0.88], [1.3, 1.42]], dmg: 24, arc: 150, reach: 3.3, lunge: [0.65, 0.9, 2.4], track: 0.72, dur: 2.1, cd: 4, armor: true },
     ],
   });
   ENEMY_DEFS.cantor = Object.assign({}, base, {
@@ -3329,11 +3404,11 @@ function defineEnemies() {
 const CANTOR_ATK = {};
 function defineCantorAttacks() {
   CANTOR_ATK.orb = { name: 'orb', clip: EC.cCast, range: [0, 30], dur: 1.1, track: 0.7, cd: 3.2,
-    update(e, t) { if (t >= 0.74 && !e.fired) { e.fired = true; fireOrb(e.rig.orb.getWorldPosition(V3()), 13, 7.5, 1.1); } }, onStart(e) { e.fired = false; } };
+    update(e, t) { if (t >= 0.74 && !e.fired) { e.fired = true; fireOrb(e.rig.orb.getWorldPosition(V3()), Math.round(13 * (e.dmgMul || 1)), 7.5, 0.6); } }, onStart(e) { e.fired = false; } };
   CANTOR_ATK.mend = { name: 'mend', clip: EC.cMend, range: [0, 99], dur: 1.7, track: 0, cd: 9,
     onStart(e) { e.fired = false; Sfx.chime(0.7); }, update(e, t) { if (t >= 0.8 && !e.fired) { e.fired = true; mendLinked(e); } } };
   CANTOR_ATK.repel = { name: 'repel', clip: EC.cRepel, range: [0, 3], dur: 0.8, track: 0.3, cd: 4.5, hit: [0.42, 0.52], dmg: 10, arc: 360, reach: 3.2, knock: 9,
-    custom(e) { if (enemyArcHits(e, CANTOR_ATK.repel, player) && player.hurt(10, e.pos, { stagger: true })) { const d = _v1.subVectors(player.pos, e.pos).setY(0).normalize(); player.vel.addScaledVector(d, 9); } e.hitSet.add(player); spawnRing(e.pos, 3.2, [2, 1.6, 0.8]); } };
+    custom(e) { if (enemyArcHits(e, CANTOR_ATK.repel, player) && player.hurt(Math.round(10 * (e.dmgMul || 1)), e.pos, { stagger: true })) { const d = _v1.subVectors(player.pos, e.pos).setY(0).normalize(); player.vel.addScaledVector(d, 9); } e.hitSet.add(player); spawnRing(e.pos, 3.2, [2, 1.6, 0.8]); } };
 }
 function cantorThink(e, dt, d) {
   if (!e.aware || e.state !== 'chase') return false;
@@ -3457,7 +3532,7 @@ function mendLinked(src) {
   for (const L of src.links) if (L.state === 'alive') {
     const o = L.a === src ? L.b : L.a;
     if (!o.alive) continue;
-    L.pulse = { from: src, t: 0, color: [1.2, 2.2, 1.0], onArrive: () => { const h = Math.round(o.maxHp * 0.25); o.hp = Math.min(o.maxHp, o.hp + h); dmgNumber(o.anchor(V3()).add(_v1.set(0, 0.5, 0)), '+' + h, 'heal'); spawnBurst(o.anchor(V3()), 12, [1, 2, 0.9], 1.6, 0.8); } };
+    L.pulse = { from: src, t: 0, color: [1.2, 2.2, 1.0], onArrive: () => { const h = Math.round(o.maxHp * 0.18); o.hp = Math.min(o.maxHp, o.hp + h); dmgNumber(o.anchor(V3()).add(_v1.set(0, 0.5, 0)), '+' + h, 'heal'); spawnBurst(o.anchor(V3()), 12, [1, 2, 0.9], 1.6, 0.8); } };
     any = true;
   }
   const h = Math.round(src.maxHp * 0.15); src.hp = Math.min(src.maxHp, src.hp + h);
@@ -3532,6 +3607,7 @@ function bindCandidates(target) {
   return best;
 }
 function tryBind(p) {
+  if (!Game.flags.bindUnlocked) { toast('Not yet', 'You learn to tie threads when the first of the three dies.'); Sfx.fail(); return false; }
   if (p.grief < 50) { toast('Your grief is not ready', 'Deal and take damage to fill a diamond of Grief.'); Sfx.fail(); return false; }
   const target = p.lock || findTarget(null, 0);
   if (!target) { toast('No one to bind', 'Face an enemy or lock on first.'); Sfx.fail(); return false; }
@@ -3573,7 +3649,7 @@ function addSorrow(n, from) {
   Sfx.sorrow();
 }
 function onEnemyDeath(e, from) {
-  addSorrow(e.opts.sorrow !== undefined ? e.opts.sorrow : e.def.sorrow || 0, e.anchor(V3()));
+  addSorrow(Math.round((e.opts.sorrow !== undefined ? e.opts.sorrow : e.def.sorrow || 0) * (e.sorrowMul || 1)), e.anchor(V3()));
   addGrief(6);
   Sfx.enemyDeath(!!e.def.armor);
   Game.stats.kills = (Game.stats.kills || 0) + 1;
@@ -3591,6 +3667,7 @@ function defineSpawns() {
   S('u3w', 'warden', 0, UY, 168.5, 0, { hp: 140 }); S('u3a', 'serene', -4.2, UY, 172, 0); S('u3b', 'serene', 4.2, UY, 172, 0);
   Lstar('u3w', 'u3a', 'u3b');
   S('u4a', 'serene', -4.5, UY, 150.5, 0.3); S('u4b', 'serene', 4.5, UY, 150.5, -0.3);
+  Lchain('u4a', 'u4b');
   // The Promenade
   S('p1a', 'serene', -5.6, 0, 86, 0.2); S('p1b', 'serene', -6.6, 0, 81.5, 0.5); S('p1c', 'serene', -5.2, 0, 77, 0.1);
   Lchain('p1a', 'p1b', 'p1c');
@@ -3632,12 +3709,20 @@ function removeEnemy(e) {
   if (player && player.lock === e) player.lock = null;
 }
 const SPAWNED = {};
+// The deeper into the city, the harder they are: the Gardens, then the Choir.
+function zoneTier(x) {
+  if (x > 58) return { hp: 1.45, dmg: 1.15, sorrow: 1.5 };
+  if (x < -60) return { hp: 1.2, dmg: 1.1, sorrow: 1.25 };
+  return { hp: 1, dmg: 1, sorrow: 1 };
+}
 function spawnAll() {
   for (const e of [...ENEMIES]) if (!e.isBoss && !e.owner) removeEnemy(e);
 
   for (const k in SPAWNED) delete SPAWNED[k];
   for (const sp of SPAWN_TABLE) {
     const e = new Enemy(ENEMY_DEFS[sp.type], sp.x, sp.y, sp.z, sp.yaw, sp.opts); e.spawnId = sp.id; SPAWNED[sp.id] = e;
+    const t = zoneTier(sp.x);
+    e.maxHp = e.hp = Math.round(e.maxHp * t.hp); e.poiseMax = e.poise = Math.round(e.poiseMax * Math.sqrt(t.hp)); e.dmgMul = t.dmg; e.sorrowMul = t.sorrow;
   }
   for (const [a, b] of LINK_TABLE) if (SPAWNED[a] && SPAWNED[b]) link(SPAWNED[a], SPAWNED[b]);
 }
@@ -3723,6 +3808,8 @@ function bossKilled(b) {
   const e = b.enemy;
   Game.flags.bosses = Game.flags.bosses || {}; Game.flags.bosses[b.id] = true;
   later(1600, () => { bigText('PAIN RETURNED', b.name, 'gold', 4.5); Sfx.victory(); });
+  // learned now (and saved), shown when the card explains it
+  if (!Game.flags.bindUnlocked) { Game.flags.bindUnlocked = true; Game.bindUnseen = true; later(7500, learnBind); }
   later(1400, () => addSorrow(b.sorrow, e.anchor(V3())));
   endBossFightImpl(true);
   for (const part of b.parts) if (part.alive && part.die) part.die(player);
@@ -3804,8 +3891,8 @@ function defineCastellan() {
   EC.casRoar = clip([[0, g], [0.4, roar, 'o'], [1.6, roar], [2.0, g]]);
   const phase2 = e => e.phase2;
   Object.assign(CAS, {
-    cleave: { name: 'cleave', clip: EC.casCleave, range: [0, 4.6], weight: 3, hits: [[0.74, 0.92], [1.26, 1.44]], dmg: 22, arc: 170, reach: 4.8, lunge: [0.6, 1.4, 2.4], track: 1.1, trackRate: 4, dur: 2.0, cd: 1.6, recover: 0.8 },
-    slam: { name: 'slam', clip: EC.casSlam, range: [0, 5], weight: 2, hit: [1.02, 1.14], dmg: 34, arc: 50, reach: 5.2, lunge: [0.9, 1.06, 3], track: 0.92, trackRate: 3.5, dur: 2.1, cd: 3.2, stagger: true, recover: 1.1,
+    cleave: { name: 'cleave', clip: EC.casCleave, range: [0, 4.6], weight: 3, hits: [[0.74, 0.92], [1.26, 1.44]], dmg: 20, arc: 170, reach: 4.8, lunge: [0.6, 0.95, 2.4], track: 0.68, trackRate: 4, dur: 2.0, cd: 1.6, recover: 0.8 },
+    slam: { name: 'slam', clip: EC.casSlam, range: [0, 5], weight: 2, hit: [1.02, 1.14], dmg: 30, arc: 50, reach: 5.2, lunge: [0.9, 1.06, 3], track: 0.92, trackRate: 3.5, dur: 2.1, cd: 3.2, stagger: true, recover: 1.1,
       update(e, t) { if (t >= 1.08 && !e.slammed) { e.slammed = true; const tip = e.rig.weapon.group.localToWorld(V3(0, -1.6, 0)); tip.y = e.pos.y; groundBurst(tip, e.phase2 ? 3.6 : 2.6, 20, e); } }, onStart(e) { e.slammed = false; } },
     bash: { name: 'bash', clip: EC.casBash, range: [0, 2.8], weight: 2.2, hit: [0.42, 0.56], dmg: 14, arc: 110, reach: 3.2, lunge: [0.34, 0.56, 6], track: 0.36, dur: 1.1, cd: 3, stagger: true, recover: 0.5 },
     leap: { name: 'leap', clip: EC.casLeap, range: [6.5, 20], weight: 2.4, dur: 2.2, cd: 7, track: 0.45, recover: 1.0,
@@ -3814,7 +3901,7 @@ function defineCastellan() {
         const L = e.leap;
         if (t < 0.55) { L.to = player.pos.clone(); return; }
         if (t < 1.3) { e.noPhys = true; const u = (t - 0.55) / 0.75; e.pos.x = lerp(L.from.x, L.to.x, u); e.pos.z = lerp(L.from.z, L.to.z, u); e.pos.y = lerp(L.from.y, L.to.y, u) + Math.sin(u * Math.PI) * 5.5; e.vel.set(0, 0, 0); return; }
-        if (!L.done) { L.done = true; e.noPhys = false; e.pos.y = L.to.y; groundBurst(e.pos, 3.8, 36, e, true); }
+        if (!L.done) { L.done = true; e.noPhys = false; e.pos.y = L.to.y; groundBurst(e.pos, 3.8, 32, e, true); }
       } },
     charge: { name: 'charge', clip: EC.casCharge, range: [9, 26], weight: 1.4, dur: 2.6, cd: 10, track: 0.5, recover: 1.0,
       onStart(e) { e.chargeHit = false; },
@@ -3823,10 +3910,10 @@ function defineCastellan() {
           e.faceToward(player.pos.x, player.pos.z, 1.1, 1 / 60);
           const sp = 9.2; e.vel.x = Math.sin(e.yaw) * sp; e.vel.z = Math.cos(e.yaw) * sp;
           if (Math.random() < 0.4) spawnP(e.pos.x, e.pos.y + 0.1, e.pos.z, 0, 0.6, 0, [1.2, 1.1, 0.9], 0.6, 0.3, 2);
-          if (!e.chargeHit && e.distTo(player) < e.radius + 1.1) { e.chargeHit = true; if (player.hurt(26, e.pos, { knockdown: true })) Cam.shake = 0.8; }
+          if (!e.chargeHit && e.distTo(player) < e.radius + 1.1) { e.chargeHit = true; if (player.hurt(24, e.pos, { knockdown: true })) Cam.shake = 0.8; }
         } else if (t >= 2.2) { e.vel.multiplyScalar(0.85); }
       } },
-    spin: { name: 'spin', clip: EC.casSpin, range: [0, 5.2], weight: 2.5, hits: [[0.8, 1.2], [1.25, 1.66]], dmg: 20, arc: 360, reach: 4.9, lunge: [0.8, 1.6, 2.2], track: 0.7, dur: 2.3, cd: 5, cond: phase2, recover: 0.9 },
+    spin: { name: 'spin', clip: EC.casSpin, range: [0, 5.2], weight: 2.5, hits: [[0.82, 1.06], [1.3, 1.54]], dmg: 20, arc: 360, reach: 4.4, lunge: [0.8, 1.4, 1.6], track: 0.7, dur: 2.3, cd: 5, cond: phase2, recover: 0.9 },
   });
 }
 // A shockwave along the ground: damages the player if close.
@@ -3850,7 +3937,7 @@ function buildCastellanArena() {
 }
 function createCastellan(b) {
   const def = Object.assign({}, ENEMY_DEFS.warden, {
-    name: 'Castellan Voss', hp: 1150, poise: 9999, radius: 0.85, height: 3.1, sight: 40, walk: 2.4, run: 3.4, keep: 3.2, turn: 4, boss: true, sorrow: 0, armor: true,
+    name: 'Castellan Voss', hp: 1080, poise: 9999, radius: 0.85, height: 3.1, sight: 40, walk: 2.4, run: 3.4, keep: 3.2, turn: 4, boss: true, sorrow: 0, armor: true,
     build: () => skinCastellan(makeRig(3.0)), guard: EP.casGuard, idlePose: EP.casGuard, flinch: false, stride: 2.6, step: 0.7, anchorH: 0.66,
     clips: { hurt: EC.hurt, stagger: EC.stagger, death: EC.death, notice: EC.notice },
     attacks: Object.values(CAS),
@@ -3950,47 +4037,60 @@ function defineSeraphine() {
   EC.serVanish = clip([[0, g], [0.3, pose(g, { chest: [20], armL: [-60, 40, 10], armR: [-60, -40, -10], foreL: [-100], foreR: [-100] }), 'o'], [1.2, g]]);
   const p2 = e => e.phase2;
   Object.assign(SER, {
-    volley: { name: 'volley', clip: EC.serVolley, range: [3.5, 30], weight: 3, dur: 1.5, track: 0.9, cd: 2.6,
+    // three orbs, five once she sings louder; they curve only a little, so a side roll clears them
+    volley: { name: 'volley', clip: EC.serVolley, range: [3.5, 30], weight: 3, dur: 1.5, track: 0.9, cd: 3.2, recover: 1.1,
       onStart(e) { e.fired = false; Sfx.chime(1); },
-      update(e, t) { if (t >= 0.92 && !e.fired) { e.fired = true; const from = e.anchor(V3()).add(_v1.set(0, 0.6, 0)); for (let i = -2; i <= 2; i++) { fireOrb(from.clone(), 15, 8.5, 0.9, { spread: i * 0.3, size: 1.1 }); } } } },
-    resonance: { name: 'resonance', clip: EC.serRes, range: [0, 9], weight: 2.4, dur: 1.9, track: 0.6, cd: 4.5,
+      update(e, t) { if (t >= 0.92 && !e.fired) { e.fired = true; const from = e.anchor(V3()).add(_v1.set(0, 0.6, 0)), n = e.phase2 ? 2 : 1; for (let i = -n; i <= n; i++) { fireOrb(from.clone(), 12, 7.5, 0.35, { spread: i * (e.phase2 ? 0.3 : 0.36), size: 1.1 }); } } } },
+    resonance: { name: 'resonance', clip: EC.serRes, range: [0, 9], weight: 2.4, dur: 1.9, track: 0.6, cd: 6, recover: 1.3,
       onStart(e) { e.fired = false; Sfx.chime(0.5); },
-      update(e, t) { if (t >= 0.84 && !e.fired) { e.fired = true; spawnWave(e.pos.clone(), 12, 1.25, 24); } } },
-    slash: { name: 'slash', clip: EC.serSlash, range: [0, 4.2], weight: 2.5, hits: [[0.55, 0.68], [0.95, 1.08]], dmg: 20, arc: 150, reach: 4.2, lunge: [0.4, 1.05, 6], track: 0.9, dur: 1.5, cd: 1.8 },
-    vanish: { name: 'vanish', clip: EC.serVanish, range: [0, 30], weight: 1.2, dur: 1.2, track: 0, cd: 9,
+      update(e, t) { if (t >= 0.84 && !e.fired) { e.fired = true; spawnWave(e.pos.clone(), 12, 1.25, 20); } } },
+    slash: { name: 'slash', clip: EC.serSlash, range: [0, 3.6], weight: 2.5, hits: [[0.55, 0.66], [0.95, 1.05]], dmg: 18, arc: 120, reach: 3.4, lunge: [0.4, 0.62, 5], track: 0.5, dur: 1.5, cd: 2.2, recover: 1.0 },
+    vanish: { name: 'vanish', clip: EC.serVanish, range: [0, 30], weight: 1.2, dur: 1.2, track: 0, cd: 13, recover: 0.5,
       onStart(e) { e.fired = false; e.vanishT = 0; Sfx.whoosh(1.2, 0.4); },
       update(e, t) {
         e.fade = t < 0.4 ? 1 - t / 0.4 : t > 0.8 ? (t - 0.8) / 0.4 : 0;
         if (t >= 0.4 && !e.fired) {
           e.fired = true; const C = e.owner.arena;
           let best = null, bd = -1;
-          for (let i = 0; i < 8; i++) { const a = Math.random() * TAU, r = 6 + Math.random() * 7, x = C.x + Math.cos(a) * r, z = C.z + Math.sin(a) * r, d = Math.hypot(x - player.pos.x, z - player.pos.z); if (d > bd && d < 14) { bd = d; best = [x, z]; } }
+          // reappear across from the Tithe, but close enough to fight: 5 to 9 m away
+          for (let i = 0; i < 12; i++) { const a = Math.random() * TAU, r = 3 + Math.random() * 10, x = C.x + Math.cos(a) * r, z = C.z + Math.sin(a) * r, d = Math.hypot(x - player.pos.x, z - player.pos.z); if (d > 5 && d < 9 && d > bd) { bd = d; best = [x, z]; } }
           if (best) { spawnBurst(e.anchor(V3()), 24, [2, 1.8, 1.2], 3, 0.6); e.pos.x = best[0]; e.pos.z = best[1]; spawnBurst(e.anchor(V3()), 24, [2, 1.8, 1.2], 3, 0.6); }
         }
       } },
-    aria: { name: 'aria', clip: EC.serAria, range: [0, 30], weight: 2.2, dur: 3.1, track: 0, cd: 8, cond: p2,
+    aria: { name: 'aria', clip: EC.serAria, range: [0, 30], weight: 2.2, dur: 3.1, track: 0, cd: 10, cond: p2, recover: 1.2,
       onStart(e) { e.pillars = 0; subtitle('Mother Seraphine', 'Sing with me.', 2); Sfx.chime(1.4); },
-      update(e, t) { if (t > 0.5 + e.pillars * 0.7 && e.pillars < 3) { e.pillars++; lightPillar(player.pos.clone(), 2.1, 30, 0.9); } } },
+      update(e, t) { if (t > 0.5 + e.pillars * 0.7 && e.pillars < 3) { e.pillars++; lightPillar(player.pos.clone(), 2.1, 24, 0.9); } } },
   });
 }
 // expanding ground wave: the player must roll through the band
 const WAVES = [];
+// The band you see is the band that hurts: WAVE_W either side of the ring.
+const WAVE_W = 0.55;
+let waveMat = null;
 function spawnWave(p, R, dur, dmg) {
-  if (!ringGeo) { ringGeo = new THREE.RingGeometry(0.85, 1, 48); ringGeo.rotateX(-Math.PI / 2); }
-  const m = new THREE.Mesh(new THREE.RingGeometry(0.9, 1, 72).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: new THREE.Color(2.6, 2.0, 1.1), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
-  m.position.set(p.x, p.y + 0.15, p.z); scene.add(m);
-  WAVES.push({ m, p, t: 0, R, dur, dmg, hit: false });
+  if (!waveMat) waveMat = new THREE.ShaderMaterial({
+    uniforms: { uR: { value: 0 }, uA: { value: 1 }, uW: { value: WAVE_W }, uC: { value: new THREE.Color(2.6, 2.0, 1.1) } },
+    vertexShader: `varying vec2 vP; void main() { vP = position.xz; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+    fragmentShader: `uniform float uR; uniform float uA; uniform float uW; uniform vec3 uC; varying vec2 vP;
+      void main() { float d = abs(length(vP) - uR); float band = 1.0 - smoothstep(uW * 0.75, uW, d); float edge = smoothstep(uW * 0.45, uW * 0.9, d) * band;
+        gl_FragColor = vec4(uC * (band * 0.35 + edge * 0.9) * uA, 1.0); }`,
+    transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
+  const m = new THREE.Mesh(new THREE.CircleGeometry(R + WAVE_W + 0.2, 96).rotateX(-Math.PI / 2), waveMat.clone());
+  m.position.set(p.x, p.y + 0.12, p.z); m.renderOrder = 6; scene.add(m);
+  WAVES.push({ m, p, t: 0, R, dur, dmg, hit: false, r0: 0 });
   Sfx.wave();
 }
 function updateWaves(dt) {
   for (let i = WAVES.length - 1; i >= 0; i--) {
-    const w = WAVES[i]; w.t += dt; const k = w.t / w.dur, r = w.R * k;
-    w.m.scale.setScalar(Math.max(0.1, r)); w.m.material.opacity = 1 - k * 0.6;
-    if (!w.hit && player.alive) {
-      const d = Math.hypot(player.pos.x - w.p.x, player.pos.z - w.p.z);
-      if (Math.abs(d - r) < 0.9 && Math.abs(player.pos.y - w.p.y) < 1.4) { if (player.hurt(w.dmg, w.p, { stagger: true })) w.hit = true; }
+    const w = WAVES[i]; w.t += dt; const k = Math.min(1, w.t / w.dur), r = w.R * k;
+    const u = w.m.material.uniforms; u.uR.value = r; u.uA.value = 1 - k * 0.5;
+    if (!w.hit && player.alive && Math.abs(player.pos.y - w.p.y) < 1.4) {
+      // hit if the band swept over the player this frame, so a fast ring cannot skip past
+      const d = Math.hypot(player.pos.x - w.p.x, player.pos.z - w.p.z), pad = WAVE_W + player.radius * 0.4;
+      if (d >= Math.min(w.r0, r) - pad && d <= Math.max(w.r0, r) + pad && player.hurt(w.dmg, w.p, { stagger: true })) w.hit = true;
     }
-    if (k >= 1) { scene.remove(w.m); w.m.geometry.dispose(); w.m.material.dispose(); WAVES.splice(i, 1); }
+    w.r0 = r;
+    if (w.t >= w.dur) { scene.remove(w.m); w.m.geometry.dispose(); w.m.material.dispose(); WAVES.splice(i, 1); }
   }
 }
 // a marked circle that fills, then a pillar of light slams down
@@ -4030,17 +4130,17 @@ function buildSeraphineArena() {
   bossRecord('seraphine', { name: 'Mother Seraphine', title: 'Voice of the Choir', arena: A, r: 15.5, sorrow: 2600, music: 'seraphine',
     curtain: makeCurtain(146.6, 0, 12.2, 0, Math.PI / 2, 10),
     create: createSeraphine,
-    onStart(b) { subtitle('Mother Seraphine', 'Little Tithe. You used to sing with us, before. Do you remember the words?', 5.5); b.nextChoir = 12; },
+    onStart(b) { subtitle('Mother Seraphine', 'Little Tithe. You used to sing with us, before. Do you remember the words?', 5.5); b.nextChoir = 15; },
     update(b, dt) {
       const e = b.enemy; if (!e || !e.alive) return;
       b.nextChoir -= dt;
       const alive = b.parts.filter(c => c.alive).length;
-      if (b.nextChoir <= 0 && alive < 3) { b.nextChoir = 16; addChorister(b); }
+      if (b.nextChoir <= 0 && alive < (e.phase2 ? 3 : 2)) { b.nextChoir = 22; addChorister(b); }
       // choristers heal her through their threads
       b.healT = (b.healT || 0) - dt;
       if (b.healT <= 0) {
-        b.healT = 2;
-        for (const c of b.parts) if (c.alive) { const L = c.links.find(l => l.state === 'alive' && (l.a === e || l.b === e)); if (L) L.pulse = { from: c, t: 0, color: [1.2, 2.2, 1.0], onArrive: () => { if (e.alive && e.hp < e.maxHp) { const h = Math.round(e.maxHp * 0.015); e.hp = Math.min(e.maxHp, e.hp + h); dmgNumber(e.anchor(V3()).add(_v1.set((Math.random() - 0.5) * 0.8, 0.9, 0)), '+' + h, 'heal'); } } }; }
+        b.healT = 2.6;
+        for (const c of b.parts) if (c.alive) { const L = c.links.find(l => l.state === 'alive' && (l.a === e || l.b === e)); if (L) L.pulse = { from: c, t: 0, color: [1.2, 2.2, 1.0], onArrive: () => { if (e.alive && e.hp < e.maxHp) { const h = Math.round(e.maxHp * 0.008); e.hp = Math.min(e.maxHp, e.hp + h); dmgNumber(e.anchor(V3()).add(_v1.set((Math.random() - 0.5) * 0.8, 0.9, 0)), '+' + h, 'heal'); } } }; }
       }
     },
   });
@@ -4064,7 +4164,7 @@ function addChorister(b, pos) {
 }
 function createSeraphine(b) {
   const def = Object.assign({}, ENEMY_DEFS.cantor, {
-    name: 'Mother Seraphine', hp: 1050, poise: 9999, radius: 0.8, height: 3.3, sight: 40, walk: 2.6, run: 3.2, boss: true, sorrow: 0, float: true, floatH: 0.6,
+    name: 'Mother Seraphine', hp: 1000, poise: 9999, radius: 0.8, height: 3.3, sight: 40, walk: 2.6, run: 3.2, boss: true, sorrow: 0, float: true, floatH: 0.6,
     build: () => skinSeraphine(makeRig(3.2)), guard: EP.cGuard, idlePose: EP.cGuard, anchorH: 0.62, blood: [2.4, 2, 1.2],
     clips: { hurt: EC.hurt, stagger: EC.stagger, death: EC.death, notice: EC.notice },
     attacks: Object.values(SER), think: seraphineThink,
@@ -4089,11 +4189,12 @@ function seraphineThink(e, dt, d) {
   e.faceToward(player.pos.x, player.pos.z, 4, dt);
   e.thinkT -= dt;
   if (e.thinkT <= 0 && e.fightT > 1.0) {
-    e.thinkT = e.phase2 ? 0.2 : 0.35;
+    e.thinkT = 0.25;
     const a = e.pickAttack(d);
-    if (a && Math.random() < 0.8) { e.startAttack(a); return true; }
+    // after each attack she recovers, then waits: this is the opening to strike her
+    if (a) { e.startAttack(a); e.thinkT = e.phase2 ? 0.7 + Math.random() * 0.5 : 1.1 + Math.random() * 0.6; return true; }
   }
-  const want = 7; let fwd = d > want + 2 ? 2.2 : d < want - 3 ? -2.0 : 0; const side = 1.8 * e.circleDir;
+  const want = 5.5; let fwd = d > want + 2.5 ? 2.4 : d < 2.5 ? -1.2 : 0; const side = 1.4 * e.circleDir;
   if (Math.random() < dt * 0.3) e.circleDir *= -1;
   const C = b.arena, hx = C.x - e.pos.x, hz = C.z - e.pos.z, hd = Math.hypot(hx, hz);
   const s = Math.sin(e.yaw), c = Math.cos(e.yaw);
@@ -4204,10 +4305,12 @@ function skinAurel(rig) {
 }
 const AUR = {};
 function defineAurel() {
-  const g = P.guard, sp = 0.95;
-  const sc = (c, s) => c; // clips are reused from the player; timing scales below
-  const strike = (name, clipName, hit, dur, dmg, next) => ({ name, clip: CL[clipName], speed: sp, range: [0, 3.6], weight: name === 'strike1' ? 3 : 0, hit: [hit[0] / sp, hit[1] / sp], dmg, arc: 150, reach: 3.7,
-    lunge: [0.06 / sp, 0.3 / sp, 4], track: 0.16 / sp, trackRate: 9, dur: dur / sp, cd: 0.8, next, nextRange: 4.5, chain: 0.65, recover: 0.5 });
+  const g = P.guard;
+  // His strikes borrow the Tithe's swings, held back so each one has a windup you can read.
+  const retime = (c, add) => clip(c.keys.map((key, i) => i ? [key[0] + add, key[1], key[2]] : key));
+  const strike = (name, clipName, hit, dur, dmg, next, add) => ({ name, clip: retime(CL[clipName], add), range: [0, 3.6], weight: name === 'strike1' ? 3 : 0,
+    hit: [hit[0] + add, hit[1] + add], dmg, arc: 140, reach: 3.5, lunge: [0.06 + add, 0.3 + add, 4], track: hit[0] + add - 0.12, trackRate: 9, dur: dur + add, cd: 0.8,
+    next, nextRange: 4.5, chain: 0.6, recover: 0.8 });
   const lashA = pose(g, { chest: [0, -40, 0], armL: [-120, -60, 20], foreL: [-60], armR: [-30, 0, -30] });
   const lashB = pose(g, { pos: [0, -0.1, 0.2], chest: [10, 30, 0], armL: [-80, 60, 0], foreL: [0] });
   EC.aurLash = clip([[0, g], [0.75, lashA, 'o'], [0.88, lashB, 'x'], [1.4, g]]);
@@ -4217,9 +4320,9 @@ function defineAurel() {
   EC.aurCommune = clip([[0, g], [0.6, blessA, 'o'], [1.8, blessA], [2.1, g]]);
   const p2 = e => e.phase2;
   Object.assign(AUR, {
-    strike1: strike('strike1', 'light1', [0.17, 0.3], 0.62, 20, 'strike2'),
-    strike2: strike('strike2', 'light2', [0.16, 0.29], 0.6, 20, 'strike3'),
-    strike3: strike('strike3', 'light3', [0.27, 0.4], 0.8, 26, null),
+    strike1: strike('strike1', 'light1', [0.17, 0.3], 0.62, 20, 'strike2', 0.32),
+    strike2: strike('strike2', 'light2', [0.16, 0.29], 0.6, 20, 'strike3', 0.26),
+    strike3: strike('strike3', 'light3', [0.27, 0.4], 0.8, 26, null, 0.3),
     lash: { name: 'lash', clip: EC.aurLash, range: [3, 15], weight: 2.4, dur: 1.4, track: 0.7, trackRate: 5, cd: 3.5,
       onStart(e) { e.fired = false; e.lashMark = lashMarker(e); },
       update(e, t) {
@@ -4905,7 +5008,7 @@ const TUT = {
   heal: { h: 'NECTAR', b: '{heal} drinks Nectar and heals you. You carry three. Drinking leaves you open, so step away first.' },
   vigil: { h: 'VIGIL', b: '{use} to kindle this Vigil and rest. Resting heals you and refills your Nectar, but everything you killed stands up again. If you die, you wake at the last Vigil you rested at.' },
   web: { h: 'EVERYTHING IS CONNECTED', b: 'Golden threads join these three. When one dies, everything tied to it takes heavy damage and staggers. Kill the weakest first.' },
-  bind: { h: 'BIND', b: 'The red diamonds under your stamina are Grief. Hurting and being hurt fill them. {bind} spends one to tie your target to the enemy nearest it.' },
+  bind: { h: 'BIND', b: 'Their pain came back down the thread, into you. Now you can tie threads of your own. The red diamonds under your stamina are Grief. Hurting and being hurt fill them. {bind} spends one to tie your target to the enemy nearest it.' },
   bind2: { h: 'BIND', b: 'They are tied now. Kill one, and the other feels it.' },
   death: { h: 'SORROW', b: 'You dropped your Sorrow where you fell. Reach it before you die again, or it is gone for good.' },
   sorrow: { h: 'SORROW', b: 'Enemies leave Sorrow when they die. Spend it at a Vigil to grow stronger.' },
@@ -4940,6 +5043,13 @@ function tutorialEvent(ev, data) {
   if (ev === 'bind' && Game.flags.tut && Game.flags.tut.bind) { hideTut('bind'); later(400, () => showTut('bind2')); }
 }
 function onBindMade() { tutorialEvent('bind'); }
+// Taught once, after the first Name dies: their pain came back down the thread, into you.
+function learnBind() {
+  if (!Game.bindUnseen) return;
+  if (!player.alive || Game.state !== 'play') { later(2000, learnBind); return; }
+  Game.bindUnseen = false; player.grief = 100; hudPulse('grief'); Sfx.bind();
+  showTut('bind', true);
+}
 function updateTutorial(dt) {
   const p = player.pos, f = Game.flags;
   Tut.t += dt;
@@ -4956,10 +5066,6 @@ function updateTutorial(dt) {
     if (p.z < 221 && p.z > 206) { if (Tut.cur === 'fight' || Tut.cur === 'sorrow') hideTut(); showTut('roll'); }
     if (p.z < 199 && p.z > 190 && !vigilById('well').lit) { if (Tut.cur === 'roll') hideTut(); showTut('vigil'); }
     if (p.z < 183 && p.z > 166) { showTut('web'); }
-    if (p.z < 159 && p.z > 144) {
-      if (!f.bindGiven) { f.bindGiven = true; if (player.grief < 50) { player.grief = 50; hudPulse('grief'); } }
-      if (Tut.cur === 'web') hideTut(); showTut('bind');
-    }
   }
   if (player.hp < player.maxHp * 0.55 && player.alive && !f.tut?.heal && player.nectar > 0) showTut('heal');
   // reaching the surface
@@ -5057,7 +5163,7 @@ function saveGame() {
 function loadSave() { try { const d = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); return d && d.v === 1 ? d : null; } catch (e) { return null; } }
 function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) {} }
 function resetWorldState() {
-  cancelLater();
+  cancelLater(); Game.bindUnseen = false;
   Game.flags = {}; Game.sorrow = 0; Game.lastVigil = null; Game.playTime = 0; Game.stats = { kills: 0, deaths: 0 }; Game.bossFight = false; Game.boss = null;
   for (const v of VIGILS) setVigilLit(v, false);
   placeRemnant(V3(), 0);
@@ -5069,6 +5175,7 @@ function resetWorldState() {
 function applySave(d) {
   resetWorldState();
   Game.flags = d.flags || {}; Game.sorrow = d.sorrow || 0; Game.lastVigil = d.vigil; Game.playTime = d.time || 0;
+  const bb = Game.flags.bosses || {}; if (bb.castellan || bb.seraphine) Game.flags.bindUnlocked = true;
   Game.stats = { kills: d.kills || 0, deaths: d.deaths || 0, shocks: d.shocks || 0, binds: d.binds || 0 };
   for (const id of d.kindled || []) { const v = vigilById(id); if (v) setVigilLit(v, true); }
   player.stats = Object.assign({ vig: 1, end: 1, mig: 1 }, d.stats); player.recalc(); player.nectarMax = d.nectarMax || 3; player.grief = d.grief || 0; player.revive();
@@ -5165,6 +5272,7 @@ function syncSettings() {
   $('sSens').value = settings.sens; $('sSensV').textContent = (+settings.sens).toFixed(2);
   $('sVol').value = settings.vol; $('sVolV').textContent = Math.round(settings.vol * 100) + '%';
   $('sInvert').checked = settings.invert; $('sLow').checked = settings.low;
+  $('sUi').value = settings.ui; $('sUiV').textContent = Math.round(settings.ui * 100) + '%';
 }
 function wireMenus() {
   $('bBegin').onclick = () => {
@@ -5190,6 +5298,9 @@ function wireMenus() {
   $('sSens').oninput = e => { settings.sens = +e.target.value; syncSettings(); saveSettings(); };
   $('sVol').oninput = e => { settings.vol = +e.target.value; syncSettings(); saveSettings(); Sfx.setVolume(settings.vol); };
   $('sInvert').onchange = e => { settings.invert = e.target.checked; saveSettings(); };
+  // the menu itself resizes with this, so it applies on release rather than while dragging
+  $('sUi').oninput = e => { $('sUiV').textContent = Math.round(+e.target.value * 100) + '%'; };
+  $('sUi').onchange = e => { settings.ui = +e.target.value; saveSettings(); syncSettings(); applyUiScale(); };
   $('sLow').onchange = e => { settings.low = e.target.checked; saveSettings(); applyQuality(); };
   addEventListener('keydown', e => {
     if (Game.state === 'menu' && (e.code === 'Escape' || e.code === 'KeyE')) leaveVigil();
@@ -5293,7 +5404,7 @@ function startTest() {
   if (PARAMS.has('newgame')) { Game.noSave = true; newGame(); return; }
   Game.noSave = true;
   const at = SPAWNS[PARAMS.get('at') || 'plaza'];
-  Game.flags = { needle: true, freed: true, surfaced: !isUnder(V3(at[0], at[1], at[2])), noTut: !PARAMS.has('tut') };
+  Game.flags = { needle: true, freed: true, surfaced: !isUnder(V3(at[0], at[1], at[2])), noTut: !PARAMS.has('tut'), bindUnlocked: PARAMS.has('bind') };
   takeNeedleSilently();
   player.place(at[0], at[1], at[2], at[3]); Cam.yaw = at[3]; Cam.init = false;
   Game.state = 'play'; $('hud').classList.remove('hidden');
@@ -5318,7 +5429,7 @@ window.__T = {
     enemies: ENEMIES.filter(e => e.alive && e.pos.distanceTo(p.pos) < 30).map(e => (e.spawnId || e.name) + ':' + Math.round(e.hp) + ':' + e.state + '@' + e.pos.toArray().map(v => v.toFixed(1)).join(',')) }; },
   poseTest(name, t) { const c = CL[name] || EC[name]; player.anim.play(c, 0.0001, 0.0001, true); player.anim.t = t; player.anim.blend = 1; player.anim.update(0.0001, player.loco); },
   newGame, continueGame, showTitle, saveGame, loadSave, rest, VIGIL_DEFS, tearFree, takeNeedle, flags: () => Game.flags,
-  breakSeal, rideLift, chooseEnding, BOSSES, SPIRE, SEALS, TETHER, navWaypoint, get WAVES() { return WAVES; }, Sfx, PROJ, get PILLARS() { return PILLARS; },
+  breakSeal, rideLift, chooseEnding, BOSSES, SPIRE, SEALS, TETHER, navWaypoint, spawnWave, lightPillar, fireOrb, groundBurst, ENEMY_DEFS, Enemy, M, get WAVES() { return WAVES; }, Sfx, PROJ, get PILLARS() { return PILLARS; },
 };
 try { boot(); } catch (e) { console.error(e); $('loadT').textContent = 'HALCYON DID NOT LOAD'; $('loadE').textContent = 'Startup failed: ' + e.message; }
 </script>

@@ -27,7 +27,7 @@ Three people chose you to be the Tithe. Climb out of the Well, find them, and ki
 | Space | Roll. You cannot be hurt for most of the roll. Standing still steps back instead. |
 | Shift | Sprint |
 | Q or middle click | Lock on. Scroll or press Tab to switch targets. |
-| F | Bind. Costs one Grief. |
+| F | Bind, once you have learned it. Costs one Grief. |
 | R | Drink Nectar to heal |
 | E | Interact, rest at a Vigil, read inscriptions |
 | Esc | Pause |
@@ -39,7 +39,7 @@ A gamepad works too. The sticks move and look. RB and RT attack. B rolls, and ho
 - Golden threads link enemies into groups. You can see them.
 - When a linked enemy dies, its pain runs down every thread tied to it. Each enemy at the other end takes 40 percent of its health as damage and staggers. If that kills it, its own threads fire too, so a whole group can collapse from one kill.
 - Linked enemies wake up together.
-- Bind (F) ties your target to the enemy nearest it with your own red thread. It costs one of the two red diamonds of Grief under your stamina. Grief fills as you deal damage and as you take it.
+- Later in the game you learn Bind (F). It ties your target to the enemy nearest it with your own red thread. It costs one of the two red diamonds of Grief under your stamina. Grief fills as you deal damage and as you take it.
 
 ### Souls-like systems
 
@@ -52,7 +52,7 @@ A gamepad works too. The sticks move and look. RB and RT attack. B rolls, and ho
 
 ### Tutorial
 
-The game opens in the Undercroft, the well beneath the city. Each room teaches one thing: tearing free, taking your weapon, locking on and attacking, rolling, resting, linked enemies, and Bind. Short cards explain each one when you need it. Tick "Skip the tutorial" on the title screen to start at the Undercroft's Vigil with no cards.
+The game opens in the Undercroft, the well beneath the city. Each room teaches one thing: tearing free, taking your weapon, locking on and attacking, rolling, resting, and linked enemies. Short cards explain each one when you need it. Tick "Skip the tutorial" on the title screen to start at the Undercroft's Vigil with no cards.
 
 ### Sound
 
@@ -60,4 +60,4 @@ Everything you hear is synthesized live with WebAudio. Threads snap like plucked
 
 ### Settings
 
-Mouse sensitivity, volume, inverted look, and a low graphics mode that turns off bloom and lowers shadow detail for slower machines.
+Mouse sensitivity, volume, interface size, inverted look, and a low graphics mode that turns off bloom and lowers shadow detail for slower machines. The interface grows with the window, so it stays readable on large displays.
