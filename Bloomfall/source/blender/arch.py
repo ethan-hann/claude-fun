@@ -1,4 +1,4 @@
-"""Architecture helpers built on lib.Island. All coordinates are game space (Y up, metres)."""
+"""Architecture helpers built on lib.Island. All coordinates are game space (Y up, meters)."""
 import math
 import random
 
@@ -56,10 +56,10 @@ def floor(b, x0, z0, x1, z1, y, thick=0.4, mat='tiles', holes=(), bevel=0.02, co
 
 def wall(b, x0, z0, x1, z1, y0, y1, thick=0.5, mat='wall', openings=(), bevel=0.03, collide=True, cap=None,
          style=None, trim='marble', pilaster_every=0.0, frames=False):
-    """Straight wall from (x0, z0) to (x1, z1). openings: (u0, u1, v0, v1) in metres along the wall
+    """Straight wall from (x0, z0) to (x1, z1). openings: (u0, u1, v0, v1) in meters along the wall
     and heights above y0. The wall is split into boxes around the openings.
     style='classic' adds a plinth course, a two-tier cornice (instead of cap), pilasters every
-    pilaster_every metres and, with frames, stone surrounds around the openings. All of it wraps
+    pilaster_every meters and, with frames, stone surrounds around the openings. All of it wraps
     both faces of the wall."""
     if style == 'classic':
         _classic_dress(b, x0, z0, x1, z1, y0, y1, thick, openings, trim, pilaster_every, frames)
@@ -277,7 +277,7 @@ def lamp_post(b, x, z, y, h=3.6, color=(1.0, 0.62, 0.32), power=140.0):
 
 
 def arch_ring(b, x, z0, z1, y_spring, width, ring=0.9, mat='wall', segs=18, start=0.0, end=1.0, lm_weight=0.6):
-    """Semicircular stone arch spanning z0..z1 (along Z), centred on x, springing at y_spring.
+    """Semicircular stone arch spanning z0..z1 (along Z), centered on x, springing at y_spring.
     ring: radial depth of the voussoirs. start/end: the part of the half circle that is still
     standing (0 = the z1 springer, 1 = the z0 springer), for broken arches. No collider."""
     import bmesh

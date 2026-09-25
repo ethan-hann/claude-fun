@@ -12,7 +12,7 @@ import arch
 
 TITLE = 'The Heartbloom'
 
-C = (0.0, -20.0)      # centre of the well
+C = (0.0, -20.0)      # center of the well
 WALL = 4.3            # calyx wall
 CORE_Y = 10.3         # platform under the Heart
 HEART_Y = 16.8

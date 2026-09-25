@@ -89,8 +89,8 @@ export abstract class Lattice implements Platform {
     this.vis.setLevelPips(this.object, this.level, this.maxLevel + 1);
   }
 
-  dispose(scene: THREE.Scene): void {
-    scene.remove(this.object);
+  dispose(_scene: THREE.Scene): void {
+    this.object.removeFromParent();
     this.phys.owners.delete(this.collider.handle);
     this.phys.world.removeRigidBody(this.body);
   }

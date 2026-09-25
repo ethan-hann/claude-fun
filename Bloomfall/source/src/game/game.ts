@@ -31,6 +31,7 @@ interface Chunk {
 }
 
 const FAR = new THREE.Vector3(0, -5000, 0);
+const THINGS_RANGE = 190; // meters from an island's bounds within which its things are drawn
 
 export class Island {
   key: string;
@@ -50,7 +51,9 @@ export class Island {
   graftTaken = false;
   attached = true;
   frozen = false; // drifting away: its things ride along and stop updating
-  visuals: THREE.Object3D[] = []; // scene objects made by its entities and lattices
+  // Everything its entities and lattices draw, in world space (an identity parent), so a far
+  // island can skip it all and a drifting island can carry it off.
+  things = new THREE.Group();
   bounds = new THREE.Box3(); // world bounds of its static geometry
   private driftT = -1;
   private driftDir = new THREE.Vector3();
@@ -70,11 +73,11 @@ export class Island {
     if (this.group) {
       this.group.visible = v; this.group.position.copy(this.origin); this.group.scale.setScalar(1); this.group.rotation.set(0, 0, 0);
       // things that rode along on a drift go back to the scene, where they started
-      this.group.updateMatrixWorld(true);
       const scene = this.group.parent;
-      if (scene) for (const o of this.visuals) if (o.parent === this.group) scene.attach(o);
+      if (scene && this.things.parent !== scene) scene.add(this.things);
+      this.things.position.set(0, 0, 0); this.things.quaternion.identity(); this.things.scale.set(1, 1, 1);
     }
-    for (const o of this.visuals) o.visible = v;
+    this.things.visible = v;
     for (const c of this.chunks.values()) c.body.setTranslation(v ? this.origin : FAR, true);
     for (const l of this.lattices) { l.object.visible = v; l.disabled = !v; if (!v) l.body.setTranslation(FAR, false); }
     for (const e of this.entities) (e as any).setVisible?.(v);
@@ -161,11 +164,11 @@ export class Island {
     for (const l of this.lattices) { l.body.setTranslation(FAR, false); l.disabled = true; }
     // doors, plates, crates and the rest ride along with the island as it drifts off; lattice
     // that was carried off the island (onto a bridge or the next island) is taken back instead
-    this.group.updateMatrixWorld(true);
-    const away = new Set<THREE.Object3D>();
     const box = this.bounds.clone().expandByScalar(2);
-    for (const l of this.lattices) if (!box.containsPoint(l.object.position)) { l.object.visible = false; away.add(l.object); }
-    for (const o of this.visuals) if (!away.has(o) && o.parent !== this.group) this.group.attach(o);
+    for (const l of this.lattices) if (!box.containsPoint(l.object.position)) l.object.visible = false;
+    this.things.visible = true;
+    this.group.updateMatrixWorld(true);
+    this.group.attach(this.things);
     for (const l of this.lights) l.src.intensity = 0;
   }
   updateDrift(dt: number): void {
@@ -248,6 +251,8 @@ export class Game {
     this.r.scene.add(vis.group);
     isl.group = vis.group;
     isl.bounds.setFromObject(vis.group);
+    isl.things.name = `things_${isl.key}`;
+    this.r.scene.add(isl.things);
     isl.title = data.title;
     const bodies = this.phys.addStatic(data.colliders, isl.origin);
     for (const [name, b] of bodies) {
@@ -268,7 +273,7 @@ export class Game {
     for (const rec of data.entities) {
       const nL = isl.lattices.length, nE = isl.entities.length, nV = this.r.scene.children.length;
       this.createEntity(isl, rec);
-      isl.visuals.push(...this.r.scene.children.slice(nV));
+      for (const o of this.r.scene.children.slice(nV)) isl.things.add(o);
       const ch = this.chunkOf(isl, rec);
       if (ch) { ch.lattices.push(...isl.lattices.slice(nL)); ch.entities.push(...isl.entities.slice(nE)); }
     }
@@ -562,6 +567,9 @@ export class Game {
 
   renderFrame(dt: number): void {
     const alpha = this.acc / STEP;
+    // islands far out in the haze skip their crates, doors and the rest (hundreds of draw calls)
+    const cam = this.r.camera.position;
+    for (const isl of this.islands) if (!isl.frozen) isl.things.visible = isl.attached && isl.bounds.distanceToPoint(cam) < THINGS_RANGE;
     for (const l of this.lattices.values()) if (!this.frozen(l.islandKey)) (l as any).syncObject(alpha);
     for (const e of this.entities.values()) if (!this.frozen(e.islandKey)) e.frameUpdate(dt, alpha, this.ctx);
     if (!this.paused) {

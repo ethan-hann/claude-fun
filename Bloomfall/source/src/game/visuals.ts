@@ -13,7 +13,7 @@ interface GlowMats { seam: THREE.MeshStandardMaterial[]; pips: THREE.Mesh[] }
 
 export interface FramedMats { body: THREE.Material; rail: THREE.Material; seam: THREE.MeshStandardMaterial }
 
-// A box whose texture coordinates are in metres, so long pieces do not stretch the texture.
+// A box whose texture coordinates are in meters, so long pieces do not stretch the texture.
 export function metricBox(w: number, h: number, d: number, tile = 1): THREE.BufferGeometry {
   const g = new THREE.BoxGeometry(w, h, d);
   const pos = g.attributes.position;

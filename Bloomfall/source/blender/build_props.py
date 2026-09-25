@@ -359,7 +359,7 @@ def bloom():
 
 
 # ------------------------------------------------------------------------------------------
-# A toppling column: 8.5 m, the same shape as arch.fluted_column. Origin at the base centre.
+# A toppling column: 8.5 m, the same shape as arch.fluted_column. Origin at the base center.
 # ------------------------------------------------------------------------------------------
 
 def column():

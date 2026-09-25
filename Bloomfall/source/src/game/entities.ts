@@ -361,7 +361,7 @@ class Pan implements Platform {
   body: RAPIER.RigidBody;
   colliders: RAPIER.Collider[] = [];
   base: RAPIER.Collider;
-  center: THREE.Vector3; // balanced position of the pan's centre (top of the base is +0.15)
+  center: THREE.Vector3; // balanced position of the pan's center (top of the base is +0.15)
   home: THREE.Vector3;
   half: THREE.Vector3;
   group = new THREE.Group();
@@ -628,7 +628,7 @@ export class Balance extends Entity {
 // authored angle: flat across a chasm (a bridge) or leaning on a ledge (a ramp).
 // ------------------------------------------------------------------------------------------
 export class Toppler extends Entity {
-  base: THREE.Vector3; // bottom centre while standing
+  base: THREE.Vector3; // bottom center while standing
   height: number;
   width: number;
   dir: THREE.Vector3;
@@ -690,8 +690,8 @@ export class Toppler extends Entity {
 
   private transform(): { pos: THREE.Vector3; quat: THREE.Quaternion } {
     const q = new THREE.Quaternion().setFromAxisAngle(this.axis, this.angle);
-    const centre = this.base.clone().add(new THREE.Vector3(0, this.height / 2, 0)).sub(this.pivot).applyQuaternion(q).add(this.pivot);
-    return { pos: centre, quat: q };
+    const center = this.base.clone().add(new THREE.Vector3(0, this.height / 2, 0)).sub(this.pivot).applyQuaternion(q).add(this.pivot);
+    return { pos: center, quat: q };
   }
 
   private apply(): void {
@@ -718,7 +718,7 @@ export class Toppler extends Entity {
     this.apply();
   }
 
-  // a point on the column's axis, h metres above its base, wherever the column now lies
+  // a point on the column's axis, h meters above its base, wherever the column now lies
   pointAt(h: number): THREE.Vector3 {
     const q = new THREE.Quaternion().setFromAxisAngle(this.axis, this.angle);
     return this.base.clone().add(new THREE.Vector3(0, h, 0)).sub(this.pivot).applyQuaternion(q).add(this.pivot);

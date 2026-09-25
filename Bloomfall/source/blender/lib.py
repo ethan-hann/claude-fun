@@ -1,6 +1,6 @@
 """Bloomfall Blender library: builds island geometry from Python, bakes lightmaps, exports GLB.
 
-Authoring is in game space (Y up, metres). Blender is Z up, so every point goes through g2b().
+Authoring is in game space (Y up, meters). Blender is Z up, so every point goes through g2b().
 The glTF exporter converts back to Y up, so exported files are in game space again.
 
 Materials are named after texture sets (wall, tiles, marble...). The game assigns the real
@@ -22,7 +22,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WORLD = json.load(open(os.path.join(ROOT, 'shared', 'world.json')))
 ALBEDO = json.load(open(os.path.join(ROOT, 'shared', 'albedo.json')))
 
-# Metres per texture repeat for each material (texel density of the tiling textures).
+# Meters per texture repeat for each material (texel density of the tiling textures).
 UV_SCALE = {
     'wall': 3.5, 'ribbed': 2.0, 'tiles': 2.4, 'paving': 3.2, 'concrete': 3.0, 'marble': 2.0, 'rock': 7.0,
     'leaves': 2.5, 'rust': 2.0, 'lattice': 1.0, 'steel': 1.5, 'plates': 2.0, 'screen': 1.0,
@@ -498,7 +498,7 @@ def apply_modifiers(objs):
 
 
 def planar_uvs(obj):
-    """World-space planar UVs per face, scaled by the material's metres-per-repeat. Adjacent pieces
+    """World-space planar UVs per face, scaled by the material's meters-per-repeat. Adjacent pieces
     line up, and slanted faces are projected in their own plane so textures never stretch."""
     me = obj.data
     mw = obj.matrix_world
@@ -897,7 +897,7 @@ def bake_lightmap(objs, island, size, samples=(256, 128, 64), out_dir=None, quic
     direct = (C[..., :3] * lum_w).sum(-1)
     expected = sun_lum * np.clip(ndl, 0.0, None)
     # The sun mask is only known where a face turns toward the sun. Elsewhere it is filled from
-    # known neighbours later (fill_lightmap), never assumed lit: a lit default bleeds through the
+    # known neighbors later (fill_lightmap), never assumed lit: a lit default bleeds through the
     # texture filter as bright lines along shadowed edges.
     cov = A[..., 3] > 0.5
     known = cov & (expected > sun_lum * 0.06)

@@ -81,6 +81,9 @@ def build(b):
     b.box((0, -1.125, 14.0), (3.1, 0.35, 2.6), mat='rock', bevel=0.05)
     arch.rubble(b, 0.0, -1.0, 14.0, 0.9, 7, seed=8, mat='concrete', max_size=0.45, collide=False)
     b.box((0, -0.35, 12.95), (2.5, 0.7, 0.3), mat='concrete', bevel=0.08, rot=(0.12, 0.0, 0.0))
+    # a light strip that fell in with the floor still glows on the trench bed
+    b.glow_strip((0.35, -0.93, 14.4), (1.0, 0.04, 0.05), color='glow_warm', rot_y=0.45)
+    b.point_light((0.3, -0.55, 14.2), color=(1.0, 0.55, 0.25), power=12.0, radius=0.1, realtime=False)
     arch.pipe_run(b, (0.0, 3.35, 17.8), (0.0, 3.35, 10.2), r=0.12)
     for z in (11.0, 16.8):
         b.glow_strip((-1.24, 0.3, z), (0.04, 0.05, 1.2), color='glow_warm')

@@ -20,7 +20,7 @@ TITLE = 'The Colonnade'
 COL_H = 8.5
 PLINTH = 4.3
 FOUNT = 2.4
-PIT = (4.5, -14.0)  # centre of the pit
+PIT = (4.5, -14.0)  # center of the pit
 PIT_D = 2.4
 
 

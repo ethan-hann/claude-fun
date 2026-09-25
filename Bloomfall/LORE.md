@@ -30,7 +30,7 @@ Calyx no longer turns. Its old sun hangs at the horizon, and the evening does no
 
 The Heartbloom is the engine at the center of the city that makes the space. It is a seed of light as wide as a room, floating over a well, wrapped in turning rings and a flower of lattice petals. Its cold light can be seen from every district.
 
-The Heartbloom would not stop. Space pours into Calyx faster than anyone can use it. Every street is wider than it was yesterday. Bridges stretch until they tear. The districts have come apart into islands, drifting away from each other in a golden haze. Whole terraces break off and fall into it.
+The Heartbloom would not stop. Space pours into Calyx faster than anyone can use it. Every street is wider than it was yesterday. Bridges stretch until they tear. The districts have come apart into islands, drifting away from each other in a pale haze. Whole terraces break off and fall into it.
 
 > Every street is wider than it was yesterday. Every friend is farther away.
 >
