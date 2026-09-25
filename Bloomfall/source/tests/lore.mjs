@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 const H = readFileSync(new URL('./helpers.js', import.meta.url), 'utf8');
 const views = [
   { name: 'vault', key: 'a_vault', p: [2.6, 0, 19.4], look: [-2.4, 1.2, 25.2] },
-  { name: 'graft', key: 'a_vault', p: [1.0, 2.3, -31.2], look: [3.4, 2.7, -34.0], hud: true },
+  { name: 'graft', key: 'b_terraces', p: [3.4, 0.05, 5.6], look: [1.8, 0.2, 3.6], hud: true },
   { name: 'terraces', key: 'b_terraces', p: [0, 0.05, 14.5], look: [0, 1.8, 0] },
   { name: 'viaduct', key: 'c_viaduct', p: [-11.5, 1.0, 8.0], look: [0, 2.0, -40] },
   { name: 'weighhouse', key: 'd_weighhouse', p: [-9.5, 6.4, -30], look: [3, 3, -22] },

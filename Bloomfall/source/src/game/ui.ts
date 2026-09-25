@@ -120,7 +120,7 @@ export class UI {
   }
 
   toast(text: string, seconds = 2.2): void {
-    this.toastEl.textContent = text;
+    this.toastEl.innerHTML = keys(text);
     this.toastEl.classList.add('show');
     this.toastT = seconds;
   }

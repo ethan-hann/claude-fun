@@ -60,7 +60,7 @@ The Graft obeys one law. It cannot make space and it cannot destroy it. Everythi
 >
 > The Gardener
 
-![A lattice crate grows under the Tender's feet](images/graft.jpg)
+![The Graft aimed at a small lattice crate in the Terraces' garden, with lattice bollards behind it](images/graft.jpg)
 
 ## Weights and measures
 
@@ -82,7 +82,7 @@ A district of stepped gardens and retaining walls. The gardens have gone to dry 
 
 ### The Viaduct
 
-Calyx tried to hold its districts together with bridges. The Viaduct is what is left of one: tall stone piers standing in the haze, with lattice spans that fold and unfold between them. A shrine sits at its northern end.
+Calyx tried to hold its districts together with bridges. The Viaduct is what is left of one: tall stone piers standing in the haze, with lattice spans that fold and unfold between them. A shrine sits at its northern end, on a deck raised above the rest. The last pier before it has sunk: only a lattice pillar stands there now, well below the spans.
 
 > We tried to hold the districts together with bridges. The space between them grew faster than we could build.
 >
@@ -92,7 +92,7 @@ Calyx tried to hold its districts together with bridges. The Viaduct is what is 
 
 ### The Weighhouse
 
-The hall where Calyx measured out space, room by room and household by household. Its great scale still stands in the hall: a steel beam on a marble column, with a pan hanging from each end. Outside, a counterweight lift climbs to the entrance balcony. A lantern crowns the roof, and a balance in a stone roundel hangs over the door.
+The hall where Calyx measured out space, room by room and household by household. Its great scale still stands in the hall: a steel beam on a marble column, with a pan hanging from each end. A catwalk runs out from the south gallery to the scale, where clerks once set weights on the pans by hand. Outside, a counterweight lift climbs to the entrance balcony. A lantern crowns the roof, and a balance in a stone roundel hangs over the door.
 
 > The Weighhouse. Here we measured out space, room by room, life by life. There was never enough. So we made more.
 >

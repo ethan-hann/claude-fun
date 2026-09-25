@@ -32,15 +32,19 @@ The memory sits on a plinth at the west edge of the terrace, past the gate.
 
 ### II. The Terraces
 
-1. Take a cell from a bollard. Stand on a small crate near the retaining wall and give it the cell. It grows under you.
-2. Carry the second small crate while you ride. Take a second bollard and grow your crate again, to large.
-3. Set the carried crate on top, climb it, take the third bollard and grow it to medium. From a medium crate on a large one you reach the 4.3 m terrace.
-4. The garden breaks away behind you.
-5. Carry the medium crate onto the plate. The screened gate opens. Walk through.
-6. From the far side, take the crate's space back through the screen. The gate closes, and you have a cell.
-7. Give it to the small crate in the yard, set that medium crate against the ledge, and climb to the bloom.
+1. The garden has four bollards, one cell each. The climb takes three. The garden falls once you stand on the upper terrace, with any space left in it. The Gardener warns you at the foot of the wall.
+2. Take a cell from a bollard. Stand on a small crate near the retaining wall and give it the cell. It grows under you.
+3. Carry the second small crate while you ride. Take a second bollard and grow your crate again, to large.
+4. Set the carried crate on top, climb it, take the third bollard and grow it to medium. From a medium crate on a large one you reach the 4.3 m terrace.
+5. Before you step up, take the fourth bollard's cell and keep it in the Graft.
+6. Carry the medium crate on the terrace onto the plate. The screened gate opens. Walk through.
+7. The ledge at the back of the yard is 3.3 m, so it takes a large crate: two cells. Carry the yard's small crate to the ledge and stand on it.
+8. Give it the cell you brought up. It grows to medium under you.
+9. Take the plate crate's cell back through the screen. The gate closes behind you. Give it to your crate: large. Climb to the bloom.
 
-The memory sits on top of the broken column in the garden. Ride a crate up to it before you leave.
+If you reach the terrace with an empty Graft, the yard is one cell short. Hold R to reset the island.
+
+The memory sits on top of the broken column in the garden, 3 m up. A large crate beside the column reaches it, but the garden's four cells are exactly what you need: the detour means shrinking the crate again, one cell at a time.
 
 ### III. The Viaduct
 
@@ -48,34 +52,40 @@ The memory sits on top of the broken column in the garden. Ride a crate up to it
 2. Give it to the folded span at the gap. It unfolds. Cross.
 3. From the pier, take the span you crossed. The abutment falls away.
 4. Give the cell to the pillar and ride it up to the upper deck. Take the pillar back from the top.
-5. Unfold the next span, cross, pick up the crate on the middle pier, take the span behind you, and unfold the last span. Cross with the crate.
-6. Take the last span back. Put the crate in the ram's channel and give the ram the cell. It pushes the crate through the slot into the screened alcove, onto the heavy plate.
-7. Take the ram back and give the cell to the crate through the screen. At large it weighs 16 and the gate opens.
-8. Inside, take the second cell. Your Graft now holds two.
-9. Take both cells out of the crate on the plate. The gate closes behind you. Give both to the pillar, ride it two steps up, and climb to the bloom.
+5. Unfold the next span and cross. Pick up the crate on the middle pier and take the span behind you.
+6. Give the cell to the last span. It reaches out over a sunken pillar, but the shrine deck beyond is 2 m higher than the span. Too high to climb.
+7. On the middle pier, set the crate down and take its cell. Pick it up again.
+8. Carry it to the end of the span and drop onto the sunken pillar, 3 m below. Give the pillar the crate's cell. It rises 5 m and carries you and the crate to the shrine deck.
+9. Take back whatever is behind you: the span and the sunken pillar. Put the crate in the ram's channel and give the ram a cell. It pushes the crate through the slot into the screened alcove, onto the heavy plate.
+10. Take the ram back. Give the crate the ram's cell and the other one you took back, through the screen. At large it weighs 16 and the gate opens.
+11. Inside, take the second cell. Your Graft now holds two.
+12. Take both cells out of the crate on the plate. The gate closes behind you. Give both to the pillar, ride it two steps up, and climb to the bloom.
 
 ### IV. The Weighhouse
 
 1. The lift is one pan of a counterweight. The other pan hangs in a screened shaft with a small crate on it.
 2. Take a cell from the forecourt crate. Stand on the lift and take a cell from the crate on it.
 3. Give both cells to the crate on the counterweight, through the screens and the pan's perforated floor. At 16 it outweighs you, and the lift rises to the balcony.
-4. The forecourt breaks away once you are inside.
-5. Go down the stairs to the great scale. Pan A sits low under a large crate. Pan B hangs high with a small crate.
-6. Stand on pan A and take two cells from its crate. Pan A now weighs 5 with you on it.
-7. Give both cells to the crate on pan B, through its perforated floor. Pan B weighs 16 and sinks. Pan A carries you up.
-8. Jump to the west gallery and walk out to the bloom.
+4. Pick up the small crate that rode up with you. The forecourt breaks away once you are inside, and the scale inside needs a crate. The Gardener warns you on the balcony.
+5. Pan A of the great scale sits low under a large crate. Pan B hangs high, and empty.
+6. Carry your crate along the catwalk from the south gallery and drop it onto pan B.
+7. Go down the stairs and stand on pan A. Take two cells from its crate. Pan A now weighs 5 with you on it.
+8. Give both cells to your crate on pan B, through its perforated floor. Pan B weighs 16 and sinks. Pan A carries you up.
+9. Jump to the west gallery and walk out to the bloom.
 
-The memory rides on pan B. To reach it, bring pan B down while you stand on the floor, then set the scale right again: all of it is reversible.
+If you come inside without a crate, nothing can weigh pan B down. Hold R to reset the island.
+
+The memory rides on pan B. The catwalk reaches it while the pan hangs high.
 
 ### V. The Colonnade
 
 1. Take a cell from the crate, which makes it small. Set it against the base of the column at the chasm's edge, on the side away from the chasm.
 2. Give it the cell. The crate grows against the column and pushes it over. The column falls across the chasm. Walk over it.
 3. The south terrace breaks away. The memory, which sat on top of that column, is now at its far end.
-4. Take a cell from the bollard. Climb the fountain and take a cell from the orb, which makes it small.
-5. Drop the small orb into the channel. It rolls down, under the stone hood, and into the pit onto the heavy plate.
+4. Climb the fountain and take a cell from the orb, which makes it small. Drop the small orb into the channel. It rolls down, under the stone hood, and into the pit onto the heavy plate.
+5. The orb needs two cells to reach 16, and you have one. The gate is a screen: behind it stand a crate and a bollard. Take one of their cells through the screen.
 6. Stand on the grate and give the orb both cells. At large it weighs 16 and the gate opens.
-7. Past the gate, shrink the crate, set it against the column in front of the plinth, and grow it. The column falls against the plinth's edge and leans there.
+7. Past the gate, set the crate against the column in front of the plinth. Grow it with whichever cell is left, the crate's own or the bollard's. The column falls against the plinth's edge and leans there.
 8. Climb the leaning column to the plinth and the bloom.
 
 ### VI. The Heartbloom
@@ -94,7 +104,7 @@ The last memory is on the far side of the ring wall, at the north.
 | I | On a plinth at the terrace's west edge, past the gate | A letter, unsent | My daughter's school drifted past the river district this morning. She waved at me across the gap. It was a hundred meters. Tonight it is two hundred. |
 | II | On the broken column in the garden | Council minutes | Motion to bloom one more district. More room for everyone. Carried, 212 to 3. Nobody asked what we would do with the room. |
 | III | On the lookout | An engineer's note | We built the bridges out of lattice so they could stretch. They stretched. Then they tore. |
-| IV | On pan B of the great scale | The last ledger entry | Household 4,117,202. Requested: one more room. Granted. |
+| IV | On pan B of the great scale, reached from the catwalk | The last ledger entry | Household 4,117,202. Requested: one more room. Granted. |
 | V | On top of the first column | A concert program | The last concert was in the Colonnade. The orchestra sat so far apart that the music arrived in pieces. |
 | VI | On the north side of the ring wall | The Gardener | If a Tender finds this: the Heart cannot be stopped from outside. It can only be taken, all at once, by something willing to hold it. |
 

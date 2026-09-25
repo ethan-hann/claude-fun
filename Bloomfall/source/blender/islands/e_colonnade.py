@@ -5,9 +5,11 @@
    The south terrace breaks away behind you.
 2. The fountain. A heavy plate waits in a pit under a grate. The only way in is the channel
    from the fountain, and only a small orb fits. Shrink the orb, roll it down, then give it
-   space through the grate until it weighs 16. The gate opens.
+   space through the grate until it weighs 16. The orb's own cell is only half of that: the other
+   is behind the gate, which is a screen. Take it through the screen (from the crate or the
+   bollard beyond), and the gate opens.
 3. The ramp. A column stands before a high plinth. Topple it against the plinth's edge and
-   climb it to the bloom.
+   climb it to the bloom. Whichever of the crate and the bollard still holds its cell pushes it.
 
 Local origin: arrival terrace, y = 0. The player walks toward -Z.
 Reach rules (floating capsule): the player climbs 1.5 m above what they stand on.
@@ -115,8 +117,6 @@ def build(b):
         h = FOUNT - drop * t - 0.25
         b.box((x, h / 2, pz), (0.3, h, 0.5), mat='marble', bevel=0.02, collide=False)
     E('orb', id='o_1', p=(-4.6, FOUNT + 0.5, -14.6), level=1)
-    E('bulkhead', id='bol', p=(-5.2, 0.0, -7.6), size=(0.8, 1.0, 0.8), level=1)
-    b.box((-5.2, 0.03, -7.6), (1.1, 0.06, 1.1), mat='steel', bevel=0.01, collide=False)
     E('zone', id='z_mid', p=(0.0, 0.0, -8.0), size=(14.0, 6.0), h=3.0, grounded=True)
     E('zone', id='z_fountain', p=(0.0, 0.0, -14.0), r=5.0, takeback=True)
     arch.lamp_post(b, 2.0, -6.2, 0.0, power=80.0)
@@ -133,7 +133,9 @@ def build(b):
     b.box((-1.63, 1.59, -24.0), (0.3, 3.22, 1.0), mat='plates', bevel=0.03)
     b.box((1.63, 1.59, -24.0), (0.3, 3.22, 1.0), mat='plates', bevel=0.03)
     b.box((0.0, 3.35, -24.0), (3.6, 0.34, 1.0), mat='plates', bevel=0.03)
-    E('door', id='gate', p=(0.0, 0.0, -24.0), size=(3.0, 3.2, 0.3), openIf=['plate_o'], mode='up', travel=3.1, closeSpeed=2.4)
+    # the gate is a screen: the Graft reaches the north side through it
+    E('door', id='gate', p=(0.0, 0.0, -24.0), size=(3.0, 3.2, 0.2), openIf=['plate_o'], mode='up', travel=3.1, closeSpeed=2.4,
+      screen=True)
 
     # ---------------------------------------------------------------- the north: the plinth
     arch.floor(b, -8.0, -52.0, 8.0, -24.0, 0.0, thick=1.2, mat='paving')
@@ -153,5 +155,8 @@ def build(b):
     lean = math.degrees(math.atan2(pivot_z + 44.0, PLINTH))  # the column's front face meets the plinth's edge
     E('toppler', id='t2', p=(0.0, 0.0, -37.9), height=COL_H, width=1.1, dir=(0.0, -1.0), endAngle=round(lean, 2))
     E('crate', id='c_n', p=(2.9, 0.5, -30.8), level=1, ry=-12)
+    # a bollard on the north side, in sight through the gate
+    E('bulkhead', id='bol_n', p=(-3.2, 0.0, -28.4), size=(0.8, 1.0, 0.8), level=1)
+    b.box((-3.2, 0.03, -28.4), (1.1, 0.06, 1.1), mat='steel', bevel=0.01, collide=False)
     E('zone', id='z_plinth', p=(0.0, 0.0, -35.0), r=5.0, takeback=True)
     arch.rubble(b, 4.6, 0.0, -27.2, 1.1, 6, seed=64, mat='marble', max_size=0.5, collide=False)

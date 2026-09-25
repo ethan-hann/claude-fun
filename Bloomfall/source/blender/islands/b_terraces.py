@@ -1,10 +1,14 @@
 """Island II: the Terraces.
 
-1. The sunken garden. A 4.3 m retaining wall; two small crates and three lattice bollards.
+1. The sunken garden. A 4.3 m retaining wall; two small crates and four lattice bollards.
    Grow a crate while standing on it to ride it up, carrying the second crate; stack and ride again.
-   When you reach the upper terrace the garden breaks away and falls.
+   The climb takes three cells. When you reach the upper terrace the garden breaks away and falls,
+   with any space left in it: leave with the fourth cell in the Graft.
 2. The screened gate. A plate holds the gate open. The only crate that can hold it is also the only
    space left: pass through, then take its space back through the screen.
+3. The yard's ledge is 3.3 m: it takes a large crate, two cells. Stand on the yard's small crate at
+   the ledge and give it the cell you carried up; only then take the plate crate's cell through the
+   screen (the Graft holds one) and give that too.
 
 Local origin: arrival floor, y = 0. The player walks toward -Z.
 Reach rules (floating capsule): the player climbs 1.5 m above what they stand on.
@@ -15,6 +19,7 @@ import arch
 TITLE = 'The Terraces'
 
 WALL = 4.3  # retaining wall height: needs a medium crate on a large one
+LEDGE = 3.3  # the yard's ledge: needs a large crate
 
 
 def build(b):
@@ -53,7 +58,7 @@ def build(b):
         arch.bust(b, -8.6, -1.0, 0.0, ry=math.pi / 2)
         arch.bust(b, 8.6, 2.5, 0.0, ry=-math.pi / 2)
         # bollard sockets (the bollards themselves are lattice)
-        for x, z in ((-5.6, -3.6), (5.8, -5.2), (0.4, 2.2)):
+        for x, z in ((-5.6, -3.6), (5.8, -5.2), (0.4, 2.2), (-2.4, -5.8)):
             b.box((x, 0.03, z), (1.1, 0.06, 1.1), mat='steel', bevel=0.01, collide=False)
 
     # ---------------------------------------------------------------- the retaining wall and terrace
@@ -85,14 +90,14 @@ def build(b):
     for x in (-3.0, 3.0, 7.0):
         b.box((x, (WALL - 0.3) / 2, -11.66), (0.9, WALL - 0.3, 0.32), mat='marble', bevel=0.04)
         b.box((x, WALL - 0.22, -11.6), (1.1, 0.16, 0.44), mat='marble', bevel=0.03, collide=False)
-    # the ledge at the back of the yard: 2.3 m (needs a medium crate)
+    # the ledge at the back of the yard: 3.3 m (needs a large crate, and the yard holds one cell)
     ledge = [(-9.0, -27.0), (9.0, -27.0), (8.2, -34.3), (-8.2, -34.3)]
-    b.poly_prism(ledge, G, G + 2.2, mat='marble', bevel=0.04)
-    b.poly_prism(ledge, G + 2.2, G + 2.3, mat='paving', bevel=0.01)
-    b.box((0.0, G + 2.34, -27.05), (17.8, 0.08, 0.3), mat='marble', bevel=0.02)
+    b.poly_prism(ledge, G, G + LEDGE - 0.1, mat='marble', bevel=0.04)
+    b.poly_prism(ledge, G + LEDGE - 0.1, G + LEDGE, mat='paving', bevel=0.01)
+    b.box((0.0, G + LEDGE + 0.04, -27.05), (17.8, 0.08, 0.3), mat='marble', bevel=0.02)
     # the bloom dais on the ledge
-    b.cyl((0.0, G + 2.45, -31.0), 2.2, 0.3, mat='marble', segments=48, bevel=0.03)
-    arch.lamp_post(b, -6.5, -30.0, G + 2.3, power=90.0)
+    b.cyl((0.0, G + LEDGE + 0.15, -31.0), 2.2, 0.3, mat='marble', segments=48, bevel=0.03)
+    arch.lamp_post(b, -6.5, -30.0, G + LEDGE, power=90.0)
     arch.lamp_post(b, 6.5, -16.0, G, power=90.0)
     # yard detail
     arch.planter(b, -7.0, -24.6, G, r=1.2, h=0.5, tree=None)
@@ -104,10 +109,12 @@ def build(b):
     E('arrive', p=(0.0, 0.0, 17.2))
     E('zone', id='z_arrive', p=(0.0, 0.0, 13.0), r=3.0, echo='b_arrive')
     E('zone', id='z_ride', p=(0.0, 0.0, -8.5), r=4.5, card='ride')
+    # at the foot of the wall the Gardener warns that the garden will not wait
+    E('zone', id='z_wall', p=(0.0, 0.0, -9.6), size=(21.0, 4.0), h=3.0, echo='b_wall')
     # standing on the terrace, clear of the edge: the garden falls
     E('zone', id='z_top', p=(0.0, G, -16.4), size=(20.8, 6.4), h=3.0, grounded=True)
-    E('zone', id='z_bloom', p=(0.0, G + 2.6, -31.0), r=1.8, bloom=True)
-    E('bloom', id='bloom', p=(0.0, G + 2.6, -31.0))
+    E('zone', id='z_bloom', p=(0.0, G + LEDGE + 0.3, -31.0), r=1.8, bloom=True)
+    E('bloom', id='bloom', p=(0.0, G + LEDGE + 0.3, -31.0))
 
     with b.chunk('garden'):
         E('crate', id='c_a', p=(1.8, 0.25, 3.6), level=0, ry=10)
@@ -115,6 +122,7 @@ def build(b):
         E('bulkhead', id='bol1', p=(-5.6, 0.0, -3.6), size=(0.8, 1.0, 0.8), level=1)
         E('bulkhead', id='bol2', p=(5.8, 0.0, -5.2), size=(0.8, 1.0, 0.8), level=1)
         E('bulkhead', id='bol3', p=(0.4, 0.0, 2.2), size=(0.8, 1.0, 0.8), level=1)
+        E('bulkhead', id='bol4', p=(-2.4, 0.0, -5.8), size=(0.8, 1.0, 0.8), level=1)
         E('pickup', id='seed', kind='seed', p=(7.2, 3.35, 5.6))
 
     E('crate', id='c_c', p=(4.2, G + 0.5, -14.8), level=1, ry=15)

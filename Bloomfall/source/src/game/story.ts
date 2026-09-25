@@ -63,6 +63,10 @@ export const ECHOES: Record<string, EchoLine[]> = {
     { text: 'Every street is wider than it was yesterday.' },
     { text: 'Every friend is farther away.' },
   ],
+  b_wall: [
+    { text: 'This garden will fall the moment you leave it.' },
+    { text: 'Whatever you leave down here stays down here. Take what you need with you.' },
+  ],
   b_fall: [
     { text: 'Do not look back. Nothing behind you is coming with us.' },
   ],
@@ -77,6 +81,10 @@ export const ECHOES: Record<string, EchoLine[]> = {
   d_arrive: [
     { text: 'The Weighhouse. Here we measured out space, room by room, life by life.' },
     { text: 'There was never enough. So we made more.' },
+  ],
+  d_door: [
+    { text: 'The forecourt will not hold once you are inside.' },
+    { text: 'Nothing out here is coming with us, unless you carry it.' },
   ],
   e_arrive: [
     { text: 'The Colonnade fell last spring.' },

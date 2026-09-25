@@ -4,10 +4,12 @@
    side sinks. Stand on the lift and make the counterweight heavier (it sits behind screens, on
    a perforated pan, so only the Graft reaches it). The lift carries you up to the entrance.
    The forecourt breaks away once you are inside.
-2. The great scale. Pan A sits low under a heavy crate; pan B hangs high with a small crate. Stand
-   on pan A, take its crate's space, and give it to the crate on pan B through B's perforated
-   floor. Pan A rises to the exit gallery.
-   The memory rides on pan B: bring pan B down to reach it, then set the scale right again.
+2. The great scale. Pan A sits low under a heavy crate; pan B hangs high and empty. Only a crate
+   can weigh pan B down, and the only crates are in the forecourt, which falls once you are inside:
+   bring one up on the lift. Carry it out along the catwalk and drop it onto pan B. Then stand on
+   pan A, take its crate's space and give it to your crate through B's perforated floor. Pan A
+   rises to the exit gallery.
+   The memory rides on pan B: the catwalk reaches it while the pan hangs high.
 
 Local origin: forecourt floor, y = 0. The player walks toward -Z.
 Reach rules (floating capsule): the player climbs 1.5 m above what they stand on.
@@ -96,6 +98,7 @@ def build(b):
     E('arrive', p=(0.0, 0.0, 17.2))
     E('zone', id='z_arrive', p=(0.0, 0.0, 13.5), r=3.2, echo='d_arrive')
     E('zone', id='z_lift', p=(-3.4, 0.0, -1.4), r=3.6, card='heavier', takeback=True)
+    E('zone', id='z_door', p=(0.0, LANDING, -5.2), r=2.4, echo='d_door')
 
     # ---------------------------------------------------------------- the Weighhouse
     b.underside([(-12.1, -6.5), (12.1, -6.5), (12.1, -35.5), (-12.1, -35.5)], -1.2, 20, seed=53)
@@ -146,7 +149,16 @@ def build(b):
     # the south gallery inside: from the entrance east to the top of the stairs
     b.box((4.1, LANDING - 0.25, -8.7), (14.2, 0.5, 2.6), mat='marble', bevel=0.04)
     b.balustrade((-2.9, LANDING, -7.6), (-2.9, LANDING, -9.8), height=1.05, mat='marble')
-    b.balustrade((-2.8, LANDING, -9.85), (8.4, LANDING, -9.85), height=1.05, mat='marble')
+    b.balustrade((-2.8, LANDING, -9.85), (3.95, LANDING, -9.85), height=1.05, mat='marble')
+    b.balustrade((6.05, LANDING, -9.85), (8.4, LANDING, -9.85), height=1.05, mat='marble')
+    # the catwalk: from the south gallery out over pan B, open at its end. It is how weight gets
+    # onto pan B while the pan hangs high.
+    b.box((5.0, LANDING - 0.15, -15.925), (1.8, 0.3, 11.85), mat='marble', bevel=0.03)
+    for x in (4.18, 5.82):
+        b.railing((x, LANDING, -10.1), (x, LANDING, -21.7), height=1.05, post_every=1.9, mat='steel')
+    for z in (-14.0, -19.4):
+        arch.column(b, 5.0, z, 0.0, LANDING - 0.3, r=0.2, mat='marble')
+    b.glow_strip((5.0, LANDING - 0.32, -15.9), (0.06, 0.04, 11.4), color='glow_warm')
     for x in (-1.5, 3.0, 7.5):
         b.box((x, LANDING - 0.85, -8.0), (0.5, 0.7, 1.4), mat='marble', bevel=0.03, collide=False)  # corbels
     # the stairs down the east wall: 30 steps of 0.2 m
@@ -173,7 +185,6 @@ def build(b):
         {'p': [5.0, pan_mid, -24.0], 'size': [3.6, 3.6], 'screen': True},
     ], range=prng, start=-prng, speed=1.2, beam={'p': [0.0, pan_mid + 4.4, -24.0]})
     E('crate', id='c_a', p=(-5.3, PAN_TOP[0] + 1.0, -23.7), level=2, ry=4)
-    E('crate', id='c_b', p=(4.3, PAN_TOP[1] + 0.25, -23.3), level=0, ry=20)
     E('pickup', id='seed', kind='seed', p=(5.9, PAN_TOP[1] + 0.6, -24.9))
     E('zone', id='z_inside', p=(3.0, LANDING, -8.7), size=(12.0, 2.4), h=3.0, grounded=True)
     E('zone', id='z_hall', p=(0.0, 0.0, -20.0), r=6.0, card='weigh', takeback=True)
@@ -196,7 +207,7 @@ def build(b):
     arch.bust(b, 9.6, -31.2, 0.0, ry=-math.pi / 2)
     arch.bust(b, -9.6, -31.2, 0.0, ry=math.pi / 2)
     # lamps hanging in the hall and along the galleries
-    for x, z in ((-5.0, -15.0), (5.0, -15.0), (0.0, -30.0)):
+    for x, z in ((-5.0, -15.0), (1.6, -15.0), (0.0, -30.0)):
         b.cyl((x, TOP - 2.6, z), 0.03, 5.2, mat='steel', segments=8, bevel=0.0, collide=False)
         b.cyl((x, TOP - 5.25, z), 0.55, 0.12, mat='plates', segments=24, bevel=0.01, collide=False)
         b.glow_strip((x, TOP - 5.34, z), (0.7, 0.04, 0.7), color='glow_warm')

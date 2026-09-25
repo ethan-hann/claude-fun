@@ -68,12 +68,13 @@ export function islandScripts(d: Director): Record<string, IslandScript> {
         if (z > -24) return [
           'The plate is in the pit under the grate. Only the channel from the fountain leads in.',
           'A medium orb will not fit through the slot at the bottom of the channel. A small one will.',
-          'Roll the orb down, then give it space through the grate until it weighs 16.',
-          'The bollard holds a cell of space too.',
+          'Roll the orb down, then give it space through the grate until it weighs 16. That takes two cells.',
+          'The gate is a screen. Your Graft reaches through it to what stands behind.',
         ];
         return [
           'A fallen column can be a ramp.',
           'Push the column from the side away from the plinth, so it falls against the plinth\'s edge.',
+          'The crate or the bollard, whichever still holds space, can grow against the column.',
         ];
       },
     },
@@ -109,12 +110,14 @@ export function islandScripts(d: Director): Record<string, IslandScript> {
           'The lift counts you, and anything resting on it.',
           'Your Graft reaches the counterweight through the screens.',
           'A large crate weighs 16. You can hold two cells: that is two steps of growth.',
+          'The forecourt falls once you are inside. Take a crate in with you.',
         ];
         return [
-          'Pan A is low because of the large crate on it. Stand on pan A.',
-          'Take the large crate\'s space. Then give it to the small crate on pan B. The Graft reaches through the pan\'s floor.',
+          'Pan A is low because of the large crate on it. Pan B is empty.',
+          'Only a crate can weigh pan B down. The catwalk from the south gallery ends over it.',
+          'Stand on pan A. Take the large crate\'s space and give it to the crate on pan B, through the pan\'s floor.',
           'When pan B outweighs pan A, pan A rises. Stay on it.',
-          'The memory rides on pan B. Bring pan B down to reach it, then set the scale right again.',
+          'If you came in without a crate, there is nothing to weigh pan B with. Hold {R} to reset the island.',
         ];
       },
     },
@@ -147,16 +150,23 @@ export function islandScripts(d: Director): Record<string, IslandScript> {
           'Take that cell and give it to the folded span at the gap.',
           'Visit the lookout before you fold its span.',
         ];
-        if (z > -36) return [
+        if (z > -31) return [
           'The span you crossed still holds its cell. Take it back from the far side.',
           'Give the cell to the pillar and ride it up.',
           'Once you are up, the pillar is behind you. Take it back too.',
           'Bring the crate from the middle pier. You will need it at the shrine.',
         ];
+        if (z > -37.4) return [
+          'The shrine deck is 2 m above the span. Too high to climb.',
+          'The sunken pillar rises 5 m, to the deck, and carries whatever stands on it.',
+          'The span has to stay out while you cross, and your Graft holds one cell. The crate you carry holds one too.',
+          'Take the crate with you onto the pillar. Take the crate\'s space and give it to the pillar.',
+        ];
         return [
           'The ram pushes whatever sits in its channel through the slot.',
           'The plate needs 16. A large crate weighs 16, but a large crate will not fit through the slot.',
           'Your Graft reaches through the screen. Grow the crate once it is inside.',
+          'Everything behind you holds space you no longer need: the span, the ram, the sunken pillar.',
           'Inside, you can hold two cells. The crate on the plate holds two.',
         ];
       },
@@ -183,12 +193,15 @@ export function islandScripts(d: Director): Record<string, IslandScript> {
       hints: () => bFallen ? [
         'The plate holds the gate open. The medium crate is heavy enough to hold it.',
         'The gate is a screen. Your Graft reaches through it. Bodies do not.',
-        'Once you are through, the crate on the plate is only holding space you need. Take it back through the screen.',
+        'The ledge in the yard is 3.3 m. From a large crate you reach 3.5 m. A large crate takes two cells.',
+        'Stand on the yard crate at the ledge and give it the cell you brought up. Then take the plate crate\'s cell through the screen and give it too.',
+        'If you came up with an empty Graft, the yard is one cell short. Hold {R} to reset the island.',
       ] : [
         'The wall is 4.3 m. Standing on a large crate you reach 3.5 m. On a medium crate stacked on a large one, 4.5 m.',
         'Lattice lifts whatever stands on it. Stand on a small crate and give it space.',
         'Carry the second crate while you ride. Set it on top, stand on it, and grow it too.',
-        'Three bollards hold one cell each. You can take from them while standing on a crate.',
+        'Four bollards hold one cell each. The climb takes three. The garden falls once you are up, with anything left in it.',
+        'Take the fourth cell before you step onto the terrace, and keep it in your Graft.',
       ],
     },
     a_vault: {

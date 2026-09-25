@@ -42,7 +42,7 @@ kbd.mouse svg { width: 0.95em; height: 1.2em; }
 #target .acts { margin-top: 0.35em; font-size: 0.8em; color: var(--dim); }
 #target .acts span.off { opacity: 0.35; }
 
-#toast { position: absolute; left: 50%; top: calc(50% + 5.2em); transform: translateX(-50%); font-size: 0.85em; color: var(--warm); text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9); opacity: 0; transition: opacity .25s; white-space: nowrap; }
+#toast { position: absolute; left: 50%; top: calc(50% + 5.2em); transform: translateX(-50%); width: max-content; max-width: min(34em, 86vw); text-align: center; line-height: 1.45; font-size: 0.85em; color: var(--warm); text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9); opacity: 0; transition: opacity .25s; }
 #toast.show { opacity: 1; }
 
 #cells { position: absolute; right: 2.2em; bottom: 2em; display: flex; align-items: flex-end; gap: 0.5em; opacity: 0; transition: opacity .6s; }
