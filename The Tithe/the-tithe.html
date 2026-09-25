@@ -1392,7 +1392,8 @@ function buildGardens() {
   slab(-88, 0, 52, 68, 0, M.grass);
   slab(-88, 0, 52, 8, 0.01, M.tile);                        // central path
   slab(-72, 0, 8, 60, 0.012, M.tile);
-  archWall(-62.5, 0, 0, 1.2, 9, 10, 7, 7.5, Math.PI / 2, M.marbleWarm);
+  archWall(-62.5, 0, 0, 17.6, 9, 1.2, 7, 7.5, Math.PI / 2, M.marbleWarm);
+  add(G.box, M.gold, T(-62.5, 9.1, 0, Math.PI / 2, 18, 0.25, 1.4));
   wallSeg(-62.5, -8.8, -62.5, -34, 0, 3, 1, M.marbleWarm); wallSeg(-62.5, 8.8, -62.5, 34, 0, 3, 1, M.marbleWarm);
   for (const sz of [-1, 1]) { balustrade(-62, sz * 34, -114, sz * 34, 0); }
   fountain(-90, 0, 0, 3.4);
@@ -1421,13 +1422,19 @@ function buildGardens() {
     balustrade(-172 + Math.cos(a0) * 18.3, Math.sin(a0) * 18.3, -172 + Math.cos(a1) * 18.3, Math.sin(a1) * 18.3, 11);
   }
   WORLD.gardensArena = V3(-172, 11, 0);
+  // the Tree of Plenty, golden, past the arena's far edge
+  box(-198, 0, 0, 12, 11, 12, M.marbleShade);
+  add(cylG(10, 0.55), M.bark, T(-198, 11 + 5, 0, 0, 1.3, 10, 1.3));
+  for (let i = 0; i < 9; i++) { const a = i / 9 * TAU, r = i === 0 ? 0 : 4.2; add(G.ico, M.leafGold, T(-198 + Math.cos(a) * r, 11 + 13 + (i ? Math.sin(i * 1.7) * 1.5 : 2), Math.sin(a) * r, i, 5.2, 4.2, 5.2)); }
+  for (let i = 0; i < 12; i++) { const a = i / 12 * TAU; if (Math.abs(angTo(a, 0)) < 0.5) continue; const x = -172 + Math.cos(a) * 17, z = Math.sin(a) * 17; add(G.sphereLo, M.hedge, T(x, 11.9, z, 0, 0.9, 0.9, 0.9)); add(cylG(8), M.marbleWarm, T(x, 11.2, z, 0, 0.5, 0.4, 0.5)); }
+  webThread(V3(-198, 26, 0), V3(-172, 14, 0), 2, 0.03, GOLD_SOFT, 20);
   WORLD.zones.push({ name: 'gardens', minx: -195, maxx: -60, minz: -40, maxz: 40, miny: -2, maxy: 40 });
 }
 
 function buildChoir() {
   const X0 = 60, X1 = 146, HW = 18, H = 24;
   // facade
-  archWall(X0, 0, 0, 1.6, 2 * HW + 2, 27, 8, 11, Math.PI / 2, M.marble);
+  archWall(X0, 0, 0, 2 * HW + 2.4, 27, 1.6, 8, 11, Math.PI / 2, M.marble);
   add(G.box, M.gold, T(X0 - 0.9, 12.5, 0, 0, 0.2, 0.3, 12));
   for (const sz of [-1, 1]) { column(X0 - 2.2, 0, sz * 6.5, 13, 0.6); column(X0 - 2.2, 0, sz * 11.5, 13, 0.6); }
   add(G.box, M.marbleWarm, T(X0 - 2.2, 13.4, 0, 0, 2.4, 0.8, 26));
@@ -1473,10 +1480,24 @@ function buildChoir() {
   disc(164, 0, 18.5, 0.005, M.tile, 1, 64);
   for (const rR of [6, 12]) { const rg = new THREE.RingGeometry(rR - 0.15, rR + 0.15, 80); rg.rotateX(-Math.PI / 2); add(rg, M.gold, T(164, 0.012, 0), false); rg.dispose(); }
   ringWall(164, 0, 18.5, 0, 26, 1.2, M.marble, 40, [{ a: Math.PI, w: 12 }]);
-  for (let i = 0; i < 10; i++) {
-    const a = (i + 0.5) / 10 * TAU; if (Math.abs(angTo(a, Math.PI)) < 0.5) continue;
-    add(G.box, M.stained[i % 5], T(164 + Math.cos(a) * 18.45, 13, Math.sin(a) * 18.45, -a + Math.PI / 2, 2.6, 7, 0.2), false, false);
+  for (let i = 0; i < 12; i++) {
+    const a = i / 12 * TAU; if (Math.abs(angTo(a, Math.PI)) < 0.45) continue;
+    column(164 + Math.cos(a) * 16.8, 0, Math.sin(a) * 16.8, 18, 0.7);
+    const b = a + TAU / 24; if (Math.abs(angTo(b, Math.PI)) < 0.45) continue;
+    add(G.box, M.stained[i % 5], T(164 + Math.cos(b) * 18.45, 11, Math.sin(b) * 18.45, -b + Math.PI / 2, 2.8, 12, 0.2), false, false);
+    add(G.box, M.gold, T(164 + Math.cos(b) * 18.3, 17.2, Math.sin(b) * 18.3, -b + Math.PI / 2, 3.2, 0.3, 0.4));
   }
+  const cornice = new THREE.TorusGeometry(18.2, 0.35, 6, 64); add(cornice, M.gold, T(164, 18.4, 0, 0, 1, 1, 1, Math.PI / 2), false); cornice.dispose();
+  // the great organ behind where she sings
+  for (let i = 0; i < 17; i++) {
+    const lz = (i - 8) * 0.95, h = 7 + (8 - Math.abs(i - 8)) * 1.05 + (i % 2) * 0.8;
+    add(cylG(12), M.gold, T(180.6 - Math.abs(i - 8) * 0.12, 2.2 + h / 2, lz, 0, 0.36, h, 0.36));
+    add(G.cone8, M.goldDark, T(180.6 - Math.abs(i - 8) * 0.12, 2.2 + 0.6, lz, 0, 0.38, 0.9, 0.38));
+  }
+  box(181.2, 0, 0, 2.2, 2.2, 17, M.marbleWarm);
+  // light falling through the oculus
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(3.2, 4.6, 26, 32, 1, true), new THREE.MeshBasicMaterial({ color: new THREE.Color(0.55, 0.48, 0.34), transparent: true, opacity: 0.07, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
+  shaft.position.set(164, 13, 0); scene.add(shaft);
   const dome = new THREE.SphereGeometry(1, 48, 16, 0, TAU, 0.2, Math.PI / 2 - 0.2);
   add(dome, M.marbleDS, T(164, 26, 0, 0, 19.7, 15, 19.7), false); dome.dispose();
   box(164, 26, 0, 40, 1, 40, null);
@@ -1514,8 +1535,11 @@ function buildSkyline() {
       const x = bx + (r() - 0.5) * bw, z = bz + (r() - 0.5) * bd, w = 8 + r() * 10, d = 8 + r() * 10, h = 10 + r() * 22;
       add(G.box, M.marble, T(x, h / 2 - 2, z, r() * 0.2, w, h, d), true, false);
       add(G.box, M.marbleWarm, T(x, h - 1.7, z, 0, w + 0.8, 0.6, d + 0.8), false, false);
-      if (r() < 0.35) add(G.hemi, M.gold, T(x, h - 1.4, z, 0, Math.min(w, d) * 0.35, Math.min(w, d) * 0.3, Math.min(w, d) * 0.35), false, false);
-      else if (r() < 0.3) add(G.cone, M.gold, T(x, h + 4, z, 0, 1.2, 10, 1.2), false, false);
+      const roll = r(), m = Math.min(w, d);
+      if (roll < 0.3) { add(cylG(16), M.marble, T(x, h - 0.4, z, 0, m * 0.34, 1.6, m * 0.34), false, false); add(G.hemi, M.gold, T(x, h + 0.4, z, 0, m * 0.32, m * 0.3, m * 0.32), false, false); }
+      else if (roll < 0.45) { add(G.cone, M.gold, T(x, h + 4, z, 0, 1.2, 10, 1.2), false, false); }
+      else if (roll < 0.7) { add(G.box, M.grass, T(x, h - 1.25, z, 0, w - 1, 0.2, d - 1), false, false); add(G.ico, M.leafA, T(x + 1.5, h + 0.2, z, 0, 1.6, 1.3, 1.6), false, false); add(G.ico, M.leafB, T(x - 1.8, h, z + 1.2, 0, 1.2, 1, 1.2), false, false); }
+      else { for (const sx of [-1, 1]) for (const sz of [-1, 1]) add(cylG(8), M.marble, T(x + sx * (w / 2 - 1), h + 1, z + sz * (d / 2 - 1), 0, 0.25, 3, 0.25), false, false); add(G.box, M.marbleWarm, T(x, h + 2.6, z, 0, w - 1, 0.4, d - 1), false, false); }
     }
   }
 }
@@ -2724,7 +2748,7 @@ class Enemy {
   }
   get staggeredNow() { return this.state === 'stagger' || this.state === 'shock'; }
   anchor(out = V3()) { return out.set(this.pos.x, this.pos.y + this.height * (this.def.anchorH || 0.62), this.pos.z); }
-  setState(s) { this.state = s; this.sT = 0; if (this.trail) this.trail.on = false; }
+  setState(s) { this.state = s; this.sT = 0; this.noPhys = false; if (this.trail) this.trail.on = false; }
   distTo(p) { return Math.hypot(p.pos.x - this.pos.x, p.pos.z - this.pos.z); }
   faceToward(x, z, rate, dt) { const t = Math.atan2(x - this.pos.x, z - this.pos.z); this.yaw = rate ? dampAng(this.yaw, t, rate, dt) : t; }
   alert(src) {
@@ -2734,7 +2758,7 @@ class Enemy {
     if (typeof spreadAlert === 'function') spreadAlert(this);
   }
   canSee(p) {
-    const d = this.distTo(p); if (d > (this.def.sight || 13) || Math.abs(p.pos.y - this.pos.y) > 6) return false;
+    const d = this.distTo(p); if (d > (this.opts.sight || this.def.sight || 13) || Math.abs(p.pos.y - this.pos.y) > 6) return false;
     if (d > 3) { const a = Math.abs(angTo(this.yaw, Math.atan2(p.pos.x - this.pos.x, p.pos.z - this.pos.z))); if (a > 1.5 && !this.aware) return false; }
     return raycast(this.pos.x, this.pos.y + this.height * 0.85, this.pos.z, p.pos.x, p.pos.y + 1.4, p.pos.z) > 0.98;
   }
@@ -2751,7 +2775,8 @@ class Enemy {
     if (!this.aware) this.alert(from);
     if (this.hp <= 0) { this.die(from); return; }
     this.poise -= atk.poise || 10;
-    const armored = this.state === 'attack' && this.atk && this.atk.armor && this.sT < this.atk.hit[1];
+    const a = this.atk, lastHit = a ? (a.hits ? a.hits[a.hits.length - 1] : a.hit) : null;
+    const armored = this.state === 'attack' && a && a.armor && lastHit && this.sT < lastHit[1];
     if (this.poise <= 0 && !armored) { this.poise = this.poiseMax; this.stagger(this.def.staggerT || 0.8); }
     else if (!armored && this.def.flinch && this.state !== 'attack') { this.setState('flinch'); this.anim.play(this.def.clips.hurt, 0.05); }
   }
@@ -2887,7 +2912,7 @@ class Enemy {
     let fwd = 1, side = 0;
     if (hv > 0.1) { const lx = this.vel.x / hv, lz = this.vel.z / hv, c = Math.cos(this.yaw), s = Math.sin(this.yaw); fwd = lx * s + lz * c; side = lx * c - lz * s; }
     const moving = this.state === 'chase' || this.state === 'return' || this.state === 'idle';
-    (def.loco || locoLegged)(this.loco, { base: this.aware ? def.guard : (def.idlePose || def.guard), v: moving ? hv : 0, phase: this.phase, fwd, side: -side, t: Game.time + this.phase, sprint: false });
+    (def.loco || locoLegged)(this.loco, { base: this.aware ? def.guard : (this.opts.singer ? EP.sSing : (def.idlePose || def.guard)), v: moving ? hv : 0, phase: this.phase, fwd, side: -side, t: Game.time + this.phase, sprint: false });
     this.anim.update(dt, this.loco);
     if (def.animate) def.animate(this, dt);
     this.flash = Math.max(0, this.flash - dt * 5);
@@ -3137,7 +3162,7 @@ function defineEnemies() {
     ],
   });
   ENEMY_DEFS.cantor = Object.assign({}, base, {
-    name: 'Cantor', hp: 80, poise: 16, radius: 0.4, height: 2.0, sight: 16, walk: 1.8, run: 2.4, keep: 8, turn: 5, sorrow: 90, float: true, floatH: 0.35,
+    name: 'Cantor', hp: 80, poise: 16, radius: 0.4, height: 2.0, sight: 13, walk: 1.8, run: 2.4, keep: 8, turn: 5, sorrow: 90, float: true, floatH: 0.35,
     staggerT: 1.0, noticeT: 0.6, blood: [2.0, 1.7, 0.9], loco: locoFloat, noClip: false,
     build: (o) => skinCantor(makeRig(1.95), o), guard: EP.cGuard, idlePose: EP.cGuard,
     clips: { hurt: EC.hurt, stagger: EC.stagger, death: EC.death, notice: EC.notice },
@@ -3148,8 +3173,8 @@ function defineEnemies() {
 }
 const CANTOR_ATK = {};
 function defineCantorAttacks() {
-  CANTOR_ATK.orb = { name: 'orb', clip: EC.cCast, range: [0, 30], dur: 1.1, track: 0.7, cd: 2.6,
-    update(e, t) { if (t >= 0.74 && !e.fired) { e.fired = true; fireOrb(e.rig.orb.getWorldPosition(V3()), 16, 7.5, 1.2); } }, onStart(e) { e.fired = false; } };
+  CANTOR_ATK.orb = { name: 'orb', clip: EC.cCast, range: [0, 30], dur: 1.1, track: 0.7, cd: 3.2,
+    update(e, t) { if (t >= 0.74 && !e.fired) { e.fired = true; fireOrb(e.rig.orb.getWorldPosition(V3()), 13, 7.5, 1.1); } }, onStart(e) { e.fired = false; } };
   CANTOR_ATK.mend = { name: 'mend', clip: EC.cMend, range: [0, 99], dur: 1.7, track: 0, cd: 9,
     onStart(e) { e.fired = false; Sfx.chime(0.7); }, update(e, t) { if (t >= 0.8 && !e.fired) { e.fired = true; mendLinked(e); } } };
   CANTOR_ATK.repel = { name: 'repel', clip: EC.cRepel, range: [0, 3], dur: 0.8, track: 0.3, cd: 4.5, hit: [0.42, 0.52], dmg: 10, arc: 360, reach: 3.2, knock: 9,
@@ -3416,8 +3441,8 @@ function defineSpawns() {
   Lchain('p1a', 'p1b', 'p1c');
   S('p2w', 'warden', 5.6, 0, 64, 0); S('p2a', 'serene', 6.6, 0, 68.5, -0.3); S('p2b', 'serene', 4.8, 0, 59.5, 0.2);
   Lstar('p2w', 'p2a', 'p2b');
-  S('p3c', 'cantor', -12.6, 0, 45, 0.5); S('p3w', 'warden', -4.6, 0, 41.5, 0.1); S('p3s', 'serene', 5.2, 0, 43, -0.2);
-  Lstar('p3c', 'p3w', 'p3s'); Lchain('p3w', 'p3s');
+  S('p3c', 'cantor', -12.6, 0, 45, 0.5); S('p3a', 'serene', -4.6, 0, 41.5, 0.1); S('p3s', 'serene', 5.2, 0, 43, -0.2);
+  Lstar('p3c', 'p3a', 'p3s');
   // Gardens of Plenty: lower terrace
   S('g1a', 'serene', -84, 0, 11, 1.4); S('g1b', 'serene', -91, 0, 13.5, -2.2); S('g1c', 'serene', -97, 0, 8, -1.2);
   Lchain('g1a', 'g1b', 'g1c');
@@ -3433,10 +3458,12 @@ function defineSpawns() {
   // Choir of Accord: the nave
   S('c1a', 'warden', 86, 0, -2.2, -Math.PI / 2); S('c1b', 'warden', 86, 0, 2.2, -Math.PI / 2);
   Lchain('c1a', 'c1b');
-  S('c2c', 'cantor', 126, 0.35, 0, -Math.PI / 2);
-  for (const [id, x, z] of [['c2a', 114, -3.2], ['c2b', 114, 3.2], ['c2d', 118, -6.4], ['c2e', 118, 6.4]]) S(id, 'serene', x, 0, z, -Math.PI / 2);
+  // a choir that sings with its back to you: pick your moment
+  S('c2c', 'cantor', 116, 0, 0, Math.PI / 2, { sight: 8 });
+  for (const [id, x, z] of [['c2a', 110, -3.4], ['c2b', 110, 3.4], ['c2d', 113, -6.6], ['c2e', 113, 6.6]]) S(id, 'serene', x, 0, z, Math.PI / 2, { sight: 7, singer: true });
   Lstar('c2c', 'c2a', 'c2b', 'c2d', 'c2e');
-  S('c3a', 'cantor', 106, 0, -13, -Math.PI / 2); S('c3b', 'cantor', 106, 0, 13, -Math.PI / 2); S('c3w', 'warden', 134, 0.35, 0, -Math.PI / 2, { hp: 200 });
+  // the chancel guard and its two Cantors
+  S('c3w', 'warden', 134, 0.35, 0, -Math.PI / 2, { hp: 200 }); S('c3a', 'cantor', 139, 0.35, -6.5, -Math.PI / 2); S('c3b', 'cantor', 139, 0.35, 6.5, -Math.PI / 2);
   Lstar('c3w', 'c3a', 'c3b');
   S('c4w', 'warden', 100, 0, -16, Math.PI);
 }
@@ -3858,7 +3885,7 @@ function buildSeraphineArena() {
       b.healT = (b.healT || 0) - dt;
       if (b.healT <= 0) {
         b.healT = 2;
-        for (const c of b.parts) if (c.alive) { const L = c.links.find(l => l.state === 'alive' && (l.a === e || l.b === e)); if (L) L.pulse = { from: c, t: 0, color: [1.2, 2.2, 1.0], onArrive: () => { if (e.alive) { const h = Math.round(e.maxHp * 0.02); e.hp = Math.min(e.maxHp, e.hp + h); } } }; }
+        for (const c of b.parts) if (c.alive) { const L = c.links.find(l => l.state === 'alive' && (l.a === e || l.b === e)); if (L) L.pulse = { from: c, t: 0, color: [1.2, 2.2, 1.0], onArrive: () => { if (e.alive && e.hp < e.maxHp) { const h = Math.round(e.maxHp * 0.015); e.hp = Math.min(e.maxHp, e.hp + h); dmgNumber(e.anchor(V3()).add(_v1.set((Math.random() - 0.5) * 0.8, 0.9, 0)), '+' + h, 'heal'); } } }; }
       }
     },
   });
@@ -4021,7 +4048,7 @@ function defineAurel() {
   const g = P.guard, sp = 0.95;
   const sc = (c, s) => c; // clips are reused from the player; timing scales below
   const strike = (name, clipName, hit, dur, dmg, next) => ({ name, clip: CL[clipName], speed: sp, range: [0, 3.6], weight: name === 'strike1' ? 3 : 0, hit: [hit[0] / sp, hit[1] / sp], dmg, arc: 150, reach: 3.7,
-    lunge: [0.06 / sp, 0.3 / sp, 4], track: 0.16 / sp, trackRate: 9, dur: dur / sp, cd: 0.8, next, nextRange: 4.5, chain: 0.75, recover: 0.35 });
+    lunge: [0.06 / sp, 0.3 / sp, 4], track: 0.16 / sp, trackRate: 9, dur: dur / sp, cd: 0.8, next, nextRange: 4.5, chain: 0.65, recover: 0.5 });
   const lashA = pose(g, { chest: [0, -40, 0], armL: [-120, -60, 20], foreL: [-60], armR: [-30, 0, -30] });
   const lashB = pose(g, { pos: [0, -0.1, 0.2], chest: [10, 30, 0], armL: [-80, 60, 0], foreL: [0] });
   EC.aurLash = clip([[0, g], [0.75, lashA, 'o'], [0.88, lashB, 'x'], [1.4, g]]);
@@ -4058,7 +4085,7 @@ function defineAurel() {
       update(e, t) { if (t >= 0.3 && !e.fired) { e.fired = true; fireTetherBolt(e); } } },
     loomRain: { name: 'loomRain', clip: EC.aurRaise, range: [0, 30], weight: 1.6, dur: 1.9, track: 0, cd: 9, cond: p2,
       onStart(e) { e.fired = false; Sfx.chime(0.6); },
-      update(e, t) { if (t >= 0.6 && !e.fired) { e.fired = true; for (let i = 0; i < 6; i++) { const a = i / 6 * TAU + Math.random() * 0.5, r = i === 0 ? 0 : 2.4 + Math.random() * 3; lightPillar(V3(player.pos.x + Math.cos(a) * r, player.pos.y, player.pos.z + Math.sin(a) * r), 1.6, 28, 1.0 + i * 0.08); } } } },
+      update(e, t) { if (t >= 0.6 && !e.fired) { e.fired = true; for (let i = 0; i < 5; i++) { const a = i / 5 * TAU + Math.random() * 0.5, r = i === 0 ? 0 : 2.6 + Math.random() * 3; lightPillar(V3(player.pos.x + Math.cos(a) * r, player.pos.y, player.pos.z + Math.sin(a) * r), 1.6, 24, 1.05 + i * 0.1); } } } },
   });
 }
 let _needleMat = null;
@@ -4114,7 +4141,7 @@ function updateTether(dt) {
     TETHER.t += dt;
     if (!e || !e.alive || !player.alive || L.state === 'dead') { clearTether(); return; }
     if (!TETHER.returning) {
-      player.hp -= 5 * dt; e.hp = Math.min(e.maxHp, e.hp + 6 * dt); addGrief(16 * dt);
+      player.hp -= 4 * dt; e.hp = Math.min(e.maxHp, e.hp + 5 * dt); addGrief(16 * dt);
       if (player.hp <= 0) { player.hp = 0; player.die(); clearTether(); return; }
       setPrompt(player.grief >= 50 ? `<kbd>${keyName('bind')}</kbd> Return the thread` : 'Grief is rising. Hold on.');
       if (TETHER.t > 7) { clearTether(); toast('The thread slackens', ''); }
@@ -4446,17 +4473,17 @@ function readIntent(dt) {
    ===================================================================== */
 const pointPool = [];
 function buildLightPool() {
-  for (let i = 0; i < 4; i++) { const l = new THREE.PointLight(0xffa860, 0, 16, 1.5); scene.add(l); pointPool.push(l); }
+  for (let i = 0; i < 5; i++) { const l = new THREE.PointLight(0xffa860, 0, 18, 1.4); scene.add(l); pointPool.push(l); }
 }
 const ENV = { under: 0, corruption: 0 };
 const cOutFog = new THREE.Color(0xe6dccd), cUnderFog = new THREE.Color(0x07080c), cTmp = new THREE.Color();
-const cHemiSky = new THREE.Color(0xcfe0f5), cHemiGround = new THREE.Color(0xe9d4b2), cUnderSky = new THREE.Color(0x3a4a6a), cUnderGround = new THREE.Color(0x0c0d12);
+const cHemiSky = new THREE.Color(0xcfe0f5), cHemiGround = new THREE.Color(0xe9d4b2), cUnderSky = new THREE.Color(0x5a6a88), cUnderGround = new THREE.Color(0x2a221c);
 function isUnder(p) { return p.y < -4 && p.z > 104; }
 function updateEnvironment(dt, focus, time) {
   ENV.under = damp(ENV.under, isUnder(focus) ? 1 : 0, 2.2, dt);
   const u = ENV.under, c = ENV.corruption;
   sun.intensity = 1.85 * (1 - u) * (1 - c * 0.25);
-  hemi.intensity = lerp(0.68, 0.55, u);
+  hemi.intensity = lerp(0.68, 0.8, u);
   hemi.color.copy(cHemiSky).lerp(cUnderSky, u); hemi.groundColor.copy(cHemiGround).lerp(cUnderGround, u);
   scene.fog.color.copy(cOutFog).lerp(cTmp.setRGB(0.95, 0.45, 0.3), c * 0.6).lerp(cUnderFog, u);
   scene.fog.near = lerp(90, 6, u); scene.fog.far = lerp(760, 60, u);
@@ -4559,6 +4586,7 @@ function plaque(x, y, z, title, text, r = 2.2) {
    ===================================================================== */
 const VIGIL_DEFS = [
   { id: 'well', name: 'Vigil of the Well', x: 3.4, y: UY, z: 195, sx: 1.6, sz: 195, face: Math.PI },
+  { id: 'gate', name: 'Vigil of the Gate', x: 4.2, y: 0, z: 101, sx: 2.6, sz: 100, face: Math.PI },
   { id: 'plaza', name: 'Vigil of the Plaza', x: 8.6, y: 0, z: 24.5, sx: 7.2, sz: 23.4, face: Math.PI },
   { id: 'gardens', name: 'Vigil of Plenty', x: -68, y: 0, z: 12.5, sx: -69.5, sz: 11.2, face: -Math.PI / 2 },
   { id: 'choir', name: 'Vigil of the Choir', x: 66, y: 0, z: -12.5, sx: 67.4, sz: -11, face: Math.PI / 2 },
@@ -4736,7 +4764,7 @@ function hideTut(id) {
 }
 function tutorialEvent(ev, data) {
   const f = Game.flags;
-  if (ev === 'freed') { hideTut('bound'); later(600, () => showTut('move')); }
+  if (ev === 'freed') { hideTut('bound'); showTut('move'); }
   if (ev === 'needle') { hideTut('needle'); }
   if (ev === 'kill') {
     if (data.spawnId === 'u1') { hideTut('fight'); later(800, () => showTut('sorrow')); }
@@ -4746,7 +4774,7 @@ function tutorialEvent(ev, data) {
   }
   if (ev === 'kindle') hideTut('vigil');
   if (ev === 'drink') hideTut('heal');
-  if (ev === 'bind') { hideTut('bind'); later(400, () => showTut('bind2')); }
+  if (ev === 'bind' && Game.flags.tut && Game.flags.tut.bind) { hideTut('bind'); later(400, () => showTut('bind2')); }
 }
 function onBindMade() { tutorialEvent('bind'); }
 function updateTutorial(dt) {
@@ -4760,7 +4788,7 @@ function updateTutorial(dt) {
   if (Tut.cur && Tut.t > 26) hideTut();
   if (!isUnder(p) && p.y < -1) return;
   if (isUnder(p)) {
-    if (!f.needle && p.z < 262 && Math.abs(p.z - WORLD.altar.z) < 5) showTut('needle');
+    if (!f.needle && f.freed && (Tut.cur !== 'move' || Tut.t > 3.5) && Math.abs(p.z - WORLD.altar.z) < 5) { if (Tut.cur === 'move') hideTut('move'); showTut('needle'); }
     if (p.z < 244 && p.z > 228) { if (Tut.cur === 'move' || Tut.cur === 'needle') hideTut(); showTut('fight'); }
     if (p.z < 221 && p.z > 206) { if (Tut.cur === 'fight' || Tut.cur === 'sorrow') hideTut(); showTut('roll'); }
     if (p.z < 199 && p.z > 190 && !vigilById('well').lit) { if (Tut.cur === 'roll') hideTut(); showTut('vigil'); }
@@ -4799,7 +4827,7 @@ function buildWellLogic() {
   // the Needle lying on the altar
   const n = makeNeedle(1); n.group.position.copy(WORLD.altar).add(_v1.set(0, 0.04, 0)); n.group.rotation.set(Math.PI / 2, 0, Math.PI / 2 + 0.2); scene.add(n.group);
   WORLD.altarNeedle = n.group;
-  interactable({ pos: WORLD.altar.clone().setY(UY), r: 2.3, prompt: () => Game.flags.needle ? null : 'Take the Needle', act: takeNeedle });
+  interactable({ pos: WORLD.altar.clone().setY(UY), r: 2.6, prompt: () => Game.flags.needle ? null : 'Take the Needle', act: takeNeedle });
   // threads across the exit until the Needle cuts them
   WORLD.wellGate = addSolid({ t: 'box', x: 0, z: 252.2, hx: 2.4, hz: 0.3, y0: UY, y1: UY + 5 });
   for (let i = 0; i < 14; i++) { const x = -2.1 + i * 0.32; webThread(V3(x, UY + 5, 252.2 + Math.sin(i) * 0.1), V3(x + Math.sin(i * 3) * 0.3, UY, 252.2), 0.2, 0.015, GOLD_T, 10); }
@@ -5023,7 +5051,7 @@ function frame(now) {
   requestAnimationFrame(frame);
   const dt = Math.min(0.05, Math.max(0.0001, (now - lastT) / 1000)); lastT = now;
   if (Game.manual) return;
-  tick(dt);
+  try { tick(dt); } catch (e) { console.error('tick', e); }
   render();
 }
 function tick(dt) {
@@ -5092,7 +5120,7 @@ function boot() {
 }
 const SPAWNS = {
   well: [0, UY, 262, Math.PI], gallery: [0, UY, 243, Math.PI], plaza: [0, 0, 26, Math.PI], promenade: [0, 0, 90, Math.PI],
-  gardens: [-70, 0, 0, -Math.PI / 2], gardensTop: [-150, 11, 0, -Math.PI / 2], choir: [66, 0, 0, Math.PI / 2], apse: [150, 0, 0, Math.PI / 2], loom: [0, LOOM_Y, 10, Math.PI], spire: [0, 0.32, 14, Math.PI]
+  gardens: [-70, 0, 0, -Math.PI / 2], gardensVigil: [-69.5, 0, 11.2, -Math.PI / 2], choirVigil: [67.4, 0, -11, Math.PI / 2], gardensTop: [-150, 11, 0, -Math.PI / 2], choir: [66, 0, 0, Math.PI / 2], apse: [150, 0, 0, Math.PI / 2], loom: [0, LOOM_Y, 10, Math.PI], spire: [0, 0.32, 14, Math.PI], gate: [0, 0, 103, Math.PI]
 };
 function startTest() {
   if (PARAMS.has('title')) { showTitle(); return; }
@@ -5124,7 +5152,7 @@ window.__T = {
     enemies: ENEMIES.filter(e => e.alive && e.pos.distanceTo(p.pos) < 30).map(e => (e.spawnId || e.name) + ':' + Math.round(e.hp) + ':' + e.state + '@' + e.pos.toArray().map(v => v.toFixed(1)).join(',')) }; },
   poseTest(name, t) { const c = CL[name] || EC[name]; player.anim.play(c, 0.0001, 0.0001, true); player.anim.t = t; player.anim.blend = 1; player.anim.update(0.0001, player.loco); },
   newGame, continueGame, showTitle, saveGame, loadSave, rest, VIGIL_DEFS, tearFree, takeNeedle, flags: () => Game.flags,
-  breakSeal, rideLift, chooseEnding, BOSSES, SPIRE, SEALS, TETHER, get WAVES() { return WAVES; }, Sfx,
+  breakSeal, rideLift, chooseEnding, BOSSES, SPIRE, SEALS, TETHER, get WAVES() { return WAVES; }, Sfx, PROJ, get PILLARS() { return PILLARS; },
 };
 try { boot(); } catch (e) { console.error(e); $('loadT').textContent = 'HALCYON DID NOT LOAD'; $('loadE').textContent = 'Startup failed: ' + e.message; }
 </script>
