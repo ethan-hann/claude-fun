@@ -94,7 +94,7 @@ def build(b):
     E('crate', id='c_c', p=(6.2, 0.25, -12.6), level=0, ry=35)
     E('pillar', id='p', p=(4.5, WALL, C[1]), size=(2.0, 2.0), heights=[0.0, 1.5, 3.0, 4.5, 6.0], level=0, depth=34.0)
     b.cyl((C[0], CORE_Y - 0.25, C[1]), 2.0, 0.5, mat='marble', segments=48, bevel=0.03)
-    b.cyl((C[0], CORE_Y + 0.01, C[1]), 1.6, 0.04, mat='steel', segments=48, bevel=0.0, collide=False)
+    b.cyl((C[0], CORE_Y + 0.01, C[1]), 1.6, 0.04, mat='paving', segments=48, bevel=0.0, collide=False)
     b.cyl((C[0], CORE_Y - 1.1, C[1]), 1.2, 1.2, mat='marble', segments=32, bevel=0.03, collide=False, radius_top=1.9)
     E('heart', id='heart', p=(C[0], HEART_Y, C[1]), r=3.3)
 

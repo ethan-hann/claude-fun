@@ -129,8 +129,9 @@ def build(b):
     arch.bust(b, -5.6, -19.8, 0.0, ry=0.6)
     for x in (-5.8, 5.8):
         arch.bust(b, x, -45.6, 0.0, ry=math.pi / 2 if x < 0 else -math.pi / 2)
-    b.box((-1.63, 1.6, -24.0), (0.3, 3.2, 1.0), mat='plates', bevel=0.03)
-    b.box((1.63, 1.6, -24.0), (0.3, 3.2, 1.0), mat='plates', bevel=0.03)
+    # jambs reach 2 cm below the floor, so their feet never share a plane with the wall's
+    b.box((-1.63, 1.59, -24.0), (0.3, 3.22, 1.0), mat='plates', bevel=0.03)
+    b.box((1.63, 1.59, -24.0), (0.3, 3.22, 1.0), mat='plates', bevel=0.03)
     b.box((0.0, 3.35, -24.0), (3.6, 0.34, 1.0), mat='plates', bevel=0.03)
     E('door', id='gate', p=(0.0, 0.0, -24.0), size=(3.0, 3.2, 0.3), openIf=['plate_o'], mode='up', travel=3.1, closeSpeed=2.4)
 

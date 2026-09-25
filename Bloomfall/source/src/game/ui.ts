@@ -5,6 +5,9 @@ import type { Quality } from '../engine/renderer';
 const MOUSE_L = '<svg viewBox="0 0 10 14"><rect x="0.7" y="0.7" width="8.6" height="12.6" rx="4.3" fill="none" stroke="currentColor"/><path d="M1 5 V4.5 A4 4 0 0 1 5 0.9 V5 Z" fill="currentColor"/></svg>';
 const MOUSE_R = '<svg viewBox="0 0 10 14"><rect x="0.7" y="0.7" width="8.6" height="12.6" rx="4.3" fill="none" stroke="currentColor"/><path d="M9 5 V4.5 A4 4 0 0 0 5 0.9 V5 Z" fill="currentColor"/></svg>';
 
+// seconds after the chapter title starts to fade before a waiting card appears (negative)
+const CARD_AFTER = -1.3;
+
 export function keys(text: string): string {
   return text.replace(/\{([^}]+)\}/g, (_m, k: string) => {
     if (k === 'LMB') return `<kbd class="mouse">${MOUSE_L}</kbd>`;
@@ -65,7 +68,7 @@ export class UI {
   private echoQueue: string[] = [];
   private echoT = 0;
   private echoShowing = false;
-  private chapterT = 0;
+  private chapterT = -1;
   private memoryT = 0;
   private cellsKey = '';
   screens: Record<string, HTMLElement> = {};
@@ -157,11 +160,13 @@ export class UI {
     if (!c) return;
     (this.cardEl.querySelector('.title') as HTMLElement).textContent = c.title;
     (this.cardEl.querySelector('.body') as HTMLElement).innerHTML = keys(c.body);
-    this.cardEl.classList.add('show');
+    this.cardEl.classList.toggle('show', !this.cardBlocked());
     this.cardT = seconds;
   }
 
   get currentCard(): string | null { return this.cardKey; }
+
+  private cardBlocked(): boolean { return this.chapterT > CARD_AFTER || this.memoryT > 0; }
 
   echo(lines: string[]): void {
     this.echoQueue.push(...lines);
@@ -208,9 +213,16 @@ export class UI {
 
   update(dt: number): void {
     if (this.toastT > 0) { this.toastT -= dt; if (this.toastT <= 0) this.toastEl.classList.remove('show'); }
-    if (this.cardT > 0) { this.cardT -= dt; if (this.cardT <= 0) this.card(null); }
-    if (this.chapterT > 0) { this.chapterT -= dt; if (this.chapterT <= 0) this.chapterEl.classList.remove('show'); }
+    if (this.chapterT > CARD_AFTER) {
+      const was = this.chapterT;
+      this.chapterT -= dt;
+      if (was > 0 && this.chapterT <= 0) this.chapterEl.classList.remove('show');
+    }
     if (this.memoryT > 0) { this.memoryT -= dt; if (this.memoryT <= 0) this.memoryEl.classList.remove('show'); }
+    // a card waits while the chapter title or a memory is on screen, so they never overlap
+    const blocked = this.cardBlocked();
+    this.cardEl.classList.toggle('show', !!this.cardKey && !blocked);
+    if (!blocked && this.cardT > 0) { this.cardT -= dt; if (this.cardT <= 0) this.card(null); }
     // echo lines: fade each in, hold by length, fade out
     this.echoT -= dt;
     if (this.echoT <= 0) {

@@ -14,7 +14,7 @@ interface GlowMats { seam: THREE.MeshStandardMaterial[]; pips: THREE.Mesh[] }
 export interface FramedMats { body: THREE.Material; rail: THREE.Material; seam: THREE.MeshStandardMaterial }
 
 // A box whose texture coordinates are in metres, so long pieces do not stretch the texture.
-function metricBox(w: number, h: number, d: number, tile = 1): THREE.BufferGeometry {
+export function metricBox(w: number, h: number, d: number, tile = 1): THREE.BufferGeometry {
   const g = new THREE.BoxGeometry(w, h, d);
   const pos = g.attributes.position;
   const nor = g.attributes.normal;
@@ -31,7 +31,7 @@ function metricBox(w: number, h: number, d: number, tile = 1): THREE.BufferGeome
 
 // Steel rails along the twelve edges, and a glowing seam ring inset on every face that is big
 // enough to carry one (long faces get cross seams too). Same language as the crates.
-function frameGeometry(w: number, h: number, d: number): { rails: THREE.BufferGeometry; seams: THREE.BufferGeometry | null } {
+export function frameGeometry(w: number, h: number, d: number): { rails: THREE.BufferGeometry; seams: THREE.BufferGeometry | null } {
   const r = Math.min(0.08, Math.min(w, h, d) * 0.22);
   const rails: THREE.BufferGeometry[] = [];
   const add = (sx: number, sy: number, sz: number, x: number, y: number, z: number, list: THREE.BufferGeometry[]) => {

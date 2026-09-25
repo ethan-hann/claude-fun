@@ -122,7 +122,104 @@ def planter(b, x, z, y, r=2.0, h=0.55, tree=None, tree_scale=1.0, tree_rot=0.0, 
     b.cyl((x, y + h / 2, z), r, h, mat='marble', segments=40, bevel=0.03)
     b.cyl((x, y + h - 0.06, z), r - 0.18, 0.1, mat=soil, segments=40, bevel=0.0, collide=False)
     if tree:
-        b.prop(tree, (x, y + h - 0.08, z), rot_y=tree_rot, scale=tree_scale, collider=('cyl', 0.35, 4.0), decimate=0.5)
+        dead_tree(b, x, y + h - 0.02, z, height=2.25 * tree_scale, spread=min(r * 1.4, 3.0),
+                  seed=int(abs(x) * 131 + abs(z) * 17), rot=tree_rot)
+
+
+def dead_tree(b, x, y, z, height=4.0, spread=2.0, seed=1, rot=0.0, mat='prop_dead_quiver_trunk', collide=True):
+    """A dead tree: a trunk that forks into bare limbs, branches and twigs. Each branch is a bent,
+    tapering tube with tiled bark UVs, plus its own unrolled lightmap UV island."""
+    import bpy
+    import bmesh
+    from mathutils import Vector, Quaternion
+    from lib import g2b
+    rnd = random.Random(seed)
+    tubes = []
+    r_base = 0.055 * height
+
+    def grow(p, d, length, r0, depth):
+        n = max(3, int(length / 0.3))
+        pts = []
+        pos = p.copy()
+        dv = d.normalized()
+        for i in range(n + 1):
+            t = i / n
+            taper = 1.0 - (0.62 if depth == 0 else 0.9) * t
+            pts.append((pos.copy(), max(r0 * taper, 0.006)))
+            if i < n:
+                jitter = Vector((rnd.uniform(-1, 1), rnd.uniform(-1, 1), rnd.uniform(-1, 1))) * (0.12 if depth == 0 else 0.26)
+                lean = Vector((0, 0, 0.12 if depth < 2 else -0.05))
+                dv = (dv + jitter + lean).normalized()
+                # keep the crown inside its planter's footprint
+                reach = Vector((pos.x, pos.y, 0)).length
+                if reach > spread:
+                    dv = (dv - Vector((pos.x, pos.y, 0)).normalized() * 0.5).normalized()
+                pos = pos + dv * (length / n)
+        tubes.append(pts)
+        if depth >= 3:
+            return
+        count = (3, 3, 2)[depth]
+        start = (0.5, 0.3, 0.25)[depth]
+        az = rnd.uniform(0, math.tau)
+        for c in range(count):
+            if depth == 0 and c == count - 1:
+                t = 1.0  # the trunk ends in a fork
+            else:
+                t = start + (1.0 - start) * (c + rnd.uniform(0.25, 0.75)) / count
+            i = min(n - 1, int(t * n))
+            cp, cr = pts[i]
+            pd = (pts[i + 1][0] - pts[i][0]).normalized()
+            az += 2.4 + rnd.uniform(-0.3, 0.3)
+            perp = Quaternion(pd, az) @ pd.orthogonal().normalized()
+            ang = math.radians(rnd.uniform(34, 56) if depth else rnd.uniform(28, 44))
+            cd = (pd * math.cos(ang) + perp * math.sin(ang)).normalized()
+            if depth == 0:
+                cd = (cd + Vector((0, 0, 0.35))).normalized()
+            grow(cp, cd, length * rnd.uniform(0.5, 0.68), cr * 0.78, depth + 1)
+
+    grow(Vector((0, 0, -0.25)), Vector((rnd.uniform(-0.08, 0.08), rnd.uniform(-0.08, 0.08), 1.0)), height * 0.62, r_base, 0)
+
+    bm = bmesh.new()
+    uv_tex = bm.loops.layers.uv.new('UVMap')
+    uv_lm = bm.loops.layers.uv.new('Lightmap')
+    for pts in tubes:
+        r0 = pts[0][1]
+        sides = 12 if r0 > 0.1 else 9 if r0 > 0.05 else 7 if r0 > 0.02 else 5
+        m = len(pts)
+        tang = [(pts[min(i + 1, m - 1)][0] - pts[max(i - 1, 0)][0]).normalized() for i in range(m)]
+        lens = [0.0]
+        for i in range(1, m):
+            lens.append(lens[-1] + (pts[i][0] - pts[i - 1][0]).length)
+        nrm = tang[0].orthogonal().normalized()
+        rings = []
+        for i, (p, r) in enumerate(pts):
+            if i:
+                nrm = (tang[i - 1].rotation_difference(tang[i]) @ nrm).normalized()
+            bin_ = tang[i].cross(nrm).normalized()
+            rings.append([bm.verts.new(p + (nrm * math.cos(j / sides * math.tau) + bin_ * math.sin(j / sides * math.tau)) * r)
+                          for j in range(sides + 1)])
+        urep = max(1, round(math.tau * r0 / 0.45))
+        for i in range(m - 1):
+            for j in range(sides):
+                f = bm.faces.new([rings[i][j], rings[i][j + 1], rings[i + 1][j + 1], rings[i + 1][j]])
+                f.smooth = True
+                for loop, (jj, ii) in zip(f.loops, ((j, i), (j + 1, i), (j + 1, i + 1), (j, i + 1))):
+                    loop[uv_tex].uv = (jj / sides * urep, lens[ii] / 0.9)
+                    circ = math.tau * max(pts[ii][1], 0.01)
+                    loop[uv_lm].uv = ((jj / sides - 0.5) * circ, lens[ii])
+    # weld each ring's seam column so the shading is smooth across it (UVs stay split)
+    bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=0.0005)
+    me = bpy.data.meshes.new(b._name('tree'))
+    bm.to_mesh(me)
+    bm.free()
+    obj = bpy.data.objects.new(me.name, me)
+    obj.location = g2b((x, y, z))
+    obj.rotation_euler = (0.0, 0.0, rot)
+    b._link(obj, mat, 0.45)
+    obj['own_lm'] = True
+    if collide:
+        b.collider_cyl((x, y + 1.4, z), r_base * 1.1, 2.8)
+    return obj
 
 
 def rubble(b, cx, y, cz, radius, n, seed, mat='concrete', max_size=0.7, collide=True):

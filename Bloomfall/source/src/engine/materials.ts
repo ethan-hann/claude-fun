@@ -50,11 +50,11 @@ export const MATERIAL_TUNING: Record<string, { tint?: number; rough?: number; me
   paving: { normal: 1.0, rough: 1.15 },
   leaves: { normal: 1.2 },
   rust: { normal: 1.0 },
-  lattice: { metal: 1.0, rough: 0.9, normal: 1.0 },
-  steel: { metal: 1.0, rough: 1.0 },
-  plates: { metal: 1.0, rough: 1.25 },
-  crate_panel: { metal: 1.0, rough: 1.7, tint: 0xa9aeb8 },
-  screen: { metal: 1.0, rough: 1.0, alphaTest: 0.5 },
+  lattice: { metal: 1.0, rough: 2.1, normal: 1.0 },
+  steel: { metal: 1.0, rough: 1.3 },
+  plates: { metal: 1.0, rough: 1.5 },
+  crate_panel: { metal: 1.0, rough: 2.0, tint: 0xa9aeb8 },
+  screen: { metal: 1.0, rough: 2.2, alphaTest: 0.5 },
 };
 
 export const GLOW_COLORS: Record<string, [number, number, number, number]> = {

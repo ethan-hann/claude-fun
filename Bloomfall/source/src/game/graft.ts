@@ -159,7 +159,8 @@ export class Graft {
     const fwd = camera.getWorldDirection(new THREE.Vector3());
     const dist = 0.9 + t.size * 0.9;
     const hold = eye.clone().addScaledVector(fwd, dist);
-    hold.y -= 0.18 + t.size * 0.22;
+    // carried a little low, so the crosshair and the way ahead stay clear
+    hold.y -= 0.18 + t.size * 0.42;
     // keep it from being held inside the player's feet
     hold.y = Math.max(hold.y, player.feet.y + t.size * 0.5 + 0.05);
     const p = t.position(this.tmp);

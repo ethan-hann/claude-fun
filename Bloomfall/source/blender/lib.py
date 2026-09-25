@@ -627,6 +627,8 @@ def join_static(island, margin=0.004):
     objs = island.objects
     for o in objs:
         me = o.data
+        if o.get('own_lm'):  # built with its own texture and lightmap UVs (for example, trees)
+            continue
         while len(me.uv_layers) > (1 if o.get('keep_uv') else 0):
             me.uv_layers.remove(me.uv_layers[-1])
         if o.get('keep_uv'):
@@ -645,7 +647,7 @@ def join_static(island, margin=0.004):
     arch = []
     for o in objs:
         me = o.data
-        if o.get('keep_uv'):
+        if o.get('keep_uv') or o.get('own_lm'):
             continue
         if 'UVMap' not in me.uv_layers:
             me.uv_layers.new(name='UVMap')

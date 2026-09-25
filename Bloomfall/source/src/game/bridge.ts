@@ -3,7 +3,8 @@ import * as THREE from 'three';
 import { Physics, G, groups, SOLID_FILTER } from './physics';
 import { buildSurfaceMaterial, TextureSet } from '../engine/materials';
 import { DYNAMIC_LAYER } from '../engine/dynshadow';
-import { SEAM_COLOR } from './visuals';
+import { SEAM_COLOR, metricBox, frameGeometry } from './visuals';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { Platform } from './player';
 
 // A bloom bridge: plates of lattice unfold one after another from the end of one island to the
@@ -12,6 +13,7 @@ import type { Platform } from './player';
 const SEG_LEN = 1.9;
 const WIDTH = 2.7;
 const THICK = 0.28;
+const RAIL_H = 0.95; // handrail height above the deck
 
 interface Seg {
   pivot: THREE.Group; // hinge at the near edge
@@ -46,8 +48,10 @@ export class Bridge implements Platform {
     const hlen = flat.length();
     const n = Math.max(2, Math.round(hlen / SEG_LEN));
     const yaw = Math.atan2(flat.x, flat.z);
-    const plateMat = buildSurfaceMaterial('lattice', sets.lattice ?? null, { skyVis: { value: 1 } });
-    const trimMat = buildSurfaceMaterial('steel', sets.steel ?? null, { skyVis: { value: 1 } });
+    const plateMat = buildSurfaceMaterial('lattice', sets.lattice ?? null, { skyVis: { value: 1 }, uvScale: { value: 1 } });
+    const trimMat = buildSurfaceMaterial('steel', sets.steel ?? null, { skyVis: { value: 1 }, uvScale: { value: 1 } });
+    const seamMat = new THREE.MeshStandardMaterial({ color: 0, emissive: SEAM_COLOR, emissiveIntensity: 3, roughness: 1 });
+    this.seamMats.push(seamMat);
     for (let i = 0; i < n; i++) {
       const a = from.clone().lerp(to, i / n);
       const b = from.clone().lerp(to, (i + 1) / n);
@@ -78,19 +82,27 @@ export class Bridge implements Platform {
           } else m.material = name.startsWith('steel') ? trimMat : plateMat;
         });
       } else {
-        const g = new THREE.Group();
-        const slab = new THREE.Mesh(new THREE.BoxGeometry(WIDTH, THICK, len * 1.02), plateMat);
-        g.add(slab);
-        const seam = new THREE.MeshStandardMaterial({ color: 0, emissive: SEAM_COLOR, emissiveIntensity: 3, roughness: 1 });
-        this.seamMats.push(seam);
+        // a lattice plate in the crates' language (steel edges, glowing seams), with a handrail;
+        // merged to three meshes per plate
+        const L = len * 1.02;
+        const f = frameGeometry(WIDTH, THICK, L);
+        const steel: THREE.BufferGeometry[] = [f.rails];
+        const glow: THREE.BufferGeometry[] = f.seams ? [f.seams] : [];
+        const part = (list: THREE.BufferGeometry[], geo: THREE.BufferGeometry, x: number, y: number, z: number) => {
+          geo.translate(x, y, z);
+          list.push(geo);
+        };
         for (const sx of [-1, 1]) {
-          const s = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.04, len * 0.9), seam);
-          s.position.set(sx * (WIDTH / 2 - 0.12), THICK / 2 + 0.01, 0);
-          g.add(s);
-          const rail = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.9, 0.1), trimMat);
-          rail.position.set(sx * (WIDTH / 2 - 0.05), 0.45, -len / 2 + 0.1);
-          g.add(rail);
+          const x = sx * (WIDTH / 2 - 0.07);
+          part(steel, metricBox(0.07, RAIL_H, 0.07, 0.5), x, THICK / 2 + RAIL_H / 2, -L / 2 + 0.08);
+          part(steel, metricBox(0.07, 0.05, L, 0.5), x, THICK / 2 + RAIL_H, 0);
+          part(steel, metricBox(0.04, 0.035, L, 0.5), x, THICK / 2 + RAIL_H * 0.5, 0);
+          part(glow, metricBox(0.02, 0.018, L * 0.98, 1), x, THICK / 2 + RAIL_H - 0.035, 0);
         }
+        const g = new THREE.Group();
+        g.add(new THREE.Mesh(metricBox(WIDTH, THICK, L, 1), plateMat));
+        g.add(new THREE.Mesh(mergeGeometries(steel)!, trimMat));
+        g.add(new THREE.Mesh(mergeGeometries(glow)!, seamMat));
         mesh = g;
       }
       mesh.position.set(0, 0, len / 2);
@@ -103,6 +115,13 @@ export class Bridge implements Platform {
       const collider = phys.world.createCollider(phys.R.ColliderDesc.cuboid(WIDTH / 2, THICK / 2, len / 2 + 0.03)
         .setCollisionGroups(groups(G.KINEMATIC, SOLID_FILTER)).setFriction(1.0), body);
       phys.owners.set(collider.handle, { kind: 'platform', platform: this });
+      // the handrails stop bodies too
+      for (const sx of [-1, 1]) {
+        const rc = phys.world.createCollider(phys.R.ColliderDesc.cuboid(0.04, 0.5, len / 2)
+          .setTranslation(sx * (WIDTH / 2 - 0.07), THICK / 2 + 0.5, 0)
+          .setCollisionGroups(groups(G.KINEMATIC, SOLID_FILTER)), body);
+        phys.owners.set(rc.handle, { kind: 'platform', platform: this });
+      }
       this.segs.push({ pivot, mesh, body, collider, center, quat, t: 0, delay: i * 0.11, fall: null });
     }
   }

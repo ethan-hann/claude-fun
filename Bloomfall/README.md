@@ -32,7 +32,7 @@ Cross the drifting islands of Calyx to the Heartbloom. Each island ends at a blo
 | H | Hint |
 | Esc | Pause |
 
-A gamepad works too. The left stick moves and the right stick looks. A jumps, RT gives, LT takes, X uses, B throws, Y resets, and Start pauses.
+A gamepad works too. The left stick moves and the right stick looks. Click the left stick to run. A jumps, RT gives, LT takes, X uses, B throws, hold Y to reset, Back shows a hint, and Start pauses.
 
 ### The Graft
 

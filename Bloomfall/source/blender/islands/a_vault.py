@@ -151,8 +151,9 @@ def build(b):
               style='classic', pilaster_every=3.0)
     for x in (-3.6, 3.6):
         arch.bust(b, x, -22.8, 0.0, ry=math.pi if x > 0 else 0.0)
-    b.box((-1.75, 1.75, -24.0), (0.4, 3.5, 1.0), mat='marble', bevel=0.03)
-    b.box((1.75, 1.75, -24.0), (0.4, 3.5, 1.0), mat='marble', bevel=0.03)
+    # gate jambs reach 2 cm below the floor, so their feet never share a plane with the wall's
+    b.box((-1.75, 1.74, -24.0), (0.4, 3.52, 1.0), mat='marble', bevel=0.03)
+    b.box((1.75, 1.74, -24.0), (0.4, 3.52, 1.0), mat='marble', bevel=0.03)
     b.box((0, 3.55, -24.0), (3.9, 0.4, 1.0), mat='marble', bevel=0.03)
     # dead tree planter and the Graft pedestal
     arch.planter(b, 0.0, -17.5, 0.0, r=2.2, h=0.55, tree='dead_quiver_trunk', tree_scale=2.4, tree_rot=0.6)
