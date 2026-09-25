@@ -20,6 +20,12 @@ export interface Settings {
   fov: number;
   volume: number;
   music: number;
+  uiScale: number;
+}
+
+// Interface size: every piece of text and HUD is sized in em from one root size.
+export function applyUiScale(v: number): void {
+  document.documentElement.style.setProperty('--ui-scale', String(Math.min(1.8, Math.max(0.7, v || 1))));
 }
 
 export interface MenuHandlers {
@@ -253,6 +259,7 @@ export class UI {
       <div class="shade"></div>
       <div class="panel" style="width:min(34em,86vw)">
         <h2>Settings</h2>
+        <div class="row"><label>Interface size</label><div class="ctl"><input type="range" id="set-ui" min="0.7" max="1.8" step="0.05"><span id="ui-val"></span></div></div>
         <div class="row"><label>Graphics</label><div class="ctl" id="set-quality">
           <button class="seg" data-q="low">Low</button><button class="seg" data-q="medium">Medium</button>
           <button class="seg" data-q="high">High</button><button class="seg" data-q="ultra">Ultra</button></div></div>
@@ -348,6 +355,7 @@ export class UI {
     bind('set-fov', 'fov');
     bind('set-vol', 'volume');
     bind('set-music', 'music');
+    bind('set-ui', 'uiScale');
     settings.querySelector('#set-invert')!.addEventListener('click', () => {
       this.settings.invertY = !this.settings.invertY;
       this.syncSettings();
@@ -364,6 +372,8 @@ export class UI {
     (root.querySelector('#set-sens') as HTMLInputElement).value = String(s.sensitivity);
     (root.querySelector('#set-fov') as HTMLInputElement).value = String(s.fov);
     (root.querySelector('#fov-val') as HTMLElement).textContent = `${s.fov}°`;
+    (root.querySelector('#set-ui') as HTMLInputElement).value = String(s.uiScale ?? 1);
+    (root.querySelector('#ui-val') as HTMLElement).textContent = `${Math.round((s.uiScale ?? 1) * 100)}%`;
     (root.querySelector('#set-vol') as HTMLInputElement).value = String(s.volume);
     (root.querySelector('#set-music') as HTMLInputElement).value = String(s.music);
     (root.querySelector('#set-invert') as HTMLElement).textContent = s.invertY ? 'On' : 'Off';

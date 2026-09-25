@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { Game, Island } from './game';
-import { UI, Settings } from './ui';
+import { UI, Settings, applyUiScale } from './ui';
 import { Audio } from './audio';
 import { ECHOES, SEEDS, EPILOGUE, CHAPTERS } from './story';
 import { Bridge } from './bridge';
@@ -72,7 +72,8 @@ export class Director {
   constructor(game: Game, plan: IslandPlan[]) {
     this.game = game;
     this.plan = plan;
-    this.settings = { quality: 'high', sensitivity: 1, invertY: false, fov: 74, volume: 0.8, music: 0.6, ...(loadJSON<Settings>(SETTINGS_KEY) ?? {}) };
+    this.settings = { quality: 'high', sensitivity: 1, invertY: false, fov: 74, volume: 0.8, music: 0.6, uiScale: 1, ...(loadJSON<Settings>(SETTINGS_KEY) ?? {}) };
+    applyUiScale(this.settings.uiScale);
     this.ui = new UI(this.settings);
     this.scripts = islandScripts(this);
     const s = loadJSON<SaveData>(SAVE_KEY);
@@ -144,6 +145,7 @@ export class Director {
     this.settings = s;
     saveJSON(SETTINGS_KEY, s);
     const g = this.game;
+    applyUiScale(s.uiScale);
     g.input.sensitivity = s.sensitivity;
     g.input.invertY = s.invertY;
     g.r.camera.fov = s.fov;
@@ -242,6 +244,7 @@ export class Director {
     const mins = Math.floor(s.time / 60);
     this.ui.setPauseStats(`<b>${CHAPTERS[this.island.key]?.numeral ?? ''} · ${CHAPTERS[this.island.key]?.name ?? ''}</b><br>Memories kept: <b>${s.seeds.length} of 6</b><br>Time: <b>${mins} min</b>`);
     this.ui.showScreen('pause');
+    this.ui.setHudVisible(false);
     this.game.input.exitLock();
   }
 
@@ -249,6 +252,7 @@ export class Director {
     if (this.state !== 'paused') return;
     this.state = 'playing';
     this.ui.showScreen(null);
+    this.ui.setHudVisible(true);
     this.game.paused = false;
     this.game.input.requestLock();
     this.audio.ui();

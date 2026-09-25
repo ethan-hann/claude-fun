@@ -54,9 +54,17 @@ def floor(b, x0, z0, x1, z1, y, thick=0.4, mat='tiles', holes=(), bevel=0.02, co
               bevel=bevel, collide=collide)
 
 
-def wall(b, x0, z0, x1, z1, y0, y1, thick=0.5, mat='wall', openings=(), bevel=0.03, collide=True, cap=None):
+def wall(b, x0, z0, x1, z1, y0, y1, thick=0.5, mat='wall', openings=(), bevel=0.03, collide=True, cap=None,
+         style=None, trim='marble', pilaster_every=0.0, frames=False):
     """Straight wall from (x0, z0) to (x1, z1). openings: (u0, u1, v0, v1) in metres along the wall
-    and heights above y0. The wall is split into boxes around the openings."""
+    and heights above y0. The wall is split into boxes around the openings.
+    style='classic' adds a plinth course, a two-tier cornice (instead of cap), pilasters every
+    pilaster_every metres and, with frames, stone surrounds around the openings. All of it wraps
+    both faces of the wall."""
+    if style == 'classic':
+        _classic_dress(b, x0, z0, x1, z1, y0, y1, thick, openings, trim, pilaster_every, frames)
+        cap = None
+    openings = [tuple(o[:4]) for o in openings]  # a fifth element marks raised doorways
     dx, dz = x1 - x0, z1 - z0
     length = math.hypot(dx, dz)
     ux, uz = dx / length, dz / length
@@ -275,3 +283,81 @@ def fluted_column(b, x, z, y0, h=8.5, r=0.45, mat='marble', collide=True):
     top = y0 + 0.55 + shaft_h
     b.cyl((x, top + 0.125, z), r + 0.02, 0.25, mat=mat, segments=32, bevel=0.03, collide=False, radius_top=r + 0.2)
     b.box((x, top + 0.25 + 0.15, z), (1.1, 0.3, 1.1), mat=mat, bevel=0.03, collide=collide)
+
+
+def _classic_dress(b, x0, z0, x1, z1, y0, y1, thick, openings, trim, every, frames):
+    """Plinth course, cornice, pilasters and opening surrounds for a straight wall.
+    Walls running along X sit 1 cm higher than walls along Z, so crossing bands at corners never
+    share a face (they would z-fight and bake black)."""
+    dx, dz = x1 - x0, z1 - z0
+    length = math.hypot(dx, dz)
+    ux, uz = dx / length, dz / length
+    ry = math.atan2(ux, uz)
+    lift = 0.01 if abs(ux) > abs(uz) else 0.0
+
+    def at(u, y, w_across, h, l_along, mat=trim, collide=False, bevel=0.02):
+        b.box((x0 + ux * u, y + lift, z0 + uz * u), (w_across, h, l_along), mat=mat, bevel=bevel, rot_y=ry, collide=collide)
+
+    kinds = [o[4] if len(o) > 4 else ('door' if o[2] < 0.05 else 'window') for o in openings]
+    openings = [tuple(o[:4]) for o in openings]
+    doors = sorted((u0, u1) for u0, u1, v0, v1 in openings if v0 < 0.05)
+    # plinth course, broken at doorways
+    edges = [0.0 - 0.08]
+    for u0, u1 in doors:
+        edges += [u0 - 0.02, u1 + 0.02]
+    edges.append(length + 0.08)
+    for i in range(0, len(edges), 2):
+        a, c = edges[i], edges[i + 1]
+        if c - a > 0.1:
+            at((a + c) / 2, y0 + 0.28, thick + 0.16, 0.56, c - a)
+    # cornice: a narrow band under a wider crown
+    h = y1 - y0
+    at(length / 2, y1 - 0.14, thick + 0.18, 0.28, length + 0.18)
+    at(length / 2, y1 + 0.09, thick + 0.4, 0.18, length + 0.4, bevel=0.03)
+    # pilasters, clear of the ends and of openings
+    if every > 0:
+        n = int((length - 2.0) // every)
+        start = (length - n * every) / 2
+        for k in range(n + 1):
+            u = start + k * every
+            if u < 1.0 or u > length - 1.0:
+                continue
+            if any(u0 - 0.5 < u < u1 + 0.5 for u0, u1, v0, v1 in openings):
+                continue
+            at(u, y0 + 0.56 + (h - 0.56 - 0.28) / 2, thick + 0.24, h - 0.56 - 0.28 - 0.01, 0.56, bevel=0.03)
+    # surrounds around openings: jambs, a head, and a sill under windows
+    if frames:
+        for (u0, u1, v0, v1), kind in zip(openings, kinds):
+            w = 0.26
+            top = min(v1 + w, h - 0.3)
+            for uc in (u0 - w / 2 + 0.03, u1 + w / 2 - 0.03):
+                at(uc, y0 + (v0 + top) / 2 + (0.28 if v0 < 0.05 else 0.0) / 2, thick + 0.16, top - v0 - (0.28 if v0 < 0.05 else 0.0), w)
+            at((u0 + u1) / 2, y0 + v1 + w / 2 - 0.03, thick + 0.16, w, u1 - u0 + 0.02)
+            if kind == 'window':
+                at((u0 + u1) / 2, y0 + v0 - 0.07, thick + 0.26, 0.14, u1 - u0 + 0.4)
+
+
+def bust(b, x, z, y, ry=0.0, scale=2.1, plinth_h=1.25):
+    """A marble bust on a plinth."""
+    b.box((x, y + 0.08, z), (0.86, 0.16, 0.86), mat='marble', bevel=0.03)
+    b.box((x, y + plinth_h / 2, z), (0.62, plinth_h - 0.2, 0.62), mat='marble', bevel=0.02)
+    b.box((x, y + plinth_h - 0.06, z), (0.8, 0.12, 0.8), mat='marble', bevel=0.03)
+    b.prop('marble_bust_01', (x, y + plinth_h, z), rot_y=ry, scale=scale, decimate=0.45, lm_weight=0.8)
+
+
+def urn(b, x, z, y, s=1.0, mat='marble'):
+    """A stone urn: foot, body, shoulder, neck and lip."""
+    b.cyl((x, y + 0.08 * s, z), 0.26 * s, 0.16 * s, mat=mat, segments=24, bevel=0.02, collide=False)
+    b.cyl((x, y + 0.26 * s, z), 0.12 * s, 0.2 * s, mat=mat, segments=24, bevel=0.0, collide=False, radius_top=0.2 * s)
+    b.cyl((x, y + 0.55 * s, z), 0.2 * s, 0.38 * s, mat=mat, segments=28, bevel=0.0, collide=False, radius_top=0.34 * s)
+    b.cyl((x, y + 0.82 * s, z), 0.34 * s, 0.16 * s, mat=mat, segments=28, bevel=0.0, collide=False, radius_top=0.22 * s)
+    b.cyl((x, y + 0.96 * s, z), 0.22 * s, 0.12 * s, mat=mat, segments=24, bevel=0.0, collide=False, radius_top=0.28 * s)
+    b.collider_cyl((x, y + 0.5 * s, z), 0.3 * s, 1.0 * s)
+
+
+def rusticate(b, x, z, y0, y1, w, d, every=1.4, mat='wall'):
+    """Horizontal grooves on a tall pier: thin bands proud of its faces."""
+    y = y0 + every
+    while y < y1 - 0.4:
+        b.box((x, y, z), (w + 0.1, 0.12, d + 0.1), mat=mat, bevel=0.02, collide=False, lm_weight=0.4)
+        y += every

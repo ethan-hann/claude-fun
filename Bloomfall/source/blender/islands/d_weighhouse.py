@@ -102,16 +102,25 @@ def build(b):
     arch.floor(b, -12.0, -35.4, 12.0, -6.6, 0.0, thick=1.2, mat='tiles', holes=[pit_a, pit_b])
     for x in (-5.0, 5.0):
         b.box((x, -0.36, -24.0), (3.72, 0.08, 3.72), mat='steel', bevel=0.01)
-    # walls: south and north run full width and stand 4 cm proud of the east and west walls
-    arch.wall(b, -12.04, FACADE_Z, 12.04, FACADE_Z, 0.0, TOP, thick=WALL_T, mat='wall', cap='marble',
-              openings=[(10.44, 13.64, LANDING, LANDING + 4.0), (3.54, 6.54, 7.2, 11.4), (17.54, 20.54, 7.2, 11.4)])
-    arch.wall(b, -12.04, NORTH_Z, 12.04, NORTH_Z, 0.0, TOP, thick=WALL_T, mat='wall', cap='marble',
-              openings=[(1.04, 4.04, EXIT, EXIT + 3.5), (17.84, 20.24, 7.2, 11.4)])
+    # walls: south and north run full width and stand 4 cm proud of the east and west walls.
+    # Classic dress: plinth course, cornice, pilasters and stone surrounds, inside and out.
+    dress = dict(style='classic', trim='marble', pilaster_every=4.0, frames=True)
+    arch.wall(b, -12.04, FACADE_Z, 12.04, FACADE_Z, 0.0, TOP, thick=WALL_T, mat='wall',
+              openings=[(10.44, 13.64, LANDING, LANDING + 4.0, 'door'), (3.54, 6.54, 7.2, 11.4), (17.54, 20.54, 7.2, 11.4)], **dress)
+    arch.wall(b, -12.04, NORTH_Z, 12.04, NORTH_Z, 0.0, TOP, thick=WALL_T, mat='wall',
+              openings=[(1.04, 4.04, EXIT, EXIT + 3.5, 'door'), (17.84, 20.24, 7.2, 11.4)], **dress)
     # west wall: tall windows over the gallery let the low sun in
-    arch.wall(b, -11.6, -6.64, -11.6, -35.36, 0.0, TOP, thick=WALL_T, mat='wall', cap='marble',
-              openings=[(4.2, 6.6, 7.6, 11.8), (11.2, 13.6, 7.6, 11.8), (18.2, 20.6, 7.6, 11.8)])
-    arch.wall(b, 11.6, -6.64, 11.6, -35.36, 0.0, TOP, thick=WALL_T, mat='wall', cap='marble',
-              openings=[(8.2, 10.6, 7.6, 11.8), (15.2, 17.6, 7.6, 11.8)])
+    arch.wall(b, -11.6, -6.64, -11.6, -35.36, 0.0, TOP, thick=WALL_T, mat='wall',
+              openings=[(4.2, 6.6, 7.6, 11.8), (11.2, 13.6, 7.6, 11.8), (18.2, 20.6, 7.6, 11.8)], **dress)
+    arch.wall(b, 11.6, -6.64, 11.6, -35.36, 0.0, TOP, thick=WALL_T, mat='wall',
+              openings=[(8.2, 10.6, 7.6, 11.8), (15.2, 17.6, 7.6, 11.8)], **dress)
+    # the Weighhouse's emblem over the entrance: a balance in a stone roundel
+    b.cyl((0.0, 11.35, -6.5), 1.15, 0.24, mat='marble', segments=48, bevel=0.03, collide=False).rotation_euler = (math.radians(90), 0, 0)
+    b.box((0.0, 11.75, -6.34), (1.5, 0.09, 0.06), mat='steel', bevel=0.01, collide=False)
+    b.box((0.0, 11.35, -6.34), (0.09, 0.9, 0.06), mat='steel', bevel=0.01, collide=False)
+    for sx in (-0.62, 0.62):
+        b.box((sx, 11.45, -6.34), (0.03, 0.55, 0.05), mat='steel', bevel=0.0, collide=False)
+        b.box((sx, 11.15, -6.33), (0.42, 0.06, 0.06), mat='steel', bevel=0.01, collide=False)
     b.box((0.0, TOP + 0.3, -21.0), (24.3, 0.6, 29.0), mat='concrete', bevel=0.05)
     # the entrance balcony outside, on two columns
     b.box((0.0, LANDING - 0.25, -5.2), (6.0, 0.5, 2.8), mat='marble', bevel=0.04)
