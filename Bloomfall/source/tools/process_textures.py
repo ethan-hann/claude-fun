@@ -57,6 +57,30 @@ def main():
             im.save(out, 'WEBP', **kw)
             total += os.path.getsize(out)
         print(f'{key:10s} {size}px  {sum(os.path.getsize(os.path.join(DST, f"{key}_{n}.webp")) for n in ("color", "normal", "arm")) / 1024:.0f} KB')
+    # Prop models from Poly Haven: their own texture sets, renamed prop_<asset>.
+    mdir = os.path.join(ROOT, '.cache', 'models')
+    for asset in sorted(os.listdir(mdir)) if os.path.isdir(mdir) else []:
+        tdir = os.path.join(mdir, asset, 'textures')
+        files = os.listdir(tdir)
+        def find(tag):
+            for f in files:
+                if f'_{tag}_' in f:
+                    return os.path.join(tdir, f)
+            return None
+        size = 1024
+        color = load(find('diff'), 'RGB', size)
+        normal = load(find('nor_gl'), 'RGB', size)
+        if find('arm'):
+            arm = load(find('arm'), 'RGB', size)
+        else:
+            rough = load(find('rough'), 'L', size)
+            arm = Image.merge('RGB', (Image.new('L', (size, size), 255), rough, Image.new('L', (size, size), 0)))
+        key = 'prop_' + asset
+        for name, im in (('color', color), ('normal', normal), ('arm', arm)):
+            out = os.path.join(DST, f'{key}_{name}.webp')
+            im.save(out, 'WEBP', quality=QUALITY[name], method=6)
+            total += os.path.getsize(out)
+        print(f'{key:28s} {sum(os.path.getsize(os.path.join(DST, f"{key}_{n}.webp")) for n in ("color", "normal", "arm")) / 1024:.0f} KB')
     print(f'total {total / 1048576:.2f} MB')
 
 

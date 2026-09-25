@@ -408,8 +408,9 @@ class Island:
             bpy.data.objects.remove(o)
         objs = []
         for o in new:
-            o.matrix_world = Matrix.Identity(4)
             me = o.data
+            me.transform(o.matrix_world)  # keep the importer's Y-up -> Z-up conversion
+            o.matrix_world = Matrix.Identity(4)
             me.transform(Matrix.Scale(scale, 4))
             if decimate:
                 mod = o.modifiers.new('dec', 'DECIMATE')
@@ -728,7 +729,8 @@ def save_lightmap(rgb, mask, path, quality=92):
     rgb8 = np.clip(np.round((srgb + dither) * 255), 0, 255).astype(np.uint8)
     a8 = np.clip(np.round(mask * 255), 0, 255).astype(np.uint8)
     im = np.dstack([rgb8, a8])[::-1]  # Blender rows are bottom-up; glTF UV v is top-down
-    Image.fromarray(im, 'RGBA').save(path, 'WEBP', quality=quality, alpha_quality=100, method=6)
+    # exact=True: keep RGB where alpha (sun visibility) is 0; the encoder would otherwise discard it
+    Image.fromarray(im, 'RGBA').save(path, 'WEBP', quality=quality, alpha_quality=100, method=6, exact=True)
     clipped = float((rgb / scale > 1).mean())
     return scale, clipped
 
