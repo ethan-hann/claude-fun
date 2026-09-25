@@ -1,7 +1,39 @@
 # Claude Fun
 
+This repo is just some fun stuff I've made with Claude Code using a single prompt; the canonical "one-shot" and "make no mistakes".
+
+Every folder is a self contained "project". I use project loosely because most of these are single file deliverables.
+
+> [!IMPORTANT]
+> I am not a "vibe-coder". All of my projects (even personal ones) follow a strict planning and designing phase before any code ever gets written and I always review code that is produced.
+> 
+> That being said, it is fun to just see what Claude is capable of without a bunch of constraints. It is also [potentially very dangerous](https://www.anthropic.com/research/mythos-preview), so do this at your own risk.
+
+Each project below contains a brief description and the prompt used.
+
 ## Gaia Engine
 
 A steampunk first-person shooter built on Greek myth. You are the world.
 
 Open [gaia-engine.html](<Gaia Engine/gaia-engine.html>) in a desktop browser with WebGL. It loads Three.js from the jsDelivr CDN, so it needs a network connection. Full README [here](<Gaia Engine/README.md>).
+
+### Prompt:
+
+```
+You are an experienced game developer that is an expert at 3d game design. You ship tight, bug-free code.
+
+Your goal is a 3d game with the follow idea:
+Genre: FPS
+Rule: You Are The World
+Setting: Steampunk
+Theme: Myth
+
+STANDING RULES:
+1) The game must have a goal and an end state.
+2) The game should have a small tutorial at start explaining the mechanics.
+3) You must use Three.js for 3d rendering.
+4) One contained HTML file.
+5) No subagents and no workflows.
+
+I will not describe the game any more than that. You will continue until a complete, playable game has been produced. Do not surface design questions to me and do not ask me anything. You make the decisions. You may use any skill needed to help with the design and implementation.
+```
