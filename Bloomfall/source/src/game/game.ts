@@ -12,6 +12,7 @@ import { Graft } from './graft';
 import { Lattice, FreeLattice, AnchoredLattice, SpanLattice, isLatticeCollider } from './lattice';
 import { LatticeVisuals } from './visuals';
 import { Entity, EntityContext, Plate, Door, Zone, Pickup, Balance, Toppler } from './entities';
+import { Heart } from './heart';
 
 export const STEP = 1 / 60;
 
@@ -62,7 +63,7 @@ export class Island {
   setAttached(v: boolean): void {
     this.attached = v;
     this.driftT = -1;
-    if (this.group) { this.group.visible = v; this.group.position.copy(this.origin); }
+    if (this.group) { this.group.visible = v; this.group.position.copy(this.origin); this.group.scale.setScalar(1); this.group.rotation.set(0, 0, 0); }
     for (const c of this.chunks.values()) c.body.setTranslation(v ? this.origin : FAR, true);
     for (const l of this.lattices) { l.object.visible = v; l.disabled = !v; if (!v) l.body.setTranslation(FAR, false); }
     for (const e of this.entities) (e as any).setVisible?.(v);
@@ -181,6 +182,8 @@ export class Game {
   running = false;
   paused = false;
   shake = 0; // camera shake, decays by itself
+  controlsLocked = false; // the ending: the player no longer moves
+  cameraOverride: ((cam: THREE.PerspectiveCamera, dt: number) => void) | null = null;
   listeners: ((ev: string, data?: any) => void)[] = [];
 
   async init(defs: IslandDef[], quality: Quality = 'high'): Promise<void> {
@@ -192,6 +195,8 @@ export class Game {
     await this.vis.init();
     this.gloveModel = await loadModel('glove');
     this.columnModel = await loadModel('column');
+    const bloom = await loadModel('bloom');
+    bloom.traverse((o) => { if (!this.petalModel && o.name.startsWith('petal')) this.petalModel = o; });
     this.gloveModel.traverse((o) => {
       const m = o as THREE.Mesh;
       if (!m.isMesh) return;
@@ -337,6 +342,11 @@ export class Game {
       case 'arrive':
         isl.arrivePoint = v3(rec.p).add(o);
         break;
+      case 'heart': {
+        const e = new Heart(rec, this.ctx, this.petalModel);
+        this.addEntity(isl, id, e);
+        break;
+      }
       case 'toppler': {
         const e = new Toppler(rec, this.ctx, this.columnModel);
         this.addEntity(isl, id, e);
@@ -360,6 +370,7 @@ export class Game {
 
   private gloveModel: THREE.Object3D | null = null;
   private columnModel: THREE.Object3D | null = null;
+  private petalModel: THREE.Object3D | null = null;
 
   private pickupObject(kind: string): THREE.Object3D {
     const g = new THREE.Group();
@@ -502,6 +513,7 @@ export class Game {
     if (!this.paused) {
       this.input.pollGamepad(dt);
       const look = this.input.consumeLook();
+      if (this.controlsLocked) { this.input.down.clear(); this.input.pressed.clear(); look.dx = 0; look.dy = 0; }
       lx = look.dx; ly = look.dy;
       this.player.look(look.dx, look.dy);
       this.acc += dt;
@@ -527,7 +539,8 @@ export class Game {
     for (const l of this.lattices.values()) (l as any).syncObject(alpha);
     for (const e of this.entities.values()) e.frameUpdate(dt, alpha, this.ctx);
     if (!this.paused) {
-      this.player.applyCamera(this.r.camera, alpha);
+      if (this.cameraOverride) this.cameraOverride(this.r.camera, dt);
+      else this.player.applyCamera(this.r.camera, alpha);
       this.r.focus.copy(this.player.pos);
       if (this.shake > 0.001) {
         const k = this.shake * this.shake * 0.09;

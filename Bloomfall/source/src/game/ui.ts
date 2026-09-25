@@ -286,8 +286,10 @@ export class UI {
       <div class="shade" style="background:rgba(4,4,7,0.9)"></div>
       <div class="panel">
         <div class="epi" id="epilogue"></div>
-        <div class="stats" id="end-stats"></div>
-        <button class="btn" data-a="quit">Return to the title</button>
+        <div class="seed" id="end-seed"></div>
+        <div class="star" id="end-star"></div>
+        <div class="stats later" id="end-stats"></div>
+        <button class="btn later" data-a="quit">Return to the title</button>
       </div>`);
     for (const s of [title, pause, settings, controls, credits]) {
       document.body.appendChild(s);
@@ -366,9 +368,16 @@ export class UI {
     (this.screens.pause.querySelector('#pause-stats') as HTMLElement).innerHTML = html;
   }
 
+  // The epilogue: one line at a time out of the dark, then a seed of light, then a star.
   showCredits(epilogue: string[], stats: string): void {
-    (this.screens.credits.querySelector('#epilogue') as HTMLElement).innerHTML = epilogue.map((l) => `<p>${l}</p>`).join('');
-    (this.screens.credits.querySelector('#end-stats') as HTMLElement).innerHTML = stats;
+    const c = this.screens.credits;
+    const step = 3.4;
+    (c.querySelector('#epilogue') as HTMLElement).innerHTML = epilogue.map((l, i) => `<p style="animation-delay:${0.6 + i * step}s">${l}</p>`).join('');
+    const after = 0.6 + epilogue.length * step;
+    (c.querySelector('#end-seed') as HTMLElement).style.animationDelay = `${after}s, ${after + 3}s`;
+    (c.querySelector('#end-star') as HTMLElement).style.animationDelay = `${after + 3.5}s, ${after + 9.5}s`;
+    (c.querySelector('#end-stats') as HTMLElement).innerHTML = stats;
+    c.querySelectorAll<HTMLElement>('.later').forEach((e) => { e.style.animationDelay = `${after + 6}s`; });
     this.showScreen('credits');
   }
 }

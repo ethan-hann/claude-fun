@@ -13,6 +13,10 @@ import { islandScripts, IslandScript } from './scripts';
 import { BloomFlower } from './bloom';
 import { loadModel } from '../engine/level';
 import { Dust } from './fx';
+import { Heart } from './heart';
+import { skyUniforms } from '../engine/sky';
+import { fogUniforms } from '../engine/materials';
+import world from '../../shared/world.json';
 
 export interface IslandPlan { key: string; origin: [number, number, number]; capacity: number; infinite?: boolean }
 
@@ -38,6 +42,13 @@ export class Director {
   bridges: (Bridge | null)[] = [];
   flowers: (BloomFlower | null)[] = [];
   dust!: Dust;
+  heartPos = new THREE.Vector3(0, 60, -620);
+  private coreHoldBeam = 0;
+  private endT = 0;
+  private endHeart: Heart | null = null;
+  private endCam: { pos: THREE.Vector3; quat: THREE.Quaternion } | null = null;
+  private fly: { group: THREE.Object3D; start: THREE.Vector3; t0: number; spin: number }[] = [];
+  private endFlags = new Set<string>();
   state: 'title' | 'playing' | 'paused' | 'ending' | 'credits' = 'title';
   save: SaveData = { island: 0, seeds: [], time: 0, resets: 0, falls: 0 };
   settings: Settings;
@@ -98,6 +109,9 @@ export class Director {
       isl.group.add(f.group);
       this.flowers.push(f);
     }
+    // the Heart glows in the sky from every island
+    for (const e of g.entities.values()) if (e instanceof Heart) this.heartPos.copy(e.center);
+    skyUniforms.uHeartPos.value.copy(this.heartPos);
     g.listeners.push((ev, d) => this.onEvent(ev, d));
     g.player.onStep = () => this.audio.footstep(g.player.feet.clone(), 'stone', g.player.sprinting);
     g.player.onLand = (v) => { if (v > 3) this.audio.land(g.player.feet.clone(), v); };
@@ -156,6 +170,7 @@ export class Director {
   }
 
   private startAt(i: number, fresh: boolean): void {
+    this.clearEnding();
     this.audio.start();
     this.audio.ui();
     const g = this.game;
@@ -451,6 +466,7 @@ export class Director {
       this.vm.show(false);
       return;
     }
+    if (this.state === 'ending') { this.updateEnding(dt); return; }
     if (this.state !== 'playing') return;
     this.save.time += dt;
     const input = g.input;
@@ -504,6 +520,20 @@ export class Director {
     }
     gr.events.length = 0;
     this.vm.heldTarget = gr.held ? gr.held.object : null;
+    // the Heart: hold Take on it
+    const heart = this.island.entities.find((e) => e instanceof Heart) as Heart | undefined;
+    if (heart) {
+      const holding = gr.owned && !!gr.coreTarget && input.down.has('take');
+      heart.progress = THREE.MathUtils.clamp(heart.progress + (holding ? dt / 3.2 : -dt * 0.7), 0, 1);
+      this.audio.coreHold(heart.progress, holding);
+      if (holding) {
+        this.coreHoldBeam -= dt;
+        if (this.coreHoldBeam <= 0) { this.coreHoldBeam = 0.22; this.vm.action('take', heart.center.clone()); }
+        g.shake = Math.max(g.shake, heart.progress * 0.35);
+      }
+      this.ui.fade(heart.progress * 0.45, 0.15, true);
+      if (heart.progress >= 1) this.startEnding(heart);
+    }
     this.updateHud();
     // plate notch clicks
     for (const e of g.entities.values()) {
@@ -574,8 +604,98 @@ export class Director {
     const cam = g.r.camera;
     this.audio.setListener(cam.getWorldPosition(new THREE.Vector3()), cam.getWorldDirection(new THREE.Vector3()));
     this.audio.interior = THREE.MathUtils.lerp(this.audio.interior, this.game.isInterior() ? 1 : 0, Math.min(1, dt * 2));
-    const heart = new THREE.Vector3(0, 60, -620);
-    this.audio.heartProximity = THREE.MathUtils.clamp(1 - cam.position.distanceTo(heart) / 700, 0, 1);
+    this.audio.heartProximity = THREE.MathUtils.clamp(1 - cam.position.distanceTo(this.heartPos) / 700, 0, 1);
+  }
+
+  // ---------------------------------------------------------------- the ending
+  private startEnding(heart: Heart): void {
+    const g = this.game;
+    this.state = 'ending';
+    this.endT = 0;
+    this.endHeart = heart;
+    this.endFlags.clear();
+    this.fly = [];
+    g.controlsLocked = true;
+    this.ui.card(null);
+    this.ui.clearEcho();
+    this.ui.setHudVisible(false);
+    this.ui.prompt(null);
+    this.audio.ending();
+  }
+
+  private updateEnding(dt: number): void {
+    const g = this.game;
+    const t = (this.endT += dt);
+    const h = this.endHeart!;
+    const once = (k: string) => { if (this.endFlags.has(k)) return false; this.endFlags.add(k); return true; };
+    h.progress = 1;
+    h.collapse = THREE.MathUtils.clamp((t - 0.5) / 9.0, 0, 1);
+    if (t < 8.5) g.shake = Math.max(g.shake, 0.3 + 0.25 * Math.sin(t * 2.0) ** 2);
+    if (t < 2.5) this.ui.fade(0.45 - 0.2 * (t / 2.5), 0.2, true);
+    // the camera leaves the Tender and pulls back to watch the city fall inward
+    if (t > 2.2 && once('cam')) {
+      const cam = g.r.camera;
+      this.endCam = { pos: cam.position.clone(), quat: cam.quaternion.clone() };
+      this.vm.show(false);
+      g.cameraOverride = (c) => {
+        const k = THREE.MathUtils.smoothstep(this.endT, 2.2, 7.5);
+        // look back along the road the Tender came: the islands come home from there
+        const far = h.center.clone().add(new THREE.Vector3(-9, 9, -40));
+        c.position.lerpVectors(this.endCam!.pos, far, k);
+        const look = new THREE.Matrix4().lookAt(c.position, h.center, new THREE.Vector3(0, 1, 0));
+        const q = new THREE.Quaternion().setFromRotationMatrix(look);
+        c.quaternion.copy(this.endCam!.quat).slerp(q, THREE.MathUtils.smoothstep(this.endT, 2.2, 4.0));
+      };
+    }
+    // every island rushes back and folds into the Heart
+    if (t > 2.5 && once('fly')) {
+      g.islands.forEach((isl, k) => {
+        if (!isl.group) return;
+        const cur = isl === g.current;
+        const away = isl.origin.clone().sub(h.center).setY(0).normalize();
+        if (away.lengthSq() < 0.1) away.set(0, 0, 1);
+        const side = new THREE.Vector3(-away.z, 0, away.x);
+        const n = g.islands.length;
+        const start = cur ? isl.origin.clone() : h.center.clone().addScaledVector(away, 150 + (n - k) * 30)
+          .addScaledVector(side, (k % 2 ? 1 : -1) * (25 + k * 12)).add(new THREE.Vector3(0, (k % 3 - 1) * 22, 0));
+        isl.group.visible = true;
+        isl.group.position.copy(start);
+        this.fly.push({ group: isl.group, start, t0: cur ? 5.0 : 2.4 + (n - 1 - k) * 0.45, spin: (Math.random() - 0.5) * 1.2 });
+        if (cur) {
+          for (const l of isl.lattices) l.object.visible = false;
+          for (const e of isl.entities) if (!(e instanceof Heart)) (e as any).setVisible?.(false);
+        }
+      });
+    }
+    for (const f of this.fly) {
+      const e = THREE.MathUtils.clamp((t - f.t0) / 5.0, 0, 1);
+      const s = Math.max(0.001, 1 - e * e);
+      f.group.position.copy(h.center).addScaledVector(f.start.clone().sub(h.center), s);
+      f.group.scale.setScalar(s);
+      f.group.rotation.y = f.spin * e * e;
+    }
+    // the sky goes out
+    const dark = THREE.MathUtils.smoothstep(t, 3.0, 9.5);
+    skyUniforms.uSkyExposure.value = THREE.MathUtils.lerp(world.sky.strength, 0.015, dark);
+    fogUniforms.uFogBrightness.value = THREE.MathUtils.lerp(world.sky.strength, 0.015, dark);
+    g.r.scene.environmentIntensity = THREE.MathUtils.lerp(world.sky.strength, 0.02, dark);
+    if (t > 9.4 && once('flash')) { this.ui.fade(1, 0.35, true); this.audio.chime(0); this.audio.coreHold(0, false); }
+    if (t > 10.2 && once('black')) this.ui.fade(1, 1.8, false);
+    if (t > 12.5 && once('done')) this.finishGame(true);
+  }
+
+  // Undo everything the ending changed (for a new game after the credits).
+  private clearEnding(): void {
+    const g = this.game;
+    g.controlsLocked = false;
+    g.cameraOverride = null;
+    for (const f of this.fly) { f.group.scale.setScalar(1); f.group.rotation.set(0, 0, 0); }
+    this.fly = [];
+    skyUniforms.uSkyExposure.value = world.sky.strength;
+    fogUniforms.uFogBrightness.value = world.sky.strength;
+    g.r.scene.environmentIntensity = world.sky.strength;
+    this.endHeart = null;
+    this.audio.restoreBuses();
   }
 
   finishGame(stats: boolean): void {
@@ -587,6 +707,7 @@ export class Director {
     this.ui.setHudVisible(false);
     const mins = Math.floor(this.save.time / 60);
     const secs = Math.floor(this.save.time % 60);
+    this.ui.fade(0, 3.0);
     this.ui.showCredits(EPILOGUE, stats ? `Time: <b>${mins}:${String(secs).padStart(2, '0')}</b><br>Memories kept: <b>${this.save.seeds.length} of 6</b><br>Falls: <b>${this.save.falls}</b> · Resets: <b>${this.save.resets}</b><br><br><span style="font-size:0.8em">Bloomfall. Made with Three.js, Rapier, and Blender.<br>Textures, sky, and models from Poly Haven and ambientCG (CC0).</span>` : '');
   }
 }

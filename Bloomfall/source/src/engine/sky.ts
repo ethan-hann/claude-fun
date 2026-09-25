@@ -68,6 +68,8 @@ export class Sky {
         uniform vec3 uSunDir;
         uniform vec3 uSunColor;
         uniform float uSkyExposure;
+        uniform vec3 uHeartPos;
+        uniform float uHeartGlow;
         varying vec3 vDir;
         void main() {
           vec3 d = normalize( vDir );
@@ -81,6 +83,11 @@ export class Sky {
           vec3 sunCol = uSunColor * vec3( 1.0, 0.78, 0.6 );
           col = mix( col, sunCol * ( 18.0 + 22.0 * limb ), disc );
           col += sunCol * ( pow( max( c, 0.0 ), 2200.0 ) * 6.0 + pow( max( c, 0.0 ), 180.0 ) * 1.2 + pow( max( c, 0.0 ), 12.0 ) * 0.25 );
+          // the Heartbloom, far off: a point of cold light that every island can see
+          vec3 toHeart = uHeartPos - cameraPosition;
+          float hc = max( dot( d, normalize( toHeart ) ), 0.0 );
+          float near = smoothstep( 70.0, 240.0, length( toHeart ) );
+          col += vec3( 0.55, 0.9, 1.0 ) * ( pow( hc, 9000.0 ) * 40.0 + pow( hc, 900.0 ) * 3.0 + pow( hc, 60.0 ) * 0.12 ) * uHeartGlow * near;
           gl_FragColor = vec4( col * uSkyExposure, 1.0 );
         }`,
       side: THREE.BackSide,

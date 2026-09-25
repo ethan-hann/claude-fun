@@ -385,6 +385,71 @@ export class Audio {
     chord.forEach((s, i) => this.bell(this.midi(this.root + 12 + s), 3, 0.06, null, i * 0.09, this.musicBus));
   }
 
+  // Holding the Heart: a drone that rises and trembles as the take goes on.
+  private core: { osc: OscillatorNode[]; gain: GainNode; filter: BiquadFilterNode } | null = null;
+  coreHold(progress: number, holding: boolean): void {
+    const ctx = this.ctx;
+    if (!ctx) return;
+    if (!this.core && progress > 0.001) {
+      const gain = ctx.createGain();
+      gain.gain.value = 0;
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.value = 300;
+      const osc = [0, 7, 12.1].map((st) => {
+        const o = ctx.createOscillator();
+        o.type = st === 12.1 ? 'sine' : 'sawtooth';
+        o.frequency.value = this.midi(this.root - 12 + st);
+        o.connect(filter);
+        o.start();
+        return o;
+      });
+      filter.connect(gain).connect(this.sfx);
+      gain.connect(this.reverbSend);
+      this.core = { osc, gain, filter };
+    }
+    if (!this.core) return;
+    const t = ctx.currentTime;
+    this.core.gain.gain.setTargetAtTime(progress * 0.16 * (holding ? 1 : 0.6), t, 0.08);
+    this.core.filter.frequency.setTargetAtTime(300 + progress * 2600, t, 0.1);
+    this.core.osc.forEach((o, i) => o.detune.setTargetAtTime(progress * 700 + Math.sin(this.time * (7 + i * 3)) * progress * 25, t, 0.05));
+    if (progress <= 0.001 && !holding) {
+      const c = this.core;
+      this.core = null;
+      c.gain.gain.setTargetAtTime(0, t, 0.05);
+      setTimeout(() => c.osc.forEach((o) => o.stop()), 400);
+    }
+  }
+
+  // The Heart is taken: everything swells, then falls silent.
+  ending(): void {
+    const ctx = this.ctx;
+    if (!ctx) return;
+    this.intensity = 1;
+    this.rumble(null, 10, 0.8);
+    const chord = [0, 7, 12, 15, 19, 24, 31];
+    chord.forEach((s, i) => this.bell(this.midi(this.root + s), 7, 0.07, null, 0.6 + i * 0.35, this.musicBus));
+    this.tone(this.midi(this.root - 24), 9, 'sine', 0.35, null, { attack: 3, rev: 0.6 });
+    const t = ctx.currentTime;
+    this.musicBus.gain.setTargetAtTime(0, t + 9, 1.2);
+    this.ambBus.gain.setTargetAtTime(0, t + 9, 1.2);
+  }
+
+  // A single clear note (the flash at the end, the star in the dark).
+  chime(k: number): void {
+    [0, 7, 12].forEach((s, i) => this.bell(this.midi(this.root + 24 + s + k * 2), 5, 0.06, null, i * 0.08, this.master));
+  }
+
+  // Called when a new game starts after the ending.
+  restoreBuses(): void {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    this.musicBus.gain.setTargetAtTime(this.musicVolume * 0.55, t, 0.5);
+    this.ambBus.gain.setTargetAtTime(0.9, t, 0.5);
+    this.intensity = 0;
+    this.coreHold(0, false);
+  }
+
   // The bloom flower opening: a slow rising arpeggio with a metallic shimmer.
   bloomOpen(p: THREE.Vector3): void {
     [0, 7, 12, 16, 19].forEach((s, i) => this.bell(this.midi(this.root + 12 + s), 2.6, 0.05, p, i * 0.22));

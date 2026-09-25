@@ -71,7 +71,7 @@ kbd.mouse svg { width: 0.95em; height: 1.2em; }
 #reset-label { position: absolute; left: 50%; top: calc(50% + 48px); transform: translateX(-50%); font-size: 0.8em; color: var(--dim); opacity: 0; transition: opacity .15s; }
 #reset-label.show { opacity: 1; }
 
-#fade { position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; transition: opacity .6s; z-index: 20; }
+#fade { position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; transition: opacity .6s, background-color 1.8s; z-index: 20; }
 #fade.white { background: #fff8ee; }
 
 #memory { position: absolute; left: 50%; top: 18%; transform: translateX(-50%); width: min(30em, 70vw); padding: 1.2em 1.5em; background: rgba(12, 14, 12, 0.7); border: 1px solid rgba(170, 255, 205, 0.35); border-radius: 0.3em; text-align: center; opacity: 0; transition: opacity .6s; }
@@ -106,6 +106,18 @@ input[type=range] { width: 9em; accent-color: #8fe8ff; }
 #credits .panel { left: 50%; transform: translate(-50%, -50%); text-align: center; width: min(36em, 86vw); }
 #credits .epi { font-family: 'Cormorant', serif; font-style: italic; font-size: 1.55em; line-height: 1.5; margin-bottom: 1.4em; }
 #credits .btn { text-align: center; padding-left: 0; }
+#credits.show .epi p, #credits.show .later { opacity: 0; animation: epi-in 2.4s ease forwards; }
+@keyframes epi-in { from { opacity: 0; transform: translateY(0.4em); } to { opacity: 1; transform: none; } }
+#credits .seed { width: 10px; height: 14px; margin: 0.4em auto 1.6em; border-radius: 50%;
+  background: radial-gradient(circle, #e6fff4 0%, #9fffd0 35%, rgba(120, 255, 200, 0) 72%);
+  box-shadow: 0 0 18px 6px rgba(140, 255, 210, 0.35); }
+#credits.show .seed { animation: epi-in 3s ease forwards, seed-pulse 3.2s ease-in-out infinite; }
+@keyframes seed-pulse { 50% { box-shadow: 0 0 26px 10px rgba(140, 255, 210, 0.5); } }
+#credits .star { position: fixed; top: 16vh; right: 22vw; width: 3px; height: 3px; border-radius: 50%; background: #fff;
+  box-shadow: 0 0 6px 2px rgba(255, 255, 255, 0.6); opacity: 0; }
+#credits.show .star { animation: star-in 6s ease forwards, twinkle 2.7s ease-in-out infinite; }
+@keyframes star-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes twinkle { 50% { transform: scale(0.6); } }
 #credits .btn:hover { padding-left: 0; }
 #loading { position: fixed; inset: 0; background: #0d0c10; display: flex; align-items: center; justify-content: center; flex-direction: column; z-index: 30; color: var(--ink); font-family: 'Cormorant', Georgia, serif; transition: opacity 1.2s; }
 #loading .t { font-size: clamp(28px, 5vmin, 64px); letter-spacing: 0.14em; font-weight: 600; }

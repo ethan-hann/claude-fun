@@ -29,6 +29,7 @@ export class Graft {
   capacity = 1;
   cells = 0;
   infinite = false;
+  coreTarget: any = null; // the Heart, when it is under the crosshair
   target: Lattice | null = null;
   targetPoint = new THREE.Vector3();
   targetDist = 0;
@@ -52,6 +53,8 @@ export class Graft {
     const dir = camera.getWorldDirection(new THREE.Vector3());
     this.target = null;
     let hit = this.phys.castGraft(origin, dir, GRAFT_RANGE + 2, this.held?.collider ?? null);
+    const owner = hit ? this.phys.owners.get(hit.collider.handle) : null;
+    this.coreTarget = owner && owner.kind === 'core' && hit!.toi < GRAFT_RANGE ? owner.heart : null;
     let lat = hit ? isLatticeCollider(this.phys, hit.collider) : null;
     if (this.held && !lat) {
       const hh = this.phys.castGraft(origin, dir, 4, null);
@@ -90,6 +93,7 @@ export class Graft {
     if (!this.owned) return this.fail('none', null);
     if (this.cooldown > 0) return;
     const t = this.target;
+    if (!t && this.coreTarget) return; // the Heart is taken by holding, not by a click
     if (!t) return this.fail('nothing', null);
     if (!this.infinite && this.cells >= this.capacity) return this.fail('full', t);
     const r = t.tryShrink();

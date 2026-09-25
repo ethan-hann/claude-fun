@@ -57,8 +57,10 @@ window.T = (() => {
     step(0.3);
     return [+p.pos.x.toFixed(2), +p.feet.y.toFixed(2), +p.pos.z.toFixed(2)];
   }
-  function lat(id) { return [...g().lattices.values()].find((l) => l.id.endsWith('.' + id)); }
-  function ent(id) { return [...g().entities.values()].find((e) => e.id.endsWith('.' + id)); }
+  // ids are per island; prefer the island the player is on
+  const cur = () => (d() && d().island ? d().island.key + '.' : '');
+  function lat(id) { return g().lattices.get(cur() + id) ?? [...g().lattices.values()].find((l) => l.id.endsWith('.' + id)); }
+  function ent(id) { return g().entities.get(cur() + id) ?? [...g().entities.values()].find((e) => e.id.endsWith('.' + id)); }
   function state() {
     const p = g().player, gr = g().graft;
     return { feet: [+p.pos.x.toFixed(2), +p.feet.y.toFixed(2), +p.pos.z.toFixed(2)], cells: gr.cells, owned: gr.owned, held: gr.held && gr.held.id, target: gr.target && gr.target.id, card: d() && d().ui.currentCard };
