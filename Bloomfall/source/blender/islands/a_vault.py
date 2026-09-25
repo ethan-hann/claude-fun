@@ -76,8 +76,9 @@ def build(b):
     arch.wall(b, -1.65, 18.0, -1.65, 10.0, 0, WALL_H, thick=T, mat='wall')
     arch.wall(b, 1.65, 18.0, 1.65, 10.0, 0, WALL_H, thick=T, mat='wall')
     b.box((0, WALL_H + 0.5, 14.0), (4.1, 1.0, 8.0), mat='concrete', bevel=0.05)
-    # trench: floor gone, 1 m deep, rough edges
-    b.box((0, -1.1, 14.0), (2.5, 0.2, 2.0), mat='rock', bevel=0.05)
+    # trench: floor gone, 1 m deep, rough edges. Its bed reaches under the slab on every side, so
+    # no bevel leaves a sliver to see through.
+    b.box((0, -1.125, 14.0), (3.1, 0.35, 2.6), mat='rock', bevel=0.05)
     arch.rubble(b, 0.0, -1.0, 14.0, 0.9, 7, seed=8, mat='concrete', max_size=0.45, collide=False)
     b.box((0, -0.35, 12.95), (2.5, 0.7, 0.3), mat='concrete', bevel=0.08, rot=(0.12, 0.0, 0.0))
     arch.pipe_run(b, (0.0, 3.35, 17.8), (0.0, 3.35, 10.2), r=0.12)

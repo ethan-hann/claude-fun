@@ -23,6 +23,7 @@ export interface EntityContext {
 export abstract class Entity {
   id: string;
   rec: EntityRec;
+  islandKey = '';
   constructor(rec: EntityRec) {
     this.id = rec.id ?? '';
     this.rec = rec;

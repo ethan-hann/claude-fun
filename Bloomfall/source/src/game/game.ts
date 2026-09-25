@@ -49,6 +49,9 @@ export class Island {
   arrivePoint: THREE.Vector3 | null = null;
   graftTaken = false;
   attached = true;
+  frozen = false; // drifting away: its things ride along and stop updating
+  visuals: THREE.Object3D[] = []; // scene objects made by its entities and lattices
+  bounds = new THREE.Box3(); // world bounds of its static geometry
   private driftT = -1;
   private driftDir = new THREE.Vector3();
   private phys: Physics | null = null;
@@ -63,7 +66,15 @@ export class Island {
   setAttached(v: boolean): void {
     this.attached = v;
     this.driftT = -1;
-    if (this.group) { this.group.visible = v; this.group.position.copy(this.origin); this.group.scale.setScalar(1); this.group.rotation.set(0, 0, 0); }
+    this.frozen = false;
+    if (this.group) {
+      this.group.visible = v; this.group.position.copy(this.origin); this.group.scale.setScalar(1); this.group.rotation.set(0, 0, 0);
+      // things that rode along on a drift go back to the scene, where they started
+      this.group.updateMatrixWorld(true);
+      const scene = this.group.parent;
+      if (scene) for (const o of this.visuals) if (o.parent === this.group) scene.attach(o);
+    }
+    for (const o of this.visuals) o.visible = v;
     for (const c of this.chunks.values()) c.body.setTranslation(v ? this.origin : FAR, true);
     for (const l of this.lattices) { l.object.visible = v; l.disabled = !v; if (!v) l.body.setTranslation(FAR, false); }
     for (const e of this.entities) (e as any).setVisible?.(v);
@@ -142,14 +153,19 @@ export class Island {
     }
   }
   drift(): void {
-    if (!this.attached || this.driftT >= 0) return;
+    if (!this.attached || this.driftT >= 0 || !this.group) return;
     this.driftT = 0;
+    this.frozen = true;
     this.driftDir.set(Math.random() - 0.5, -0.35, 0.8).normalize();
-    // the city takes back what the island held
     for (const c of this.chunks.values()) c.body.setTranslation(FAR, true);
     for (const l of this.lattices) { l.body.setTranslation(FAR, false); l.disabled = true; }
-    for (const e of this.entities) (e as any).setVisible?.(false);
-    for (const l of this.lattices) l.object.visible = false;
+    // doors, plates, crates and the rest ride along with the island as it drifts off; lattice
+    // that was carried off the island (onto a bridge or the next island) is taken back instead
+    this.group.updateMatrixWorld(true);
+    const away = new Set<THREE.Object3D>();
+    const box = this.bounds.clone().expandByScalar(2);
+    for (const l of this.lattices) if (!box.containsPoint(l.object.position)) { l.object.visible = false; away.add(l.object); }
+    for (const o of this.visuals) if (!away.has(o) && o.parent !== this.group) this.group.attach(o);
     for (const l of this.lights) l.src.intensity = 0;
   }
   updateDrift(dt: number): void {
@@ -231,6 +247,7 @@ export class Game {
     vis.group.updateMatrixWorld(true);
     this.r.scene.add(vis.group);
     isl.group = vis.group;
+    isl.bounds.setFromObject(vis.group);
     isl.title = data.title;
     const bodies = this.phys.addStatic(data.colliders, isl.origin);
     for (const [name, b] of bodies) {
@@ -249,8 +266,9 @@ export class Game {
     isl.startCells = data.meta.startCells ?? 0;
     this.ctx.origin = isl.origin;
     for (const rec of data.entities) {
-      const nL = isl.lattices.length, nE = isl.entities.length;
+      const nL = isl.lattices.length, nE = isl.entities.length, nV = this.r.scene.children.length;
       this.createEntity(isl, rec);
+      isl.visuals.push(...this.r.scene.children.slice(nV));
       const ch = this.chunkOf(isl, rec);
       if (ch) { ch.lattices.push(...isl.lattices.slice(nL)); ch.entities.push(...isl.entities.slice(nE)); }
     }
@@ -411,6 +429,13 @@ export class Game {
     return !!hit;
   }
 
+  // Things on an island that is drifting away ride along with it and stop updating.
+  private frozen(key: string | undefined): boolean {
+    if (!key) return false;
+    for (const isl of this.islands) if (isl.key === key) return isl.frozen;
+    return false;
+  }
+
   private chunkOf(isl: Island, rec: EntityRec) {
     return rec.chunk ? isl.chunks.get(rec.chunk) : undefined;
   }
@@ -424,6 +449,7 @@ export class Game {
 
   private addEntity(isl: Island, id: string, e: Entity): void {
     e.id = id;
+    e.islandKey = isl.key;
     isl.entities.push(e);
     this.entities.set(id, e);
   }
@@ -463,8 +489,8 @@ export class Game {
 
   fixedUpdate(dt: number, first: boolean): void {
     const input = this.input;
-    for (const l of this.lattices.values()) l.update(dt);
-    for (const e of this.entities.values()) e.fixedUpdate(dt, this.ctx);
+    for (const l of this.lattices.values()) if (!this.frozen(l.islandKey)) l.update(dt);
+    for (const e of this.entities.values()) if (!this.frozen(e.islandKey)) e.fixedUpdate(dt, this.ctx);
     this.depenetrate();
     this.player.fixedUpdate(dt, input, this.platformOf);
     // game logic aims from the latest physics pose; rendering re-applies it with interpolation
@@ -536,8 +562,8 @@ export class Game {
 
   renderFrame(dt: number): void {
     const alpha = this.acc / STEP;
-    for (const l of this.lattices.values()) (l as any).syncObject(alpha);
-    for (const e of this.entities.values()) e.frameUpdate(dt, alpha, this.ctx);
+    for (const l of this.lattices.values()) if (!this.frozen(l.islandKey)) (l as any).syncObject(alpha);
+    for (const e of this.entities.values()) if (!this.frozen(e.islandKey)) e.frameUpdate(dt, alpha, this.ctx);
     if (!this.paused) {
       if (this.cameraOverride) this.cameraOverride(this.r.camera, dt);
       else this.player.applyCamera(this.r.camera, alpha);

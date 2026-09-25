@@ -52,8 +52,11 @@ if nobake:
     mask = np.ones((64, 64), dtype=np.float32)
     lib.save_lightmap(rgb, mask, lm_path)
 else:
-    rgb, mask, cov = lib.bake_lightmap(obj, island, size, quick=quick)
-    rgb = lib.denoise_lightmap(rgb, cov, radius=1 if quick else 2)
+    rgb, mask, known, cov, nrm = lib.bake_lightmap(obj, island, size, quick=quick)
+    rgb = lib.denoise_lightmap(rgb, cov, nrm, radius=2 if quick else 3)
+    rgb = lib.fill_lightmap(rgb, cov)
+    mask = lib.denoise_lightmap(mask, known, nrm, radius=1, edge=False)
+    mask = lib.fill_lightmap(mask, known)
     scale, clipped = lib.save_lightmap(rgb, mask, lm_path)
     print(f'[{key}] lightmap saved, clipped fraction {clipped:.4f}', flush=True)
 

@@ -377,10 +377,13 @@ class Island:
         cx = sum(p.x for p in pts) / len(pts)
         cz = sum(p.y for p in pts) / len(pts)
         ring_verts = []
+        # The top ring sits 10 cm inside the floor slab, exactly on the outline, and is never
+        # displaced, so the rock meets the slab's edge cleanly. The top stays open: pits and shafts
+        # under holes in the floor go down into it.
         for r in range(rings + 1):
             t = r / rings
             shrink = (1 - t) ** 1.25 * 0.97 + 0.03  # radius factor at depth
-            y = top_y - 0.05 - depth * (t ** 0.85)
+            y = top_y + 0.1 - depth * (t ** 0.85)
             ring = []
             for p in pts:
                 jitter = 1.0 if r == 0 else (0.82 + rnd.random() * 0.3)
@@ -399,13 +402,23 @@ class Island:
         for i in range(m):
             bm.faces.new([ring_verts[-1][i], tip, ring_verts[-1][(i + 1) % m]])
         bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
-        # make sure normals point outward (down/out): flip if the top ring faces inward
+        # normals must point out of the rock (down and away from its axis), or it renders inside out
+        mid = sum((v.co for v in bm.verts), Vector()) / len(bm.verts)
+        out = sum((f.normal.dot(f.calc_center_median() - mid) * f.calc_area() for f in bm.faces), 0.0)
+        if out < 0:
+            bmesh.ops.reverse_faces(bm, faces=bm.faces)
+        # only the sides are displaced; the top ring and the cap keep their shape
+        dl = bm.verts.layers.deform.verify()
+        top = set(ring_verts[0])
+        for v in bm.verts:
+            v[dl][0] = 0.0 if v in top else 1.0
         me = bpy.data.meshes.new(self._name('under'))
         bm.to_mesh(me)
         bm.free()
         for p in me.polygons:
             p.use_smooth = True
         obj = bpy.data.objects.new(me.name, me)
+        obj.vertex_groups.new(name='rough')
         self._link(obj, mat, lm_weight)
         obj['lm_method'] = 'rock'
         # Displace for a rocky, broken surface.
@@ -419,11 +432,13 @@ class Island:
         disp.texture = tex
         disp.strength = 1.1
         disp.mid_level = 0.6
+        disp.vertex_group = 'rough'
         tex2 = bpy.data.textures.new(self._name('rocknoise2'), 'CLOUDS')
         tex2.noise_scale = 0.6
         disp2 = obj.modifiers.new('disp2', 'DISPLACE')
         disp2.texture = tex2
         disp2.strength = 0.45
+        disp2.vertex_group = 'rough'
         return obj
 
     # --------------------------------------------------------------- props
@@ -537,10 +552,29 @@ def _uv_area(me, layer):
     return total
 
 
+def _closed(me):
+    """True when every edge has exactly two faces: the mesh encloses a volume."""
+    count = {}
+    for p in me.polygons:
+        for ek in p.edge_keys:
+            count[ek] = count.get(ek, 0) + 1
+    return bool(count) and all(c == 2 for c in count.values())
+
+
+# Three fixed, skewed directions for the inside test (majority vote), so a ray that grazes an
+# edge or runs along a face cannot decide on its own.
+_RAYS = [Vector(d).normalized() for d in ((0.5812, 0.5703, 0.5803), (-0.6211, 0.2987, 0.7247), (0.1733, -0.8931, 0.4152))]
+
+
 def remove_hidden_faces(objs, label=''):
-    """Delete faces buried inside other solids (floor bottoms on rock, wall tops under a terrace...).
-    They are never seen, but they take lightmap space. A face goes when every sample point 1 cm in
-    front of it lies inside another object (nearest surface of that object faces away from it).
+    """Delete faces buried inside other solids (wall feet on a floor, glow strips set into a wall...).
+    They are never seen, but they take lightmap space.
+
+    A face goes only when every one of its sample points, 1 cm in front of it, is inside some other
+    closed object. Samples cover the face on a grid about 20 cm apart plus its corners, so a face
+    that shows anywhere is kept. Inside means an odd number of crossings along a ray, voted over
+    three rays, against one closed mesh at a time. Open meshes (the rock undersides, props, trees)
+    and see-through screens never hide anything.
     Also warns about visible coplanar faces from different objects: they z-fight and bake black."""
     t0 = time.time()
     solids = []
@@ -552,49 +586,84 @@ def remove_hidden_faces(objs, label=''):
         if not wv or not pl:
             solids.append(None)
             continue
-        lo = Vector((min(v.x for v in wv), min(v.y for v in wv), min(v.z for v in wv))) - Vector((0.02, 0.02, 0.02))
-        hi = Vector((max(v.x for v in wv), max(v.y for v in wv), max(v.z for v in wv))) + Vector((0.02, 0.02, 0.02))
-        solids.append((BVHTree.FromPolygons(wv, pl, all_triangles=False, epsilon=0.0), lo, hi))
         base = len(verts)
         verts.extend(wv)
         for p in o.data.polygons:
             polys.append([base + i for i in p.vertices])
             owner.append(oi)
+        mats = {m.name.split('.')[0] for m in o.data.materials if m}
+        if o.get('keep_uv') or o.get('own_lm') or 'screen' in mats or not _closed(o.data):
+            solids.append(None)
+            continue
+        lo = Vector((min(v.x for v in wv), min(v.y for v in wv), min(v.z for v in wv))) - Vector((0.02, 0.02, 0.02))
+        hi = Vector((max(v.x for v in wv), max(v.y for v in wv), max(v.z for v in wv))) + Vector((0.02, 0.02, 0.02))
+        solids.append((BVHTree.FromPolygons(wv, pl, all_triangles=False, epsilon=0.0), lo, hi, (hi - lo).length + 1.0))
     everything = BVHTree.FromPolygons(verts, polys, all_triangles=False, epsilon=0.0)
 
-    def inside_other(q, oi):
+    def crossings_odd(bvh, q, d, reach):
+        n = 0
+        o = q
+        for _ in range(256):
+            loc, _nor, _idx, _dist = bvh.ray_cast(o, d, reach)
+            if loc is None:
+                break
+            n += 1
+            o = loc + d * 1e-4
+        return n % 2 == 1
+
+    jit = Vector((0.00071, -0.00113, 0.00053))  # off the planes where boxes meet face to face
+
+    def inside_any(q, oi):
+        q = q + jit
         for k, sol in enumerate(solids):
             if k == oi or sol is None:
                 continue
-            bvh, lo, hi = sol
+            bvh, lo, hi, reach = sol
             if not (lo.x <= q.x <= hi.x and lo.y <= q.y <= hi.y and lo.z <= q.z <= hi.z):
                 continue
-            co, hn, idx, dist = bvh.find_nearest(q)
-            if co is not None and dist > 1e-5 and (q - co).dot(hn) < 0:
+            votes = 0
+            for i, d in enumerate(_RAYS):
+                if crossings_odd(bvh, q, d, reach):
+                    votes += 1
+                if votes >= 2 or votes + (len(_RAYS) - 1 - i) < 2:
+                    break
+            if votes >= 2:
                 return True
         return False
+
+    def samples_of(p, mw, me):
+        pts = [mw @ me.vertices[vi].co for vi in p.vertices]
+        c = sum(pts, Vector()) / len(pts)
+        out = [c]
+        out += [v.lerp(c, 0.08) for v in pts]  # just inside each corner
+        for k in range(1, len(pts) - 1):
+            a, b2, c2 = pts[0], pts[k], pts[k + 1]
+            area = (b2 - a).cross(c2 - a).length * 0.5
+            n = max(1, min(10, math.ceil(math.sqrt(area) / 0.2)))
+            for i in range(n):
+                for j in range(n - i):
+                    u, v = (i + 1 / 3) / n, (j + 1 / 3) / n
+                    out.append(a + (b2 - a) * u + (c2 - a) * v)
+        return out
 
     removed = 0
     warned = set()
     for oi, o in enumerate(objs):
-        if o.get('keep_uv') or solids[oi] is None:
-            continue  # props keep their authored topology
+        if o.get('keep_uv') or o.get('own_lm') or not o.data.polygons:
+            continue  # props and trees keep their authored topology
         me = o.data
         mw = o.matrix_world
         nm = mw.to_3x3().inverted().transposed()
         doomed = []
         for p in me.polygons:
             n = (nm @ p.normal).normalized()
-            c = mw @ p.center
-            samples = [c]
-            if p.area * abs(mw.determinant()) ** (2 / 3) > 0.04:
-                samples += [c.lerp(mw @ me.vertices[vi].co, 0.8) for vi in p.vertices]
-            if all(inside_other(sp + n * 0.01, oi) for sp in samples):
+            if all(inside_any(sp + n * 0.01, oi) for sp in samples_of(p, mw, me)):
                 doomed.append(p.index)
                 continue
             # a visible face lying on another object's face z-fights and bakes black
             if p.area * abs(mw.determinant()) ** (2 / 3) < 0.02:
                 continue
+            c = mw @ p.center
             for (co, hn, hi, dist) in everything.find_nearest_range(c, 0.0015):
                 if hi is None:
                     continue
@@ -827,30 +896,66 @@ def bake_lightmap(objs, island, size, samples=(256, 128, 64), out_dir=None, quic
     sun_lum = float(np.dot(np.array(s['color'], dtype=np.float32), lum_w)) * s['intensity'] / math.pi
     direct = (C[..., :3] * lum_w).sum(-1)
     expected = sun_lum * np.clip(ndl, 0.0, None)
-    mask = np.where(expected > sun_lum * 0.06, np.clip(direct / np.maximum(expected, 1e-6), 0.0, 1.0), 1.0)
+    # The sun mask is only known where a face turns toward the sun. Elsewhere it is filled from
+    # known neighbours later (fill_lightmap), never assumed lit: a lit default bleeds through the
+    # texture filter as bright lines along shadowed edges.
+    cov = A[..., 3] > 0.5
+    known = cov & (expected > sun_lum * 0.06)
+    mask = np.where(known, np.clip(direct / np.maximum(expected, 1e-6), 0.0, 1.0), 0.0)
     rgb = A[..., :3] + B[..., :3]
-    return rgb, mask, A[..., 3]
+    return rgb, mask, known, cov, N
 
 
-def denoise_lightmap(rgb, coverage, radius=2):
-    """Edge-aware blur in UV space that never mixes texels from outside the covered area."""
+def denoise_lightmap(img, weight, normals=None, radius=2, edge=True):
+    """Edge-aware blur in UV space. Only texels with weight > 0.5 contribute. Texels whose baked
+    normal differs (another face of the same UV island) do not mix, and with edge=True neither do
+    texels of very different brightness, so shadow and crease edges stay sharp."""
     import numpy as np
-    h, w, _ = rgb.shape
-    cov = (coverage > 0.5).astype(np.float32)
-    acc = np.zeros_like(rgb)
+    one = img.ndim == 2
+    x = img[..., None] if one else img
+    h, w, _ = x.shape
+    wt = (weight > 0.5).astype(np.float32)
+    acc = np.zeros_like(x)
     wsum = np.zeros((h, w), dtype=np.float32)
-    lum = rgb.mean(axis=2)
+    lum = x.mean(axis=2)
     for dy in range(-radius, radius + 1):
         for dx in range(-radius, radius + 1):
-            sh = np.roll(np.roll(rgb, dy, 0), dx, 1)
-            sl = np.roll(np.roll(lum, dy, 0), dx, 1)
-            sc = np.roll(np.roll(cov, dy, 0), dx, 1)
-            wgt = sc * np.exp(-(dx * dx + dy * dy) / (2 * (radius * 0.6) ** 2)) * \
-                np.exp(-np.abs(sl - lum) / (0.25 * lum + 0.02))
-            acc += sh * wgt[..., None]
-            wsum += wgt
-    out = np.where(wsum[..., None] > 1e-6, acc / np.maximum(wsum, 1e-6)[..., None], rgb)
-    return out
+            sh = np.roll(np.roll(x, dy, 0), dx, 1)
+            g = np.roll(np.roll(wt, dy, 0), dx, 1) * np.float32(np.exp(-(dx * dx + dy * dy) / (2 * (radius * 0.6) ** 2)))
+            if edge:
+                sl = np.roll(np.roll(lum, dy, 0), dx, 1)
+                g = g * np.exp(-np.abs(sl - lum) / (0.25 * lum + 0.02))
+            if normals is not None:
+                sn = np.roll(np.roll(normals, dy, 0), dx, 1)
+                g = g * np.clip((sn * normals).sum(-1), 0.0, 1.0) ** 16
+            acc += sh * g[..., None]
+            wsum += g
+    out = np.where(wsum[..., None] > 1e-6, acc / np.maximum(wsum, 1e-6)[..., None], x)
+    return out[..., 0] if one else out
+
+
+def fill_lightmap(img, known):
+    """Fill every texel that is not known with a smooth average of the nearest known texels
+    (push-pull over a pyramid), so the texture filter and mipmaps never pull in junk at island
+    edges or from the empty parts of the atlas."""
+    import numpy as np
+    one = img.ndim == 2
+    x = (img[..., None] if one else img).astype(np.float32)
+    k = known.astype(np.float32)
+    levels = [(x * k[..., None], k)]
+    while min(levels[-1][1].shape) > 1:
+        xs, ws = levels[-1]
+        h2, w2 = ws.shape[0] // 2, ws.shape[1] // 2
+        levels.append((xs[:h2 * 2, :w2 * 2].reshape(h2, 2, w2, 2, -1).sum((1, 3)),
+                       ws[:h2 * 2, :w2 * 2].reshape(h2, 2, w2, 2).sum((1, 3))))
+    xs, ws = levels[-1]
+    cur = xs / np.maximum(ws, 1e-8)[..., None]
+    for xs, ws in reversed(levels[:-1]):
+        up = np.repeat(np.repeat(cur, 2, 0), 2, 1)
+        up = np.pad(up, ((0, ws.shape[0] - up.shape[0]), (0, ws.shape[1] - up.shape[1]), (0, 0)), mode='edge')
+        cur = np.where(ws[..., None] > 0, xs / np.maximum(ws, 1e-8)[..., None], up)
+    out = np.where(k[..., None] > 0, x, cur)
+    return out[..., 0] if one else out
 
 
 def save_lightmap(rgb, mask, path, quality=92):

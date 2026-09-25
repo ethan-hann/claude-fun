@@ -28,7 +28,7 @@ Calyx no longer turns. Its old sun hangs at the horizon, and the evening does no
 
 ## The Heartbloom
 
-The Heartbloom is the engine at the center of the city that makes the space. It is a seed of light the size of a house, floating over a well, wrapped in turning rings and a flower of lattice petals. Its cold light can be seen from every district.
+The Heartbloom is the engine at the center of the city that makes the space. It is a seed of light as wide as a room, floating over a well, wrapped in turning rings and a flower of lattice petals. Its cold light can be seen from every district.
 
 The Heartbloom would not stop. Space pours into Calyx faster than anyone can use it. Every street is wider than it was yesterday. Bridges stretch until they tear. The districts have come apart into islands, drifting away from each other in a golden haze. Whole terraces break off and fall into it.
 
@@ -92,7 +92,7 @@ Calyx tried to hold its districts together with bridges. The Viaduct is what is 
 
 ### The Weighhouse
 
-The hall where Calyx measured out space, room by room and household by household. Its great scale still hangs from the roof, and a counterweight lift climbs to the balcony. A lantern crowns the roof and an emblem of the scale hangs over the door.
+The hall where Calyx measured out space, room by room and household by household. Its great scale still stands in the hall: a steel beam on a marble column, with a pan hanging from each end. Outside, a counterweight lift climbs to the entrance balcony. A lantern crowns the roof, and a balance in a stone roundel hangs over the door.
 
 > The Weighhouse. Here we measured out space, room by room, life by life. There was never enough. So we made more.
 >
@@ -108,7 +108,7 @@ A concert ground ringed by fluted columns, with a dry fountain at its center and
 
 ### The Heartbloom
 
-A promenade lined with glowing spires leads to a ring around a bright well. The Heart floats over the well, above a platform on a column of light, inside a wall shaped like the sepals of a flower.
+A promenade lined with glowing spires leads to a ring around a bright well. An eight-sided wall circles the well. The Heart floats high above it, over a small round platform.
 
 ![The Heartbloom over its well](images/heart.jpg)
 
