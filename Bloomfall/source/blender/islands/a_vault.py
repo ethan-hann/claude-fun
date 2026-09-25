@@ -178,7 +178,7 @@ def build(b):
         arch.wall(b, side * 9.2, -24.4, side * 9.2, -30.0, 0, 2.6, thick=0.8, mat='wall', style='classic', pilaster_every=2.6)
     # terrace block: top y = 2, from z -30 to the north tip
     terrace = [(-9.6, -30.0), (9.6, -30.0), (9.6, -43.0), (5.0, -51.5), (-5.0, -51.5), (-9.6, -43.0)]
-    b.poly_prism(terrace, 0.0, 2.2, mat='wall', bevel=0.04)
+    b.poly_prism(terrace, -1.0, 2.2, mat='wall', bevel=0.04)  # down to the rock: no slab under it
     b.poly_prism(terrace, 2.2, 2.3, mat='paving', bevel=0.01)
     b.box((0, 2.33, -30.15), (18.8, 0.08, 0.3), mat='marble', bevel=0.02, collide=False)
     # heavy plate base

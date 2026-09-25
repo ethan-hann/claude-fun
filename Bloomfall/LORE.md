@@ -108,7 +108,7 @@ A concert ground ringed by fluted columns, with a dry fountain at its center and
 
 ### The Heartbloom
 
-A promenade lined with glowing spires leads to a ring around a bright well. An eight-sided wall circles the well. The Heart floats high above it, over a small round platform.
+A promenade lined with glowing spires leads to a ring around a bright well. The ring stands on a tall stalk of rock, like a flower on its stem. An eight-sided wall circles the well. The Heart floats high above it, over a small round platform.
 
 ![The Heartbloom over its well](images/heart.jpg)
 

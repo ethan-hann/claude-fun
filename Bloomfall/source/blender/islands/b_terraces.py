@@ -27,7 +27,9 @@ def build(b):
         garden_outline = [(-5.0, 17.5), (5.0, 17.5), (6.0, 10.0), (10.4, 8.5), (10.8, -11.8), (-10.8, -11.8), (-10.4, 8.5), (-6.0, 10.0)]
         b.poly_prism(garden_outline, -1.2, -0.1, mat='concrete', bevel=0.04)
         arch.floor(b, -4.5, 10.0, 4.5, 17.0, 0.0, thick=0.1, mat='paving')  # arrival pad
-        arch.floor(b, -9.6, -11.8, 9.6, 10.0, 0.0, thick=0.1, mat='paving')
+        # the paving follows the outline's cut corners, inside the balustrades
+        b.poly_prism([(-9.6, -11.8), (9.6, -11.8), (9.6, 8.1), (4.5, 10.0), (-4.5, 10.0), (-9.6, 8.1)], -0.1, 0.0,
+                     mat='paving', bevel=0.02)
         b.underside(garden_outline, -1.2, 16, seed=31)
         # low balustrades along the garden's open sides
         b.balustrade((-9.9, 0.0, 8.0), (-9.9, 0.0, -11.4), height=1.05, mat='marble')

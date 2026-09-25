@@ -346,7 +346,13 @@ export class Pickup extends Entity {
       if (this.light) this.light.position.copy(this.pos);
     }
   }
-  reset(): void { /* pickups stay taken */ }
+  // Back where it started. The director hides it again when the player already has it (the Graft,
+  // the second cell) or kept it (a memory in the save).
+  reset(): void { this.setTaken(false); }
+  setTaken(v: boolean): void {
+    this.taken = v;
+    this.setVisible(this.shown);
+  }
 }
 
 // ------------------------------------------------------------------------------------------

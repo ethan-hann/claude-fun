@@ -359,9 +359,10 @@ class Island:
         return rec
 
     # ------------------------------------------------------------ island rock
-    def underside(self, outline, top_y, depth, mat='rock', seed=1, segments_per_m=0.8, lm_weight=0.35):
+    def underside(self, outline, top_y, depth, mat='rock', seed=1, segments_per_m=0.8, lm_weight=0.35, stem=False):
         """The torn underside of a floating island: a jagged inverted cone of rock under the outline.
-        outline: list of (x, z) points (game space) of the island's edge at top_y."""
+        outline: list of (x, z) points (game space) of the island's edge at top_y. stem=True keeps it
+        wide all the way down (a stalk rather than a cone), for a deep shaft through the middle."""
         rnd = random.Random(seed)
         bm = bmesh.new()
         rings = 7
@@ -382,11 +383,11 @@ class Island:
         # under holes in the floor go down into it.
         for r in range(rings + 1):
             t = r / rings
-            shrink = (1 - t) ** 1.25 * 0.97 + 0.03  # radius factor at depth
+            shrink = 1 - 0.4 * t ** 1.5 if stem else (1 - t) ** 1.25 * 0.97 + 0.03  # radius factor at depth
             y = top_y + 0.1 - depth * (t ** 0.85)
             ring = []
             for p in pts:
-                jitter = 1.0 if r == 0 else (0.82 + rnd.random() * 0.3)
+                jitter = 1.0 if r == 0 else ((0.92 + rnd.random() * 0.16) if stem else (0.82 + rnd.random() * 0.3))
                 x = cx + (p.x - cx) * shrink * jitter
                 z = cz + (p.y - cz) * shrink * jitter
                 yy = y + (0 if r == 0 else (rnd.random() - 0.5) * depth / rings * 0.9)

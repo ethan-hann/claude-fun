@@ -71,7 +71,7 @@ kbd.mouse svg { width: 0.95em; height: 1.2em; }
 
 #chapter { position: absolute; left: 0; right: 0; top: 30%; text-align: center; opacity: 0; transition: opacity 1.4s; text-shadow: 0 2px 18px rgba(0, 0, 0, 0.75); }
 #chapter.show { opacity: 1; }
-#chapter .num { font-family: var(--display); font-weight: 700; font-size: 1.5em; letter-spacing: 0.5em; margin-left: 0.5em; color: var(--warm); text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8), 0 2px 18px rgba(0, 0, 0, 0.75); }
+#chapter .num { font-family: var(--display); font-weight: 700; font-size: 1.5em; letter-spacing: 0.12em; margin-left: 0.12em; color: var(--warm); text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8), 0 2px 18px rgba(0, 0, 0, 0.75); }
 #chapter .name { font-family: var(--display); font-weight: 700; font-size: 3.0em; letter-spacing: 0.03em; margin-top: 0.15em; }
 #chapter .rule { width: 6em; height: 1px; margin: 0.8em auto 0; background: linear-gradient(90deg, transparent, var(--ink), transparent); }
 

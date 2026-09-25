@@ -214,6 +214,7 @@ export class Director {
     this.arrived.add(i);
     for (const s of Object.values(this.scripts)) s.reset?.();
     this.setupGraft();
+    g.islands.forEach((isl) => this.syncPickups(isl));
     g.respawn();
     g.paused = false;
     this.state = 'playing';
@@ -223,6 +224,18 @@ export class Director {
     this.ui.chapter(g.current.key);
     if (i === 0 && fresh) this.echoOnce('wake', 1.5);
     this.scripts[g.current.key]?.arrive?.(false);
+  }
+
+  // After a reset, pickups the player already has stay gone: the Graft once it is worn, the second
+  // cell once the Graft holds two, and memories kept in the save.
+  private syncPickups(isl: Island): void {
+    const gr = this.game.graft;
+    for (const e of isl.entities) {
+      if (!(e instanceof Pickup)) continue;
+      if (e.kind === 'graft') e.setTaken(gr.owned);
+      else if (e.kind === 'upgrade') e.setTaken(gr.capacity >= (e.rec.capacity ?? 2));
+      else if (e.kind === 'seed') e.setTaken(this.save.seeds.includes(isl.key));
+    }
   }
 
   private setupGraft(): void {
@@ -369,7 +382,6 @@ export class Director {
       this.echoOnce('graft', 0.8);
     } else if (p.kind === 'upgrade') {
       gr.capacity = Math.max(gr.capacity, p.rec.capacity ?? 2);
-      this.plan.forEach((pl, i) => { if (i >= this.index) pl.capacity = Math.max(pl.capacity, gr.capacity); });
       this.audio.pickup();
       this.showCard('capacity', undefined, 7);
       if (p.rec.echo) this.echoOnce(p.rec.echo, 0.5);
@@ -406,6 +418,7 @@ export class Director {
       const isl = this.island;
       for (const l of isl.lattices) if (!l.disabled) l.reset();
       for (const e of isl.entities) e.reset(g.ctx);
+      this.syncPickups(isl);
       g.graft.cells = isl.startCells;
       this.scripts[isl.key]?.resetIsland?.();
       g.respawn();
