@@ -61,3 +61,22 @@ Everything you hear is synthesized live with WebAudio. Threads snap like plucked
 ### Settings
 
 Mouse sensitivity, volume, interface size, inverted look, and a low graphics mode that turns off bloom and lowers shadow detail for slower machines. The interface grows with the window, so it stays readable on large displays.
+
+### What I had to fix
+
+The first pass was complete and playable. It took four follow-up prompts.
+
+- **A lore document.** Claude wrote [LORE.md](LORE.md), with screenshots taken from the game.
+- **Spoilers.** The next two prompts pointed out spoilers, first in LORE.md and then in this README. Claude moved the boss fights, hidden items, and endings into [SPOILERS.md](SPOILERS.md). Both files now stay clear of them.
+
+The fourth prompt was the first human playtest. It listed nine problems, and Claude fixed all nine:
+
+- **Rolls spun.** Each roll ended with the character turning a full circle backward. Animation blends now take the short way around.
+- **Death particles lingered.** Dead enemies kept giving off particles after their bodies sank away. Six seconds after a kill, 13 were still active. Now none are.
+- **Z-fighting.** Claude built a detector that renders the world from 34 viewpoints and flags flickering pixels. It found flicker on the Gate of Descent, on the stained glass and a ceiling ledge in the Choir, and along the edges of the Gardens terraces. Each one is fixed. Spots outside those views were not checked. The fountains also had gold lids that hid their water. They are open basins now.
+- **Citizens in trees.** Four citizens on the Promenade stood inside trees, flower beds, or a building. Claude moved them, then tested all 30 citizens against solid objects. None overlap now.
+- **Waddling.** The walk and run looked like a penguin. The knees bent while a foot was on the ground and straightened as the leg swung forward. The steps came about twice as fast as a real jog. The new gait bends each knee as the leg swings, lengthens the stride with speed, and leans into the run. Enemies use it too.
+- **Rolls did not dodge.** Attacks still landed through well-timed rolls, and one boss attacked almost nonstop. Rolls now protect you from their first frame. Area attacks hurt only where they are drawn. Attacks no longer keep hitting or turn to follow you after the swing. One boss struck 0.18 seconds into his first swing, too fast to react to. His strikes now have a readable windup. The boss who attacked nonstop now pauses after each attack.
+- **Difficulty.** Late in the game, regular enemies died in one or two hits, while one boss healed almost as fast as a player could hurt her. Enemies in the Gardens and the Choir now have more health, hit harder, and drop more Sorrow. That boss now heals far less.
+- **Bind came too early.** It is now learned later in the game instead of in the tutorial.
+- **A tiny HUD.** On a 2560x1440 display the HUD text was too small to read. The HUD and menus now scale with the window, to about 1.9 times the old size at 2560x1440. Settings also has an Interface size slider.
