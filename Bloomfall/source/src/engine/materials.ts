@@ -46,7 +46,8 @@ export const MATERIAL_TUNING: Record<string, { tint?: number; rough?: number; me
   tiles: { normal: 1.0, rough: 1.35 },
   concrete: { normal: 1.0, rough: 1.3 },
   marble: { normal: 1.0, rough: 1.3 },
-  rock: { tint: 0xb9a79a, normal: 1.4 },
+  rock: { normal: 1.3 },
+  paving: { normal: 1.0, rough: 1.15 },
   leaves: { normal: 1.2 },
   rust: { normal: 1.0 },
   lattice: { metal: 1.0, rough: 0.9, normal: 1.0 },
@@ -228,17 +229,20 @@ export function patchMaterial(mat: THREE.MeshStandardMaterial, opts: PatchOption
 // Material factories
 // ---------------------------------------------------------------------------------------------
 
-export async function surfaceMaterial(key: string, opts: { lightMap?: THREE.Texture; lightMapIntensity?: number; skyVis?: { value: number }; uvScale?: { value: number }; side?: THREE.Side } = {}): Promise<THREE.MeshStandardMaterial> {
+export type SurfaceOpts = { lightMap?: THREE.Texture; lightMapIntensity?: number; skyVis?: { value: number }; uvScale?: { value: number }; side?: THREE.Side };
+
+export function buildSurfaceMaterial(key: string, set: TextureSet | null, opts: SurfaceOpts = {}): THREE.MeshStandardMaterial {
   const glow = GLOW_COLORS[key];
-  if (glow) {
+  if (glow || !set) {
     const m = new THREE.MeshStandardMaterial({ color: 0x000000, roughness: 1, metalness: 0 });
-    m.emissive.setRGB(glow[0], glow[1], glow[2]);
-    m.emissiveIntensity = glow[3];
+    if (glow) {
+      m.emissive.setRGB(glow[0], glow[1], glow[2]);
+      m.emissiveIntensity = glow[3];
+    }
     patchMaterial(m, { skyVis: { value: 0 } });
     m.name = key;
     return m;
   }
-  const set = await textureSet(key);
   const tune = MATERIAL_TUNING[key] ?? {};
   const m = new THREE.MeshStandardMaterial({
     map: set.color,
@@ -264,4 +268,9 @@ export async function surfaceMaterial(key: string, opts: { lightMap?: THREE.Text
   patchMaterial(m, { baked: !!opts.lightMap, skyVis: opts.skyVis, uvScale: opts.uvScale });
   m.name = key;
   return m;
+}
+
+export async function surfaceMaterial(key: string, opts: SurfaceOpts = {}): Promise<THREE.MeshStandardMaterial> {
+  const set = GLOW_COLORS[key] ? null : await textureSet(key);
+  return buildSurfaceMaterial(key, set, opts);
 }

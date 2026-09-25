@@ -22,7 +22,7 @@ ALBEDO = json.load(open(os.path.join(ROOT, 'shared', 'albedo.json')))
 
 # Metres per texture repeat for each material (texel density of the tiling textures).
 UV_SCALE = {
-    'wall': 3.0, 'ribbed': 2.0, 'tiles': 2.4, 'concrete': 3.0, 'marble': 2.0, 'rock': 6.0,
+    'wall': 3.5, 'ribbed': 2.0, 'tiles': 2.4, 'paving': 3.2, 'concrete': 3.0, 'marble': 2.0, 'rock': 7.0,
     'leaves': 2.5, 'rust': 2.0, 'lattice': 1.0, 'steel': 1.5, 'plates': 2.0, 'screen': 1.0,
 }
 GLOW = {
@@ -123,7 +123,11 @@ class Island:
         obj = bpy.data.objects.new(me.name, me)
         obj.location = g2b(center)
         if rot is not None:
-            obj.rotation_euler = Euler((rot[0], -rot[2], rot[1]), 'XYZ')
+            # game-space Euler XYZ -> the same rotation expressed in Blender's basis
+            C = Matrix(((1, 0, 0), (0, 0, -1), (0, 1, 0)))
+            # three.js Euler 'XYZ' is Rx * Ry * Rz
+            Rg = Matrix.Rotation(rot[0], 3, 'X') @ Matrix.Rotation(rot[1], 3, 'Y') @ Matrix.Rotation(rot[2], 3, 'Z')
+            obj.rotation_euler = (C @ Rg @ C.inverted()).to_euler('XYZ')
         else:
             obj.rotation_euler = Euler((0, 0, rot_y), 'XYZ')
         self._link(obj, mat, lm_weight)

@@ -16,7 +16,7 @@ DST = os.path.join(ROOT, 'assets', 'textures')
 
 # key -> output size (square). Floors and walls seen up close keep 2K.
 SIZES = {
-    'wall': 2048, 'tiles': 2048, 'ribbed': 1024, 'concrete': 1024, 'marble': 1024, 'rock': 1024,
+    'wall': 2048, 'tiles': 2048, 'paving': 2048, 'ribbed': 1024, 'concrete': 1024, 'marble': 1024, 'rock': 1024,
     'leaves': 1024, 'rust': 1024, 'lattice': 1024, 'steel': 1024, 'plates': 1024, 'screen': 1024,
 }
 # Constant metalness for ambientCG sets that ship without a metalness map.

@@ -29,6 +29,13 @@ if '--size' in args:
 print(f'[{key}] built {len(island.objects)} pieces, {len(island.colliders)} colliders, '
       f'{len(island.entities)} entities in {time.time() - t0:.1f}s', flush=True)
 
+root = os.path.dirname(HERE)
+if '--json-only' in args:
+    lib.write_json(island, os.path.join(root, 'src', 'levels', f'{key}.json'),
+                   extra={'lightmapScale': lib.WORLD['lightmap']['scale']})
+    print(f'[{key}] json written', flush=True)
+    sys.exit(0)
+
 obj, _ = lib.join_static(island, margin=6.0 / size)
 print(f'[{key}] joined: {len(obj.data.polygons)} faces, {len(obj.data.vertices)} verts', flush=True)
 
