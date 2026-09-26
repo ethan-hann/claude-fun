@@ -77,7 +77,7 @@ export class Director {
     this.game = game;
     this.plan = plan;
     this.settings = { quality: 'high', sensitivity: 1, invertY: false, fov: 74, volume: 0.8, music: 0.6, uiScale: 1,
-      bloom: 0.6, fog: 1, vignette: true, grain: true, ...(loadJSON<Settings>(SETTINGS_KEY) ?? {}) };
+      bloom: 0.25, fog: 1.5, vignette: true, grain: true, ...(loadJSON<Settings>(SETTINGS_KEY) ?? {}) };
     applyUiScale(this.settings.uiScale);
     this.ui = new UI(this.settings);
     this.scripts = islandScripts(this);
