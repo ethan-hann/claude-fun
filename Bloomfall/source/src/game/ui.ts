@@ -24,6 +24,10 @@ export interface Settings {
   volume: number;
   music: number;
   uiScale: number;
+  bloom: number;
+  fog: number;
+  vignette: boolean;
+  grain: boolean;
 }
 
 // Interface size: every piece of text and HUD is sized in em from one root size.
@@ -280,6 +284,10 @@ export class UI {
         <div class="row"><label>Graphics</label><div class="ctl" id="set-quality">
           <button class="seg" data-q="low">Low</button><button class="seg" data-q="medium">Medium</button>
           <button class="seg" data-q="high">High</button><button class="seg" data-q="ultra">Ultra</button></div></div>
+        <div class="row"><label>Bloom</label><div class="ctl"><input type="range" id="set-bloom" min="0" max="1.5" step="0.05"><span id="bloom-val"></span></div></div>
+        <div class="row"><label>Fog</label><div class="ctl"><input type="range" id="set-fog" min="0.4" max="1.6" step="0.05"><span id="fog-val"></span></div></div>
+        <div class="row"><label>Vignette</label><div class="ctl"><button class="seg" id="set-vignette">On</button></div></div>
+        <div class="row"><label>Film grain</label><div class="ctl"><button class="seg" id="set-grain">On</button></div></div>
         <div class="row"><label>Mouse sensitivity</label><div class="ctl"><input type="range" id="set-sens" min="0.2" max="3" step="0.05"></div></div>
         <div class="row"><label>Invert look</label><div class="ctl"><button class="seg" id="set-invert">Off</button></div></div>
         <div class="row"><label>Field of view</label><div class="ctl"><input type="range" id="set-fov" min="60" max="100" step="1"><span id="fov-val"></span></div></div>
@@ -372,6 +380,15 @@ export class UI {
     bind('set-fov', 'fov');
     bind('set-vol', 'volume');
     bind('set-music', 'music');
+    bind('set-bloom', 'bloom');
+    bind('set-fog', 'fog');
+    for (const [id, key] of [['set-vignette', 'vignette'], ['set-grain', 'grain']] as const) {
+      settings.querySelector('#' + id)!.addEventListener('click', () => {
+        this.settings[key] = !this.settings[key];
+        this.syncSettings();
+        this.handlers.onSettings(this.settings);
+      });
+    }
     // Interface size rescales the menu itself, which would move the slider under the pointer.
     // While dragging, only the label changes; the size applies on release.
     const ui = settings.querySelector('#set-ui') as HTMLInputElement;
@@ -404,6 +421,14 @@ export class UI {
     (root.querySelector('#set-music') as HTMLInputElement).value = String(s.music);
     (root.querySelector('#set-invert') as HTMLElement).textContent = s.invertY ? 'On' : 'Off';
     root.querySelector('#set-invert')!.classList.toggle('on', s.invertY);
+    (root.querySelector('#set-bloom') as HTMLInputElement).value = String(s.bloom);
+    (root.querySelector('#bloom-val') as HTMLElement).textContent = s.bloom > 0 ? `${Math.round(s.bloom * 100)}%` : 'Off';
+    (root.querySelector('#set-fog') as HTMLInputElement).value = String(s.fog);
+    (root.querySelector('#fog-val') as HTMLElement).textContent = `${Math.round(s.fog * 100)}%`;
+    for (const [id, on] of [['#set-vignette', s.vignette], ['#set-grain', s.grain]] as const) {
+      (root.querySelector(id) as HTMLElement).textContent = on ? 'On' : 'Off';
+      root.querySelector(id)!.classList.toggle('on', on);
+    }
   }
 
   setChapters(list: { numeral: string; name: string; enabled: boolean }[]): void {

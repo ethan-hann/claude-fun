@@ -9,7 +9,7 @@ import { Sky, sunDirection, SUN_COLOR, SUN_INTENSITY } from './sky';
 import { LightPool } from './lightpool';
 import { setMaxAnisotropy, fogUniforms } from './materials';
 import { DynamicShadow } from './dynshadow';
-import { VolumetricFog } from './fog';
+import { VolumetricFog, FOG_DEFAULTS } from './fog';
 import world from '../../shared/world.json';
 
 // Contrast (in sRGB) and saturation after tone mapping. Every value is clamped to [0, 1] before a
@@ -67,6 +67,11 @@ export const PRESETS: Record<Quality, Preset> = {
   ultra: { pixelRatio: 2.0, shadows: true, shadowSize: 4096, shadowRadius: 3, ao: 'High', aoHalf: false, bloom: true, smaa: true, anisotropy: 16, fogSteps: 24 },
 };
 
+// Player-adjustable post effects (Settings). Bloom and fog scale their default strength.
+export interface PostSettings { bloom: number; fog: number; vignette: boolean; grain: boolean }
+const BLOOM_INTENSITY = 0.55;
+const GRAIN_OPACITY = 0.035;
+
 export class Renderer {
   renderer: THREE.WebGLRenderer;
   scene: THREE.Scene;
@@ -82,6 +87,8 @@ export class Renderer {
   private vignette!: VignetteEffect;
   private effectPass!: EffectPass;
   fog: VolumetricFog | null = null;
+  private noise!: NoiseEffect;
+  post: PostSettings = { bloom: 0.6, fog: 1, vignette: true, grain: true };
   private smaaPass: EffectPass | null = null;
   private renderPass!: RenderPass;
   dynShadow: DynamicShadow;
@@ -154,7 +161,7 @@ export class Renderer {
     this.toneMap = new ToneMappingEffect({ mode: (window as any).__toneMode ?? ToneMappingMode.AGX });
     this.vignette = new VignetteEffect({ offset: 0.32, darkness: 0.48 });
     const noise = new NoiseEffect({ premultiply: true, blendFunction: BlendFunction.SCREEN });
-    noise.blendMode.opacity.value = 0.035;
+    this.noise = noise;
     const grade = (window as any).__grade ?? [0.12, 0.1];
     const gradeFx = new GradeEffect(grade[0], grade[1]);
     const effects = preset.bloom ? [this.bloom, this.toneMap, gradeFx, this.vignette, noise] : [this.toneMap, gradeFx, this.vignette, noise];
@@ -166,6 +173,15 @@ export class Renderer {
       this.composer.addPass(this.smaaPass);
     }
     this.applyPreset();
+    this.setPost(this.post);
+  }
+
+  setPost(p: PostSettings): void {
+    this.post = { ...p };
+    this.bloom.intensity = BLOOM_INTENSITY * Math.max(0, p.bloom);
+    if (this.fog) this.fog.uniforms.get('uDensity')!.value = FOG_DEFAULTS.density * Math.max(0, p.fog);
+    this.vignette.blendMode.opacity.value = p.vignette ? 1 : 0;
+    this.noise.blendMode.opacity.value = p.grain ? GRAIN_OPACITY : 0;
   }
 
   private applyPreset(): void {

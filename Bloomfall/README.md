@@ -61,6 +61,7 @@ The game saves in your browser each time you reach a new island. Continue on the
 
 - Interface size scales all text and the HUD, from 70 to 180 percent. The new size applies when you let go of the slider.
 - Graphics has four levels. Low turns off real-time shadows and ambient occlusion and renders at a lower resolution. Ultra renders at up to twice your screen's resolution with sharper shadows. Every level draws the volumetric fog; higher levels take more samples through it.
+- Bloom and fog each have a strength slider. Bloom at zero turns it off. Vignette and film grain switch on and off.
 - Mouse sensitivity, invert look, field of view, volume, and music.
 
 ### Sound

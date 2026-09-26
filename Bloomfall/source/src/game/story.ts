@@ -48,7 +48,7 @@ export const ECHOES: Record<string, EchoLine[]> = {
   ],
   bloom_a: [
     { text: 'Look at it. Calyx.' },
-    { text: 'The sky went dark long ago. Every other star fell past the edge of the sky.' },
+    { text: 'Our nights went empty long ago. Every other star fell past the edge of the sky.' },
     { text: 'So we made our own room. We bloomed new space from nothing, for ten thousand years.' },
     { text: 'Then the Heartbloom would not stop.' },
     { text: 'Go to the Heart, Tender. Fold it shut.' },
@@ -92,7 +92,7 @@ export const ECHOES: Record<string, EchoLine[]> = {
   ],
   f_arrive: [
     { text: 'The Observatory. We built it to look for other lights.' },
-    { text: 'In a thousand years it never found one. It kept looking.' },
+    { text: 'In ten thousand years it never found one. It kept looking.' },
   ],
   f_dais: [
     { text: 'Its lenses were carried out to the far stages when the city came apart.' },

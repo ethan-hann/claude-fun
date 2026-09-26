@@ -2,17 +2,19 @@
 
 A guide to Calyx, the city where Bloomfall takes place. Everything here comes from the game: the Gardener's voice, the cards, the memories left behind, and the places themselves. It stays clear of the puzzle solutions and the ending. Those are in [SPOILERS.md](SPOILERS.md).
 
-![Calyx at the end of the evening, the islands drifting in the haze](images/calyx.jpg)
+![Calyx in its endless evening: the Seed Vault, and the next island sinking into the haze](images/calyx.jpg)
 
-## The dark sky
+## The empty sky
 
-Bloomfall is set so far in the future that the sky has gone dark. Space itself kept stretching, faster and faster, until every other galaxy was carried past the edge of what can be seen. No new light arrives. The night sky over Calyx is empty.
+Bloomfall is set so far in the future that the night sky is empty. Space itself kept stretching, faster and faster, until every other galaxy was carried past the edge of what can be seen. No new light arrives. For as long as Calyx had nights, they were black from edge to edge.
 
-The people of Calyx did not wait for the dark to close in. They learned to make their own room.
+The people of Calyx did not wait for the emptiness to reach them. They learned to make their own room.
 
-> The sky went dark long ago. Every other star fell past the edge of the sky. So we made our own room. We bloomed new space from nothing, for ten thousand years.
+> Our nights went empty long ago. Every other star fell past the edge of the sky. So we made our own room. We bloomed new space from nothing, for ten thousand years.
 >
 > The Gardener
+
+Calyx has no nights now, only an evening that does not end. Behind its low sun, the sky is as empty as it ever was.
 
 ## Calyx
 
@@ -20,7 +22,7 @@ Calyx is the last city. It was built in the style of a planet none of its people
 
 For ten thousand years the city grew by blooming. When Calyx needed a new district, its engineers bloomed the space for it out of nothing, and the district was built into the new room.
 
-Calyx no longer turns. Its old sun hangs at the horizon, and the evening does not end. There are no seasons left.
+Calyx no longer turns. Its old sun hangs at the horizon, and there are no seasons left.
 
 > The Colonnade fell last spring. There is no spring anymore. There is only this evening, and it does not end.
 >
@@ -108,7 +110,7 @@ A concert ground ringed by fluted columns, with a dry fountain at its center and
 
 ### The Observatory
 
-The last place in Calyx that still looked outward. A round plaza holds the great telescope on its dais, with three empty cradles where its lenses once sat. When the city came apart, the lenses were carried out to three stages that hang off the plaza: a sundial court with a stair of pillars to the west, a walled chamber to the east, and a long reach to the north. The astronomers kept watching the dark long after there was nothing left to see.
+The last place in Calyx that still looked outward. A round plaza holds the great telescope on its dais, with three empty cradles where its lenses once sat. When the city came apart, the lenses were carried out to three stages that hang off the plaza: a sundial court with a stair of pillars to the west, a walled chamber to the east, and a long reach to the north. Its astronomers searched the empty night for ten thousand years and never found another light. They kept looking.
 
 > Its lenses were carried out to the far stages when the city came apart.
 >

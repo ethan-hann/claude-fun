@@ -76,7 +76,8 @@ export class Director {
   constructor(game: Game, plan: IslandPlan[]) {
     this.game = game;
     this.plan = plan;
-    this.settings = { quality: 'high', sensitivity: 1, invertY: false, fov: 74, volume: 0.8, music: 0.6, uiScale: 1, ...(loadJSON<Settings>(SETTINGS_KEY) ?? {}) };
+    this.settings = { quality: 'high', sensitivity: 1, invertY: false, fov: 74, volume: 0.8, music: 0.6, uiScale: 1,
+      bloom: 0.6, fog: 1, vignette: true, grain: true, ...(loadJSON<Settings>(SETTINGS_KEY) ?? {}) };
     applyUiScale(this.settings.uiScale);
     this.ui = new UI(this.settings);
     this.scripts = islandScripts(this);
@@ -155,6 +156,7 @@ export class Director {
     g.r.camera.fov = s.fov;
     g.r.camera.updateProjectionMatrix();
     if (g.r.quality !== s.quality) g.r.setQuality(s.quality as Quality);
+    g.r.setPost({ bloom: s.bloom, fog: s.fog, vignette: s.vignette, grain: s.grain });
     this.audio.setVolumes(s.volume, s.music);
   }
 

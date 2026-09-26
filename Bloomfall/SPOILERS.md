@@ -4,7 +4,7 @@ Read this after you finish. It gives away every puzzle, every memory, and the en
 
 ## The story
 
-The sky over Calyx went dark long ago. Every other galaxy was carried past the edge of what can be seen, and the nights became empty. So the people of Calyx made their own room. They learned to bloom space out of nothing, and for ten thousand years the city grew.
+Long ago, the night sky over Calyx went empty. Every other galaxy was carried past the edge of what can be seen. So the people of Calyx made their own room. They learned to bloom space out of nothing, and for ten thousand years the city grew.
 
 The Heartbloom is the engine at the center of the city that makes that space. It would not stop. Space poured in faster than anyone could use it. Streets widened every day. Friends drifted out of reach. Bridges stretched and tore. The districts became islands, drifting apart in a haze under a sunset that no longer ends.
 

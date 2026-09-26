@@ -115,21 +115,26 @@ void mainImage( const in vec4 inputColor, const in vec2 uv, const in float depth
     tau += bfFogDensity( uCamPos + dir * s, s ) * ( sb - sa );
   }
   float T = exp( -tau );
-  // the sky dome's own color in this direction (its broad sun halo and the Heart's glow included, the
-  // sharp discs left out), so what the fog swallows fades into the sky behind it
-  vec3 fogCol = bfDecodeSky( textureLod( uSky, bfEquirectUv( normalize( vec3( dir.x, max( dir.y, -0.25 ), dir.z ) ) ), 4.0 ).rgb );
+  // Far away, the fog takes the sky dome's own color in this direction (its broad sun halo and the
+  // Heart's glow included, the sharp discs left out), so what it swallows fades into the sky behind
+  // it. Close by, it takes the softer sky above the horizon's hot band and only a faint sun lobe:
+  // otherwise a thin haze in a courtyard would paint every wall toward the sun a glowing orange.
   float c = max( dot( dir, uSunDir ), 0.0 );
-  fogCol += uSunColor * vec3( 1.0, 0.78, 0.6 ) * ( pow( c, 180.0 ) * 1.2 + pow( c, 12.0 ) * 0.25 );
+  vec3 farCol = bfDecodeSky( textureLod( uSky, bfEquirectUv( normalize( vec3( dir.x, max( dir.y, -0.25 ), dir.z ) ) ), 4.0 ).rgb );
+  farCol += uSunColor * vec3( 1.0, 0.78, 0.6 ) * ( pow( c, 180.0 ) * 1.2 + pow( c, 12.0 ) * 0.25 );
   vec3 toHeart = uHeartPos - uCamPos;
   float hc = max( dot( dir, normalize( toHeart ) ), 0.0 );
-  fogCol += vec3( 0.55, 0.9, 1.0 ) * ( pow( hc, 900.0 ) * 3.0 + pow( hc, 60.0 ) * 0.12 ) * uHeartGlow * smoothstep( 70.0, 240.0, length( toHeart ) );
+  farCol += vec3( 0.55, 0.9, 1.0 ) * ( pow( hc, 900.0 ) * 3.0 + pow( hc, 60.0 ) * 0.12 ) * uHeartGlow * smoothstep( 70.0, 240.0, length( toHeart ) );
+  vec3 nearCol = bfDecodeSky( textureLod( uSky, bfEquirectUv( normalize( vec3( dir.x, max( dir.y, 0.15 ), dir.z ) ) ), 6.0 ).rgb );
+  nearCol += uSunColor * vec3( 1.0, 0.78, 0.6 ) * pow( c, 8.0 ) * 0.05;
+  vec3 fogCol = mix( nearCol, farCol, smoothstep( 40.0, 220.0, dist ) );
   outputColor = vec4( inputColor.rgb * T + fogCol * uBrightness * ( 1.0 - T ), inputColor.a );
 }
 `;
 
 export interface FogSettings { density: number; y0: number; height: number; near: number; r0: number; r1: number; noiseScale: number }
 
-export const FOG_DEFAULTS: FogSettings = { density: 0.11, y0: 20, height: 60, near: 0.08, r0: 50, r1: 170, noiseScale: 0.009 };
+export const FOG_DEFAULTS: FogSettings = { density: 0.11, y0: 20, height: 60, near: 0.04, r0: 50, r1: 170, noiseScale: 0.009 };
 
 export class VolumetricFog extends Effect {
   private camera: THREE.PerspectiveCamera;
