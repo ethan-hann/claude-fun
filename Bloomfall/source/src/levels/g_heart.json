@@ -2254,17 +2254,6 @@
 },
 {
 "type":"zone",
-"id":"z_inf",
-"p":[
-0.0,
-0.0,
-2.0
-],
-"r":4.0,
-"card":"infinite"
-},
-{
-"type":"zone",
 "id":"z_core",
 "p":[
 0.0,

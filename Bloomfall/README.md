@@ -2,7 +2,7 @@
 
 A first-person physics puzzle platformer. The last city made room from nothing until it could not stop. Now it is coming apart, and you carry the only tool that can move space.
 
-Open [bloomfall.html](bloomfall.html) in a desktop browser with WebGL 2. Everything is inside that one file, so it runs offline. It is about 29 MB and takes a few seconds to load. Headphones help.
+Open [bloomfall.html](bloomfall.html) in a desktop browser with WebGL 2. Everything is inside that one file, so it runs offline. It is about 32 MB and takes a few seconds to load. Headphones help.
 
 This file covers what the game tells you in its opening and tutorial. [LORE.md](LORE.md) describes the world, also without spoilers. [SPOILERS.md](SPOILERS.md) covers the solutions and the ending. Read it after you finish.
 
