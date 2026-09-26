@@ -58,6 +58,8 @@ kbd.mouse svg { width: 0.95em; height: 1.2em; }
 
 #prompt { position: absolute; left: 50%; bottom: 7%; transform: translateX(-50%); padding: 0.45em 0.9em; border-radius: 0.4em; background: var(--glass); backdrop-filter: blur(4px); font-size: 0.92em; opacity: 0; transition: opacity .2s; white-space: nowrap; }
 #prompt.show { opacity: 1; }
+#lockhint { position: absolute; left: 50%; top: 62%; transform: translate(-50%, -50%); padding: 0.7em 1.3em; border-radius: 0.45em; background: var(--glass); backdrop-filter: blur(6px); font-size: 1.1em; letter-spacing: 0.04em; opacity: 0; transition: opacity .25s; white-space: nowrap; }
+#lockhint.show { opacity: 1; }
 
 #card { position: absolute; left: 2.4em; top: 30%; width: min(22em, 40vw); padding: 1em 1.2em 1.1em; border-left: 2px solid var(--cyan); background: linear-gradient(90deg, rgba(10, 12, 18, 0.62), rgba(10, 12, 18, 0.18)); backdrop-filter: blur(3px); opacity: 0; transform: translateX(-0.8em); transition: opacity .45s, transform .45s; }
 #card.show { opacity: 1; transform: none; }

@@ -121,8 +121,13 @@ def lattice_crate():
                 t2 = Vector((0, 0, 0))
                 t1[(axis + 1) % 3] = 1
                 t2[(axis + 2) % 3] = 1
-                c = n * 0.503 + t1 * (0.44 - i * 0.055) + t2 * 0.44
-                geom = bmesh.ops.create_cube(pb, size=0.03)
+                # thin plates: they stand 4 mm proud of the face, so a crate resting on the
+                # floor or against a wall does not sink its pips into it
+                c = n * 0.501 + t1 * (0.44 - i * 0.055) + t2 * 0.44
+                geom = bmesh.ops.create_cube(pb, size=1.0)
+                sc = Vector((0.03, 0.03, 0.03))
+                sc[axis] = 0.006
+                bmesh.ops.scale(pb, verts=geom['verts'], vec=sc)
                 bmesh.ops.translate(pb, verts=geom['verts'], vec=c)
         pip = new_obj(f'pip{i}', pb, ['glow_white'])
         objs.append(pip)

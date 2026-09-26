@@ -4,6 +4,8 @@ import { Lattice, FreeLattice, GrowResult, isLatticeCollider } from './lattice';
 import type { Player } from './player';
 import type { Input } from './input';
 
+const DOWN = new THREE.Vector3(0, -1, 0);
+
 export type GraftEvent =
   | { type: 'give' | 'take'; target: Lattice; point: THREE.Vector3 }
   | { type: 'fail'; reason: string; target: Lattice | null }
@@ -163,6 +165,7 @@ export class Graft {
     hold.y -= 0.18 + t.size * 0.42;
     // keep it from being held inside the player's feet
     hold.y = Math.max(hold.y, player.feet.y + t.size * 0.5 + 0.05);
+    this.clearHold(hold, eye, t, player.yaw);
     const p = t.position(this.tmp);
     const d = hold.clone().sub(p);
     const far = d.length();
@@ -188,6 +191,41 @@ export class Graft {
     if (this.heldFar > 0.35) this.drop();
     // standing on what you carry is not allowed
     if (player.groundCollider && player.groundCollider.handle === t.collider.handle) this.drop();
+  }
+
+  // Move the hold point out of floors and walls, so the carried crate is not pressed into them
+  // (it would jitter against the surface and overlap it).
+  private clearHold(hold: THREE.Vector3, eye: THREE.Vector3, t: FreeLattice, yaw: number): void {
+    const mask = G.STATIC | G.SCREEN | G.DYNAMIC | G.KINEMATIC;
+    const h = t.size / 2;
+    this.restOnSurface(hold, eye.y, t, yaw, mask);
+    // then out of walls between the eye and the crate
+    const to = hold.clone().sub(eye);
+    const len = to.length();
+    if (len > 1e-3) {
+      to.divideScalar(len);
+      const hit = this.phys.castRay(eye, to, len + h, mask, t.collider);
+      if (hit && hit.toi > 1e-3 && hit.toi < len + h) {
+        hold.copy(eye).addScaledVector(to, Math.max(0.35, hit.toi - h * 1.15));
+        this.restOnSurface(hold, eye.y, t, yaw, mask);
+      }
+    }
+  }
+
+  // Keep the crate's bottom above whatever is under its footprint (center and four corners),
+  // looking down from eye height.
+  private restOnSurface(hold: THREE.Vector3, fromY: number, t: FreeLattice, yaw: number, mask: number): void {
+    const h = t.size / 2;
+    const c = Math.cos(yaw), s = Math.sin(yaw), k = h * 0.8;
+    const y0 = Math.max(fromY, hold.y + h);
+    let top = -Infinity;
+    for (const [ox, oz] of [[0, 0], [k, k], [k, -k], [-k, k], [-k, -k]]) {
+      const o = new THREE.Vector3(hold.x + ox * c + oz * s, y0, hold.z - ox * s + oz * c);
+      const hit = this.phys.castRay(o, DOWN, y0 - hold.y + h + 0.3, mask, t.collider);
+      // a hit at the origin means the ray starts inside a wall: that is not a floor
+      if (hit && hit.toi > 1e-3) top = Math.max(top, o.y - hit.toi);
+    }
+    if (top > -Infinity) hold.y = Math.max(hold.y, top + h + 0.03);
   }
 
   update(dt: number, input: Input, camera: THREE.Camera, player: Player): void {

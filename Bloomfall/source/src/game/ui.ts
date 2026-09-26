@@ -62,6 +62,7 @@ export class UI {
   private resetLabel: HTMLElement;
   private fadeEl: HTMLElement;
   private memoryEl: HTMLElement;
+  private lockEl: HTMLElement;
   private toastT = 0;
   private cardKey: string | null = null;
   private cardT = 0;
@@ -91,6 +92,7 @@ export class UI {
     this.resetRing = this.add('div', 'reset-ring', '<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="26" fill="none" stroke="rgba(243,236,225,0.25)" stroke-width="3"/><circle id="reset-arc" cx="32" cy="32" r="26" fill="none" stroke="#8fe8ff" stroke-width="3" stroke-dasharray="163.4" stroke-dashoffset="163.4" transform="rotate(-90 32 32)"/></svg>');
     this.resetLabel = this.add('div', 'reset-label', 'Resetting the island');
     this.memoryEl = this.add('div', 'memory', '<div class="t"></div><div class="x"></div><div class="n"></div>');
+    this.lockEl = this.add('div', 'lockhint', 'Click to resume');
     this.fadeEl = el('div', { id: 'fade' });
     document.body.appendChild(this.fadeEl);
     this.buildScreens();
@@ -144,6 +146,9 @@ export class UI {
       this.cells.classList.add('pulse');
     }
   }
+
+  // Shown while playing without the mouse captured (the browser refused the lock).
+  lockHint(show: boolean): void { this.lockEl.classList.toggle('show', show); }
 
   prompt(text: string | null): void {
     if (!text) { this.promptEl.classList.remove('show'); return; }
@@ -367,7 +372,16 @@ export class UI {
     bind('set-fov', 'fov');
     bind('set-vol', 'volume');
     bind('set-music', 'music');
-    bind('set-ui', 'uiScale');
+    // Interface size rescales the menu itself, which would move the slider under the pointer.
+    // While dragging, only the label changes; the size applies on release.
+    const ui = settings.querySelector('#set-ui') as HTMLInputElement;
+    const uiVal = settings.querySelector('#ui-val') as HTMLElement;
+    ui.addEventListener('input', () => { uiVal.textContent = `${Math.round(Number(ui.value) * 100)}%`; });
+    ui.addEventListener('change', () => {
+      this.settings.uiScale = Number(ui.value);
+      this.syncSettings();
+      this.handlers.onSettings(this.settings);
+    });
     settings.querySelector('#set-invert')!.addEventListener('click', () => {
       this.settings.invertY = !this.settings.invertY;
       this.syncSettings();

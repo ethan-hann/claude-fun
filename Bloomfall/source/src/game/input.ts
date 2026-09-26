@@ -22,6 +22,8 @@ export class Input {
   sensitivity = 1.0;
   invertY = false;
   locked = false;
+  wantLock = false; // playing: a click on the view should capture the mouse
+  lockRefused = false;
   enabled = true;
   onLockChange: ((locked: boolean) => void) | null = null;
   private element: HTMLElement;
@@ -67,25 +69,45 @@ export class Input {
     });
     document.addEventListener('pointerlockchange', () => {
       this.locked = document.pointerLockElement === this.element;
+      if (this.locked) this.lockRefused = false;
       if (!this.locked) this.down.clear();
       this.onLockChange?.(this.locked);
     });
+    document.addEventListener('pointerlockerror', () => { this.lockRefused = true; });
+    element.addEventListener('click', () => { if (this.wantLock && !this.locked) this.requestLock(); });
     window.addEventListener('blur', () => this.down.clear());
     window.addEventListener('gamepadconnected', (e) => { this.gamepadIndex = (e as GamepadEvent).gamepad.index; });
     window.addEventListener('gamepaddisconnected', () => { this.gamepadIndex = null; });
   }
 
+  // The browser refuses a lock without a recent click, and for about a second after the player
+  // leaves it with Esc. While the game wants the mouse, the next click on the view asks again.
   requestLock(): void {
+    this.wantLock = true;
     const el = this.element as any;
+    if (!el.requestPointerLock || document.pointerLockElement === el) return;
+    const settle = (p: any, fallback: boolean) => {
+      if (!p || typeof p.then !== 'function') return; // older browsers report through pointerlockerror
+      p.then(() => { this.lockRefused = false; }, (err: any) => {
+        // raw mouse input is not available everywhere; the default lock still works
+        if (fallback && err?.name === 'NotSupportedError') { settle(this.tryLock(el, false), false); return; }
+        this.lockRefused = true;
+      });
+    };
+    settle(this.tryLock(el, true), true);
+  }
+
+  private tryLock(el: any, raw: boolean): any {
     try {
-      const p = el.requestPointerLock?.({ unadjustedMovement: true });
-      if (p && typeof p.catch === 'function') p.catch(() => el.requestPointerLock?.());
+      return raw ? el.requestPointerLock({ unadjustedMovement: true }) : el.requestPointerLock();
     } catch {
-      el.requestPointerLock?.();
+      this.lockRefused = true;
+      return null;
     }
   }
 
   exitLock(): void {
+    this.wantLock = false;
     if (document.pointerLockElement) document.exitPointerLock();
   }
 

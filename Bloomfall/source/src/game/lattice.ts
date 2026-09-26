@@ -113,6 +113,7 @@ export class FreeLattice extends Lattice {
   prevPos = new THREE.Vector3();
   prevRot = new THREE.Quaternion();
   lastImpact = 0;
+  prevVel = new THREE.Vector3(); // velocity after the last step, for impact sounds
   onDropped: (() => void) | null = null;
 
   constructor(phys: Physics, vis: LatticeVisualFactory, id: string, kind: 'crate' | 'orb', pos: THREE.Vector3, level: number, rotY = 0) {
@@ -140,8 +141,6 @@ export class FreeLattice extends Lattice {
     const h = size / 2;
     const d = this.kind === 'crate' ? R.ColliderDesc.roundCuboid(h - 0.02, h - 0.02, h - 0.02, 0.02) : R.ColliderDesc.ball(h);
     d.setCollisionGroups(groups(G.DYNAMIC, SOLID_FILTER)).setFriction(this.kind === 'crate' ? 0.7 : 0.9).setRestitution(0.05);
-    d.setActiveEvents(R.ActiveEvents.CONTACT_FORCE_EVENTS);
-    d.setContactForceEventThreshold(40);
     return d;
   }
 

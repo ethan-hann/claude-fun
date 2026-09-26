@@ -61,6 +61,7 @@ export class Director {
   private lookAccum = 0;
   private moveAccum = 0;
   private resetHold = 0;
+  private unlockedT = 0;
   private respawning = false;
   private titleT = 0;
   private scripts: Record<string, IslandScript>;
@@ -307,7 +308,8 @@ export class Director {
         const now = g.time;
         if ((this.impactCooldown.get(h) ?? 0) > now) break;
         this.impactCooldown.set(h, now + 0.12);
-        this.audio.impact(lattice.position(), lattice.size, force / (lattice.size * lattice.size * 40));
+        // force: the speed lost in one step (m/s)
+        this.audio.impact(lattice.position(), lattice.size, (force - 1.0) * 4 * (0.7 + 0.3 * lattice.size));
         break;
       }
     }
@@ -525,6 +527,10 @@ export class Director {
     } else this.resetHold = Math.max(0, this.resetHold - dt * 3);
     this.ui.resetProgress(this.resetHold / 1.2);
     if (input.framePressed.has('pause')) this.pause();
+    // the browser can refuse the mouse lock (no click yet, or a click right after Esc)
+    const unlocked = this.state === 'playing' && input.wantLock && !input.locked && !input.usingGamepad;
+    this.unlockedT = unlocked ? this.unlockedT + dt : 0;
+    this.ui.lockHint(this.unlockedT > 0.5 && !(window as any).__noLockHint);
     // graft feedback
     const gr = g.graft;
     for (const e of gr.events) {

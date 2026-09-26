@@ -46,7 +46,7 @@ async function boot(): Promise<void> {
   load.set(1, 'Ready');
   load.done();
   (window as any).__ready = true;
-  if (params.has('manual')) return;
+  if (params.has('manual')) { (window as any).__noLockHint = true; return; }
   director.showTitle();
   game.start();
 }

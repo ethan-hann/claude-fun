@@ -511,10 +511,20 @@ export class Game {
     } else {
       this.graft.updateHeld(dt, this.r.camera, this.player);
     }
-    this.phys.step((h, force) => {
-      const o = this.phys.owners.get(h);
-      if (o && o.kind === 'lattice' && (o.lattice as Lattice).free) this.emit('impact', { lattice: o.lattice, force });
-    });
+    this.phys.step();
+    // Impacts: a free crate or orb that loses speed suddenly hit something. (Contact forces also
+    // fire for a crate resting on the floor, or pressed against a wall while carried.)
+    for (const l of this.lattices.values()) {
+      if (!l.free || l.disabled || this.frozen(l.islandKey)) continue;
+      const fl = l as FreeLattice;
+      const v = fl.body.linvel();
+      const pv = fl.prevVel;
+      if (!fl.held && !fl.anim && pv.lengthSq() > 1.44) {
+        const dv = Math.hypot(v.x - pv.x, v.y - pv.y, v.z - pv.z);
+        if (dv > 1.2) this.emit('impact', { lattice: fl, force: dv });
+      }
+      pv.set(v.x, v.y, v.z);
+    }
     // falls
     const isl = this.current!;
     if (this.player.pos.y < isl.killY) this.emit('fell');

@@ -171,7 +171,8 @@ def build(b):
     b.box((-5.1, 2.3, -8.6), (0.8, 4.6, 0.8), mat='wall', bevel=0.04)
     b.box((5.1, 2.3, -8.6), (0.8, 4.6, 0.8), mat='wall', bevel=0.04)
     for side in (-1, 1):
-        b.box((side * 9.08, 2.2, -8.3), (6.56, 4.4, 0.6), mat='wall', bevel=0.04)
+        # runs into the pillar: an open slit between them showed the sky
+        b.box((side * 8.88, 2.2, -8.3), (6.96, 4.4, 0.6), mat='wall', bevel=0.04)
 
     # ---------------------------------------------------------------- garden walk and terrace
     for side in (-1, 1):
