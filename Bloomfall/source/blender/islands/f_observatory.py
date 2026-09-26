@@ -206,7 +206,7 @@ def build(b):
     # a sundial, for the stage's name
     b.cyl((-24.6, 0.25, -9.6), 1.0, 0.5, mat='marble', segments=32, bevel=0.03)
     b.box((-24.6, 0.9, -9.6), (0.06, 0.8, 0.9), mat='steel', bevel=0.01, collide=False, rot_y=0.5)
-    E('zone', id='z_west', p=(-22.0, 0.0, -14.0), r=3.6, card='pillar', takeback=True)
+    E('zone', id='z_west', p=(-22.0, 0.0, -14.0), r=3.6, takeback=True)
 
     # ---------------------------------------------------------------- east: the Counterweight
     E0 = HUB_R + SPAN

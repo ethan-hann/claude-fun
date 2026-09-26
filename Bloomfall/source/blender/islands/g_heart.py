@@ -123,7 +123,6 @@ def build(b):
     E('spawn', p=(0.0, 0.05, 14.5), yaw=0)
     E('arrive', p=(0.0, 0.0, 17.2))
     E('zone', id='z_arrive', p=(0.0, 0.0, 13.5), r=3.2, echo='g_arrive')
-    E('zone', id='z_inf', p=(0.0, 0.0, 2.0), r=4.0, card='infinite')
     E('zone', id='z_core', p=(C[0], CORE_Y, C[1]), r=2.2, card='core', echo='g_core')
     E('zone', id='z_wall', p=(C[0], WALL, C[1]), r=9.2, h=2.0, grounded=True, echo='g_wall')
     # the Gardener's last note, on the west side of the wall

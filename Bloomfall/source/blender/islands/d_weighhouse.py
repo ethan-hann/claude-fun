@@ -97,7 +97,7 @@ def build(b):
     E('spawn', p=(0.0, 0.05, 14.5), yaw=0)
     E('arrive', p=(0.0, 0.0, 17.2))
     E('zone', id='z_arrive', p=(0.0, 0.0, 13.5), r=3.2, echo='d_arrive')
-    E('zone', id='z_lift', p=(-3.4, 0.0, -1.4), r=3.6, card='heavier', takeback=True)
+    E('zone', id='z_lift', p=(-3.4, 0.0, -1.4), r=3.6, takeback=True)
     E('zone', id='z_door', p=(0.0, LANDING, -5.2), r=2.4, echo='d_door')
 
     # ---------------------------------------------------------------- the Weighhouse
@@ -187,7 +187,7 @@ def build(b):
     E('crate', id='c_a', p=(-5.3, PAN_TOP[0] + 1.0, -23.7), level=2, ry=4)
     E('pickup', id='seed', kind='seed', p=(5.9, PAN_TOP[1] + 0.6, -24.9))
     E('zone', id='z_inside', p=(3.0, LANDING, -8.7), size=(12.0, 2.4), h=3.0, grounded=True)
-    E('zone', id='z_hall', p=(0.0, 0.0, -20.0), r=6.0, card='weigh', takeback=True)
+    E('zone', id='z_hall', p=(0.0, 0.0, -20.0), r=6.0, takeback=True)
 
     # the west gallery and the way out
     b.box((-9.3, EXIT - 0.25, -25.3), (3.8, 0.5, 18.6), mat='marble', bevel=0.04)

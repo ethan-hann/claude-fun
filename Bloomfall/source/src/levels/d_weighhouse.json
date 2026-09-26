@@ -2793,7 +2793,6 @@
 -1.4
 ],
 "r":3.6,
-"card":"heavier",
 "takeback":true
 },
 {
@@ -2892,7 +2891,6 @@
 -20.0
 ],
 "r":6.0,
-"card":"weigh",
 "takeback":true
 },
 {

@@ -76,7 +76,6 @@ def build(b):
     E('spawn', p=(0.0, 0.05, 14.5), yaw=0)
     E('arrive', p=(0.0, 0.0, 17.2))
     E('zone', id='z_arrive', p=(0.0, 0.0, 13.5), r=3.2, echo='c_arrive')
-    E('zone', id='z_span', p=(0.0, 0.0, 6.6), r=3.0, card='span')
 
     # ---------------------------------------------------------------- pier one and the pillar
     p1_hole = (-1.03, -9.93, 1.03, -7.87)
@@ -88,7 +87,6 @@ def build(b):
         b.balustrade((side * 3.3, 0.0, -3.4), (side * 3.3, 0.0, -9.7), height=1.05, mat='marble')
     b.box((0.0, -0.62, -8.9), (2.3, 1.2, 2.3), mat='steel', bevel=0.02, collide=False, lm_weight=0.3)  # shaft liner
     E('pillar', id='p1', p=(0.0, 0.0, -8.9), size=(2.0, 2.0), heights=[0.0, 1.5], level=0, depth=3.0)
-    E('zone', id='z_pillar', p=(0.0, 0.0, -6.0), r=3.0, card='pillar')
     E('zone', id='z_pier1', p=(0.0, 0.0, -6.5), size=(7.0, 7.0), h=3.0, grounded=True)
 
     # ---------------------------------------------------------------- the upper deck

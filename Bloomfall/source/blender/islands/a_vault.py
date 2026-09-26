@@ -216,7 +216,6 @@ def build(b):
     E('zone', id='z_move', p=(0.0, 0.0, 21.0), r=3.5, card='move')
     E('zone', id='z_jump', p=(0.0, 0.0, 16.6), r=1.8, card='jump')
     E('zone', id='z_carry', p=(0.0, 0.0, 8.0), r=4.0, card='carry')
-    E('zone', id='z_step', p=(0.0, 0.0, -1.5), r=3.2, card='step')
     E('zone', id='z_landing', p=(0.0, 2.2, -10.0), r=2.5, echo='landing')
     E('zone', id='z_graft', p=(4.2, 0.0, -15.6), r=3.2, card='graft')
     E('zone', id='z_take', p=(0.0, 0.0, -21.8), r=2.6, card='take')

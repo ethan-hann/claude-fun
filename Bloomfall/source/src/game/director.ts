@@ -194,6 +194,11 @@ export class Director {
     this.ui.showScreen(null);
     this.ui.setHudVisible(true);
     this.shownCards.clear();
+    this.laterCards = [];
+    this.ui.card(null);
+    this.cardDismiss = null;
+    this.ui.card(null);
+    this.cardDismiss = null;
     this.firedEchoes.clear();
     this.arrived.clear();
     // islands before i are gone; the rest are in place
@@ -333,6 +338,41 @@ export class Director {
     setTimeout(() => this.ui.echo(lines.map((l) => l.text)), delay * 1000);
   }
 
+  // Cards teach the controls the moment they are needed. The few mechanics that an island cannot
+  // show on its own wait until the player has had time to find them, and never appear once the
+  // player has. Everything else is left to the player; H still gives a hint on demand.
+  private cardRules: Record<string, { delay: number; solved?: () => boolean }> = {
+    look: { delay: 0, solved: () => this.lookAccum > 500 },
+    move: { delay: 0, solved: () => this.moveAccum > 5 },
+    jump: { delay: 0, solved: () => this.game.player.pos.z < this.game.current!.origin.z + 12.4 && this.game.player.grounded },
+    carry: { delay: 0 },
+    graft: { delay: 0 },
+    take: { delay: 0 },
+    give: { delay: 0 },
+    weight: { delay: 30, solved: () => !!this.game.entities.get('a_vault.gate')?.active },
+    ride: { delay: 40, solved: () => this.game.player.feet.y > this.game.current!.origin.y + 2.9 },
+    topple: { delay: 45, solved: () => (this.game.entities.get('e_colonnade.t1') as Toppler | undefined)?.state !== 'standing' },
+    lens: { delay: 40, solved: () => this.island.entities.some((e) => e instanceof Cradle && e.active) },
+    range: { delay: 30, solved: () => (this.game.entities.get('f_observatory.col') as Toppler | undefined)?.state !== 'standing' },
+    core: { delay: 8, solved: () => this.state !== 'playing' },
+  };
+  private laterCards: { key: string; t: number; island: string; solved: () => boolean }[] = [];
+
+  private cardLater(key: string, delay: number, solved: () => boolean): void {
+    if (this.shownCards.has(key) || this.laterCards.some((l) => l.key === key)) return;
+    this.laterCards.push({ key, t: delay, island: this.island.key, solved });
+  }
+
+  private updateLaterCards(dt: number): void {
+    this.laterCards = this.laterCards.filter((l) => {
+      if (l.island !== this.island.key || l.solved()) return false;
+      l.t -= dt;
+      if (l.t > 0 || this.ui.currentCard) return true;
+      this.showCard(l.key, l.solved, 16);
+      return false;
+    });
+  }
+
   showCard(key: string, dismiss?: () => boolean, seconds = 0): void {
     if (this.shownCards.has(key)) return;
     this.shownCards.add(key);
@@ -353,29 +393,18 @@ export class Director {
     if (r.card) {
       const key = r.card as string;
       const skip = (key === 'graft' && gr.owned) || ((key === 'take' || key === 'give') && !gr.owned);
-      if (!skip) {
-        const tests: Record<string, () => boolean> = {
-          look: () => this.lookAccum > 500,
-          move: () => this.moveAccum > 5,
-          jump: () => this.game.player.pos.z < this.game.current!.origin.z + 12.4 && this.game.player.grounded,
-          step: () => this.game.player.feet.y > this.game.current!.origin.y + 1.9,
-          ride: () => this.game.player.feet.y > this.game.current!.origin.y + 2.9,
-          span: () => this.game.player.pos.z < this.game.current!.origin.z - 3.4,
-          pillar: () => this.game.player.feet.y > this.game.current!.origin.y + 2.5,
-        };
-        // cards without a completion test leave on their own after a while
-        this.showCard(key, tests[key], tests[key] || ['carry', 'take', 'give', 'graft', 'weight'].includes(key) ? 0 : 30);
+      const rule = this.cardRules[key];
+      if (!skip && rule) {
+        if (rule.delay > 0) this.cardLater(key, rule.delay, rule.solved ?? (() => false));
+        else this.showCard(key, rule.solved, 0);
       }
     }
     if (r.echo) this.echoOnce(r.echo as string, 0.3);
-    // standing still with an empty Graft for a while: remind the player where space comes from
+    // a long stand with an empty Graft: remind the player where space comes from
     if (r.takeback && gr.owned && !gr.infinite) {
       setTimeout(() => {
         if (this.game.graft.cells === 0 && z.inside && !this.ui.currentCard && this.state === 'playing') this.showCard('takeback', undefined, 12);
-      }, 10000);
-    }
-    if (r.card === 'weight' && gr.owned && gr.cells === 0 && !gr.infinite) {
-      setTimeout(() => { if (this.game.graft.cells === 0 && this.ui.currentCard !== 'weight') this.showCard('takeback', undefined, 10); }, 9000);
+      }, 40000);
     }
     if (r.bloom) this.startBloom();
     if (r.arrive) this.arrive();
@@ -395,7 +424,6 @@ export class Director {
     } else if (p.kind === 'upgrade') {
       gr.capacity = Math.max(gr.capacity, p.rec.capacity ?? 2);
       this.audio.pickup();
-      this.showCard('capacity', undefined, 7);
       if (p.rec.echo) this.echoOnce(p.rec.echo, 0.5);
     } else if (p.kind === 'seed') {
       const key = this.island.key;
@@ -515,6 +543,7 @@ export class Director {
     if (this.state === 'ending') { this.updateEnding(dt); return; }
     if (this.state !== 'playing') return;
     this.save.time += dt;
+    this.updateLaterCards(dt);
     const input = g.input;
     // arrival: when the player's feet are on the next island's arrival pad
     const nextI = this.index + 1;

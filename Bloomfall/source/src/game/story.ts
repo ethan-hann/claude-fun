@@ -15,27 +15,18 @@ export interface Card { title: string; body: string }
 export const CARDS: Record<string, Card> = {
   look: { title: 'Look', body: 'Move the mouse to look around.' },
   move: { title: 'Move', body: '{W}{A}{S}{D} to walk. Hold {Shift} to run.' },
-  jump: { title: 'Jump', body: '{Space} to jump. The floor ahead has fallen in.' },
-  carry: { title: 'Carry', body: '{E} picks up a crate. {E} again sets it down. A door stays open while its plate holds enough weight.' },
-  step: { title: 'Climb', body: 'Set the crate against the ledge. Jump onto the crate, then jump again.' },
+  jump: { title: 'Jump', body: '{Space} to jump.' },
+  carry: { title: 'Carry', body: '{E} picks up a crate. {E} again sets it down.' },
   graft: { title: 'The Graft', body: '{E} to take the Graft.' },
-  take: { title: 'Take', body: 'Aim at lattice, the dark metal with glowing seams. {RMB} takes its space. It shrinks, and your Graft fills.' },
-  give: { title: 'Give', body: '{LMB} gives space back. The lattice grows. Your Graft can only give what it has taken.' },
-  weight: { title: 'Weight', body: 'Bigger lattice weighs more. Small weighs 1, medium 4, large 16. You weigh 4. The notches on a plate show how much it needs.' },
-  reset: { title: 'Stuck?', body: 'Hold {R} to reset this island.' },
-  takeback: { title: 'Out of space', body: 'Your Graft is empty. Space has to come from somewhere. Take it back from lattice you no longer need, even far away.' },
-  throw: { title: 'Throw', body: '{F} throws what you carry.' },
-  ride: { title: 'Grow under your feet', body: 'Lattice lifts whatever stands on it as it grows. That includes you, and anything you carry.' },
-  span: { title: 'Spans', body: 'A span is anchored lattice. Give it space and it unfolds across the gap. Take the space and it folds back.' },
-  pillar: { title: 'Pillars', body: 'A pillar rises one step for each cell you give it, and carries whatever stands on it.' },
-  capacity: { title: 'A second cell', body: 'Your Graft now holds two cells of space.' },
-  heavier: { title: 'Counterweight', body: 'The lift and the counterweight hang from one rope. The heavier side sinks. The lighter side rises.' },
-  weigh: { title: 'Weigh', body: 'A pan weighs everything resting on it. That includes you.' },
+  take: { title: 'Take', body: '{RMB} takes space out of lattice, the dark metal with glowing seams.' },
+  give: { title: 'Give', body: '{LMB} gives it back.' },
+  weight: { title: 'Weight', body: 'Small lattice weighs 1, medium 4, large 16. You weigh 4.' },
+  takeback: { title: 'Out of space', body: 'Your Graft is empty. Take space back from lattice you no longer need, even far away.' },
+  ride: { title: 'Grow under your feet', body: 'Lattice lifts whatever stands on it as it grows, you included.' },
   topple: { title: 'Downfall', body: 'Lattice pushes as it grows. Some things only stand until something pushes them.' },
-  infinite: { title: 'The Heart', body: 'Here your Graft never runs dry. {LMB} as often as you like.' },
   core: { title: 'The core', body: 'Hold {RMB} on the core.' },
-  lens: { title: 'Lenses', body: 'Each lens is a lattice orb. Set it in a cradle on the dais. It fits only while it is small.' },
-  range: { title: 'Reach', body: 'The Graft reaches about fourteen meters. Some things can only be touched from the right spot.' },
+  lens: { title: 'Lenses', body: 'A lens fits its cradle only while it is small.' },
+  range: { title: 'Reach', body: 'The Graft reaches about fourteen meters.' },
 };
 
 export interface EchoLine { text: string; hold?: number }
@@ -68,7 +59,6 @@ export const ECHOES: Record<string, EchoLine[]> = {
   ],
   b_wall: [
     { text: 'This garden will fall the moment you leave it.' },
-    { text: 'Whatever you leave down here stays down here. Take what you need with you.' },
   ],
   b_short: [
     { text: 'Not yet. There is not enough space up here for the way on.' },
@@ -91,7 +81,6 @@ export const ECHOES: Record<string, EchoLine[]> = {
   ],
   d_door: [
     { text: 'The forecourt will not hold once you are inside.' },
-    { text: 'Nothing out here is coming with us, unless you carry it.' },
   ],
   d_short: [
     { text: 'The scale in here needs a crate, and you came in without one.' },
