@@ -68,6 +68,20 @@ The game saves in your browser each time you reach a new island. Continue on the
 
 Everything you hear is synthesized live with WebAudio: the wind, the score, the Heartbloom's hum, stone and metal.
 
+### What I had to fix
+
+The first pass was complete and playable. Human playtests then led to extra passes in these areas:
+
+- **A look of its own.** The first typefaces looked like The Tithe's. The text was also too small. Bloomfall now has its own typefaces, a larger interface, and an Interface size slider.
+- **Rendering bugs.** Playtests found black and white patches, missing faces, and slits of sky between walls. Doors hung in the air after their island drifted away. Each one is fixed.
+- **Input and physics.** On a 144 Hz screen, more than half of all key presses were lost. A resting crate looped its impact sound. Every key press now counts at 60, 144, and 240 Hz. Crates now sound only on impact.
+- **Difficulty and length.** The first full playtest took 11 minutes. Claude made Islands II to V harder. The next one took about 25 minutes. A speedrun took about 8. Claude then added a hub island with three stages you can take in any order. The finale got harder too.
+- **Hard locks.** Some mistakes left the game impossible to finish. Parts of two islands fell away with a piece you still needed. Bulkheads never rose again once you took their space. A new game after the ending had no Graft to pick up. All three are fixed.
+- **Volumetric fog.** The whole chain of islands was visible at once. Now far islands sink into drifting fog and come out of it as you get close.
+- **Fewer hints.** The game explained too much, too soon. Cards now teach only the controls, when you first need them. Mechanics the world cannot show get a short card after a delay. The card never shows if you found the mechanic first.
+- **Post-processing settings.** The bloom was too strong. Settings now has strength sliders for bloom and fog, and switches for the vignette and film grain.
+- **Lore that matches the sky.** LORE.md described a dark sky. The game's sky is a sunset that never ends. The lore now matches it.
+
 ### Building from source
 
 The game is a TypeScript project built with Vite. The source is in [source/](source/).

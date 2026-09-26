@@ -123,17 +123,3 @@ Before you stop, use it the way a first-time player would. Take screenshots from
 
 Make every decision yourself. Do not ask me anything. When you finish, tell me what you could not verify.
 ```
-
-### Follow-ups:
-
-Follow-up prompts after playtesting asked for extra passes on:
-
-- A look of its own, apart from The Tithe, and a UI scale setting
-- Rendering bugs on real GPUs
-- Input and physics bugs
-- Puzzle difficulty and length
-- Hard locks
-- Volumetric fog
-- Fewer hints (show, don't tell)
-- Post-processing settings
-- Lore that matches the sky
