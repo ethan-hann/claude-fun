@@ -682,6 +682,7 @@ export class Director {
     const cam = g.r.camera;
     this.audio.setListener(cam.getWorldPosition(new THREE.Vector3()), cam.getWorldDirection(new THREE.Vector3()));
     this.audio.interior = THREE.MathUtils.lerp(this.audio.interior, this.game.isInterior() ? 1 : 0, Math.min(1, dt * 2));
+    if (g.r.fog) g.r.fog.uniforms.get('uInside')!.value = this.audio.interior;
     this.audio.heartProximity = THREE.MathUtils.clamp(1 - cam.position.distanceTo(this.heartPos) / 700, 0, 1);
   }
 

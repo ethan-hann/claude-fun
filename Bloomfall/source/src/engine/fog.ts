@@ -81,6 +81,7 @@ uniform vec3 uSunDir;
 uniform vec3 uSunColor;
 uniform vec3 uHeartPos;
 uniform float uHeartGlow;
+uniform float uInside;
 
 float bfIgn( vec2 p ) { return fract( 52.9829189 * fract( dot( p, vec2( 0.06711056, 0.00583715 ) ) ) ); }
 
@@ -90,7 +91,8 @@ float bfFogDensity( vec3 p, float s ) {
   vec3 q = p * uNoiseScale;
   float n = texture( uNoise, q + uWind * uTime ).r * 0.7 + texture( uNoise, q * 3.1 - uWind * uTime * 1.6 ).r * 0.3;
   float banks = 0.12 + 1.9 * smoothstep( 0.25, 0.75, n );
-  float clear = mix( uNear, 1.0, smoothstep( uR0, uR1, s ) );
+  // indoors, no sky lights the air close by: the near haze all but goes
+  float clear = mix( uNear * ( 1.0 - 0.9 * uInside ), 1.0, smoothstep( uR0, uR1, s ) );
   return uDensity * h * banks * clear;
 }
 
@@ -161,6 +163,7 @@ export class VolumetricFog extends Effect {
         ['uWind', u(new THREE.Vector3(0.011, 0.0015, 0.006))],
         ['uTime', u(0)],
         ['uSteps', u(steps)],
+        ['uInside', u(0)],
         ['uBrightness', fogUniforms.uFogBrightness as THREE.Uniform], // dims with the sky in the ending
         // shared with the sky dome
         ['uSky', skyUniforms.uSky as THREE.Uniform],

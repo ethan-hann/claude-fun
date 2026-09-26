@@ -95,8 +95,10 @@ kbd.mouse svg { width: 0.95em; height: 1.2em; }
 .screen { position: fixed; inset: 0; display: none; z-index: 15; pointer-events: auto; font-family: var(--sans); color: var(--ink); font-size: var(--u); }
 .screen.show { display: block; }
 .screen .shade { position: absolute; inset: 0; background: radial-gradient(ellipse at 30% 50%, rgba(8, 7, 12, 0.35), rgba(8, 7, 12, 0.82)); }
-.screen .panel { position: absolute; left: 7vw; top: 50%; transform: translateY(-50%); width: min(30em, 80vw);
-  max-height: calc(100vh - 3em); overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(243, 236, 225, 0.3) transparent; }
+.screen .panel { position: absolute; left: 7vw; top: 50%; transform: translateY(-50%); width: min(30em, 80vw); }
+/* the long lists scroll on short screens; the title's wide heading must not be clipped, so only these */
+#settings .panel, #controls .panel, #chapters .panel { max-height: calc(100vh - 3em); overflow-x: hidden; overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: rgba(243, 236, 225, 0.3) transparent; }
 #settings .row { padding: 0.36em 0; }
 .screen h1 { font-family: var(--display); font-weight: 800; font-size: 4.3em; letter-spacing: 0.04em; margin: 0; line-height: 1; text-shadow: 0 4px 30px rgba(0, 0, 0, 0.45); }
 .screen .sub { font-family: var(--voice); font-style: italic; font-weight: 300; font-size: 1.2em; color: var(--dim); margin: 0.7em 0 2.2em; }

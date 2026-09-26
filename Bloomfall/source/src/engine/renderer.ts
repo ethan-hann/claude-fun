@@ -88,7 +88,7 @@ export class Renderer {
   private effectPass!: EffectPass;
   fog: VolumetricFog | null = null;
   private noise!: NoiseEffect;
-  post: PostSettings = { bloom: 0.6, fog: 1, vignette: true, grain: true };
+  post: PostSettings = { bloom: 0.25, fog: 1.5, vignette: true, grain: true };
   private smaaPass: EffectPass | null = null;
   private renderPass!: RenderPass;
   dynShadow: DynamicShadow;
