@@ -327,6 +327,7 @@ export class FreeLattice extends Lattice {
     this.anim = null;
     this.animating = false;
     this.held = false;
+    this.spawnPos.copy(this.authoredPos);
     this.level = this.initialLevel;
     this.size = FREE_SIZES[this.level];
     this.body.setBodyType(this.phys.R.RigidBodyType.Dynamic, true);
@@ -401,14 +402,27 @@ export class AnchoredLattice extends Lattice {
   weight(): number { return 0; }
   label(): string { return this.names; }
 
-  // Would moving to `offset` push into static geometry or other anchored lattice?
+  // Would moving to `offset` push into static geometry or other anchored lattice? Only the space the
+  // lattice moves into counts: its track (a bollard's socket in the floor, a span's housing) is its
+  // own, even where it runs through solid architecture.
   private sweepBlocked(from: number, to: number): boolean {
     if (to <= from) return false; // retracting frees space
+    // the local box axis that lies along the track, and the box's half length on it
+    const locals = [new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 1)].map((v) => v.applyQuaternion(this.rot));
+    let k = 0;
+    for (let i = 1; i < 3; i++) if (Math.abs(locals[i].dot(this.axis)) > Math.abs(locals[k].dot(this.axis))) k = i;
+    const hl = [this.half.x, this.half.y, this.half.z][k];
+    const housed = this.offsets[0] + hl; // the far end of the box when fully retracted
     const steps = Math.max(1, Math.ceil((to - from) / 0.25));
     for (let i = 1; i <= steps; i++) {
       const o = from + ((to - from) * i) / steps;
-      const p = this.positionFor(o);
-      if (this.phys.boxOverlaps(p, this.half, this.rot, G.STATIC | G.SCREEN | G.KINEMATIC, this.collider, 0.04)) return true;
+      const lo = Math.max(o - hl, housed);
+      const hi = o + hl;
+      if (hi - lo < 0.05) continue;
+      const half = this.half.clone();
+      half.setComponent(k, (hi - lo) / 2);
+      const p = this.positionFor((lo + hi) / 2);
+      if (this.phys.boxOverlaps(p, half, this.rot, G.STATIC | G.SCREEN | G.KINEMATIC, this.collider, 0.04)) return true;
     }
     return false;
   }

@@ -1,6 +1,9 @@
+import * as THREE from 'three';
 import type { Director } from './director';
 import type { Zone, Plate } from './entities';
-import type { Lattice } from './lattice';
+import { FREE_SIZES } from './lattice';
+import type { Lattice, FreeLattice } from './lattice';
+import { G } from './physics';
 
 // Per-island behavior beyond the generic entities: story beats, collapses, hints.
 export interface IslandScript {
@@ -25,14 +28,64 @@ export function islandScripts(d: Director): Record<string, IslandScript> {
   let cSaved: { spawn: any; yaw: number; cells: number } | null = null;
   const cIsland = () => d.game.islands.find((i) => i.key === 'c_viaduct')!;
   const localZ = (key: string) => d.game.player.pos.z - d.game.islands.find((i) => i.key === key)!.origin.z;
+  // Island II waits to drop the garden until the space up top is enough for the yard: two cells, in
+  // the Graft or in lattice on the terrace. Otherwise the island could not be finished.
+  const bUpperSpace = () => {
+    const isl = bIsland();
+    let n = d.game.graft.cells;
+    for (const l of isl.lattices) if (l.free && !l.disabled && l.body.translation().y > isl.origin.y + 4.0) n += l.level;
+    return n;
+  };
   // Island IV: the forecourt breaks away once the player is inside; the memory rides pan B.
   let dFallen = false;
   let dSaved: { spawn: any; yaw: number } | null = null;
   const dIsland = () => d.game.islands.find((i) => i.key === 'd_weighhouse')!;
+  // It waits until a crate has come inside too: pan B can only be weighed down with one.
+  const dCrateInside = () => {
+    const isl = dIsland();
+    return isl.lattices.some((l) => l.free && !l.disabled && !l.id.endsWith('.c_a')
+      && ((l as FreeLattice).held || l.body.translation().z < isl.origin.z - 7.3));
+  };
   // Island V: the south terrace falls once the player is across; the memory rides the first column.
   let eFallen = false;
   let eSaved: { spawn: any; yaw: number } | null = null;
   const eIsland = () => d.game.islands.find((i) => i.key === 'e_colonnade')!;
+  // Island VII: once the player has stood on the calyx wall, a fall puts them back on the wall.
+  let gSaved: { spawn: any; yaw: number } | null = null;
+  const gIsland = () => d.game.islands.find((i) => i.key === 'g_heart')!;
+  const gRestore = () => { if (gSaved) { const i = gIsland(); i.spawn.copy(gSaved.spawn); i.spawnYaw = gSaved.yaw; } };
+  const bTryFall = () => {
+    if (bFallen) return;
+    if (bUpperSpace() < 2) { d.echoOnce('b_short', 0.4); return; }
+    bFallen = true;
+    const isl = bIsland();
+    if (!bSpawn) bSpawn = { p: isl.spawn.clone(), yaw: isl.spawnYaw };
+    setTimeout(() => {
+      if (!bFallen) return;
+      // the space went back down in the meantime: wait again
+      if (bUpperSpace() < 2) { bFallen = false; return; }
+      isl.spawn.set(isl.origin.x, isl.origin.y + 4.3, isl.origin.z - 14.2);
+      isl.spawnYaw = 0;
+      isl.detachChunk('garden');
+      d.game.shake = Math.max(d.game.shake, 0.45); d.audio.rumble(isl.origin.clone().add(new (isl.origin.constructor as any)(0, 0, 3)), 6, 0.7);
+      d.echoOnce('b_fall', 2.0);
+    }, 700);
+  };
+  const dTryFall = () => {
+    if (dFallen) return;
+    if (!dCrateInside()) { d.echoOnce('d_short', 0.4); return; }
+    dFallen = true;
+    const isl = dIsland();
+    if (!dSaved) dSaved = { spawn: isl.spawn.clone(), yaw: isl.spawnYaw };
+    setTimeout(() => {
+      if (!dFallen) return;
+      if (!dCrateInside()) { dFallen = false; return; }
+      isl.spawn.set(isl.origin.x + 1.0, isl.origin.y + 6.05, isl.origin.z - 8.7);
+      isl.spawnYaw = 0;
+      isl.detachChunk('forecourt');
+      d.game.shake = Math.max(d.game.shake, 0.45); d.audio.rumble(isl.origin.clone().add(new (isl.origin.constructor as any)(0, 0, 4)), 6, 0.7);
+    }, 1500);
+  };
   return {
     e_colonnade: {
       reset() {
@@ -84,19 +137,10 @@ export function islandScripts(d: Director): Record<string, IslandScript> {
         if (dSaved) { const i = dIsland(); i.spawn.copy(dSaved.spawn); i.spawnYaw = dSaved.yaw; }
       },
       zone(id) {
-        if (id !== 'z_inside' || dFallen) return;
-        dFallen = true;
-        const isl = dIsland();
-        if (!dSaved) dSaved = { spawn: isl.spawn.clone(), yaw: isl.spawnYaw };
-        isl.spawn.set(isl.origin.x + 1.0, isl.origin.y + 6.05, isl.origin.z - 8.7);
-        isl.spawnYaw = 0;
-        setTimeout(() => {
-          if (!dFallen) return;
-          isl.detachChunk('forecourt');
-          d.game.shake = Math.max(d.game.shake, 0.45); d.audio.rumble(isl.origin.clone().add(new (isl.origin.constructor as any)(0, 0, 4)), 6, 0.7);
-        }, 1500);
+        if (id === 'z_inside') dTryFall();
       },
       update() {
+        if (!dFallen && (d.game.entities.get('d_weighhouse.z_inside') as Zone | undefined)?.active) dTryFall();
         const scale = d.game.entities.get('d_weighhouse.scale') as any;
         const seed = d.game.entities.get('d_weighhouse.seed') as any;
         if (!scale || !seed || seed.taken) return;
@@ -117,7 +161,7 @@ export function islandScripts(d: Director): Record<string, IslandScript> {
           'Only a crate can weigh pan B down. The catwalk from the south gallery ends over it.',
           'Stand on pan A. Take the large crate\'s space and give it to the crate on pan B, through the pan\'s floor.',
           'When pan B outweighs pan A, pan A rises. Stay on it.',
-          'If you came in without a crate, there is nothing to weigh pan B with. Hold {R} to reset the island.',
+          ...(dFallen ? [] : ['The forecourt waits until a crate comes inside with you. The one that rode up on the lift will do.']),
         ];
       },
     },
@@ -177,25 +221,21 @@ export function islandScripts(d: Director): Record<string, IslandScript> {
         if (bSpawn) { bIsland().spawn.copy(bSpawn.p); bIsland().spawnYaw = bSpawn.yaw; }
       },
       zone(id) {
-        if (id !== 'z_top' || bFallen) return;
-        bFallen = true;
-        const isl = bIsland();
-        if (!bSpawn) bSpawn = { p: isl.spawn.clone(), yaw: isl.spawnYaw };
-        setTimeout(() => {
-          if (!bFallen) return;
-          isl.spawn.set(isl.origin.x, isl.origin.y + 4.3, isl.origin.z - 14.2);
-          isl.spawnYaw = 0;
-          isl.detachChunk('garden');
-          d.game.shake = Math.max(d.game.shake, 0.45); d.audio.rumble(isl.origin.clone().add(new (isl.origin.constructor as any)(0, 0, 3)), 6, 0.7);
-          d.echoOnce('b_fall', 2.0);
-        }, 700);
+        if (id === 'z_top') bTryFall();
+      },
+      update() {
+        if (bFallen) return;
+        const z = d.game.entities.get('b_terraces.z_top') as Zone | undefined;
+        if (z?.active) bTryFall();
       },
       hints: () => bFallen ? [
         'The plate holds the gate open. The medium crate is heavy enough to hold it.',
         'The gate is a screen. Your Graft reaches through it. Bodies do not.',
         'The ledge in the yard is 3.3 m. From a large crate you reach 3.5 m. A large crate takes two cells.',
         'Stand on the yard crate at the ledge and give it the cell you brought up. Then take the plate crate\'s cell through the screen and give it too.',
-        'If you came up with an empty Graft, the yard is one cell short. Hold {R} to reset the island.',
+      ] : (d.game.entities.get('b_terraces.z_top') as Zone | undefined)?.active ? [
+        'The garden waits while the space up here is short of what the yard needs: two cells.',
+        'Reach down from the edge and take one more cell from a bollard or a crate in the garden.',
       ] : [
         'The wall is 4.3 m. Standing on a large crate you reach 3.5 m. On a medium crate stacked on a large one, 4.5 m.',
         'Lattice lifts whatever stands on it. Stand on a small crate and give it space.',
@@ -205,6 +245,21 @@ export function islandScripts(d: Director): Record<string, IslandScript> {
       ],
     },
     f_observatory: {
+      // A lens that falls into the haze comes back to the last place it rested on solid ground at
+      // floor level, not to the far stage it started on.
+      update() {
+        const isl = d.game.islands.find((i) => i.key === 'f_observatory');
+        if (!isl) return;
+        for (const id of ['lens_w', 'lens_e', 'lens_n']) {
+          const l = d.game.lattices.get(`f_observatory.${id}`) as FreeLattice | undefined;
+          if (!l || l.held || l.anim) continue;
+          const p = l.position();
+          const v = l.body.linvel();
+          if (Math.abs(p.y - isl.origin.y) > 2.5 || Math.hypot(v.x, v.y, v.z) > 0.1) continue;
+          if (!d.game.phys.castRay(p, new THREE.Vector3(0, -1, 0), l.size / 2 + 0.1, G.STATIC, l.collider)) continue;
+          l.spawnPos.set(p.x, p.y - l.size / 2 + FREE_SIZES[l.initialLevel] / 2, p.z);
+        }
+      },
       hints: () => {
         const isl = d.game.islands.find((i) => i.key === 'f_observatory');
         const at = (id: string) => {
@@ -220,16 +275,31 @@ export function islandScripts(d: Director): Record<string, IslandScript> {
         if (o && e && e.x - o.x > 18.4) out.push(
           'East: the chamber stays open while its plate holds 16. Something else has to weigh 16 before the lens can leave.',
           'East: the crate\'s own cell unfolds the short span. Carry the small crate in.');
-        if (o && n && n.z - o.z < -42.4) out.push(
-          'North: the crate beside the column is out of reach from the plaza. Walk out on the span first, but not to its end: the column falls there.',
-          'North: the column falls away from whatever grows beside it. The cage opens while its plate holds 4.');
+        const col = d.game.entities.get('f_observatory.col') as any;
+        if (o && n && n.z - o.z < -42.4) {
+          if (col && col.state !== 'standing') out.push(
+            'North: the fallen column is a bridge. Jump onto it from the end of the span and walk across.',
+            'North: the cage opens while its plate holds 4.');
+          else out.push(
+            'North: the crate beside the column is out of reach from the plaza. Walk out on the span first, but not to its end: the column falls there.',
+            'North: the column falls away from whatever grows beside it.');
+        }
         out.push(
           'Each span takes one cell. Once you are back, you can take a span back from the plaza and use its cell elsewhere.',
-          'A lens fits its cradle only while it is small.');
+          'A lens fits its cradle only while it is small. Set it down beside an empty cradle, and the cradle draws it in.');
         return out;
       },
     },
     g_heart: {
+      reset: gRestore,
+      resetIsland: gRestore,
+      zone(id) {
+        if (id !== 'z_wall') return;
+        const isl = gIsland();
+        if (!gSaved) gSaved = { spawn: isl.spawn.clone(), yaw: isl.spawnYaw };
+        isl.spawn.set(isl.origin.x, isl.origin.y + 4.35, isl.origin.z - 12.4);
+        isl.spawnYaw = 0;
+      },
       hints: () => {
         const spire = d.game.entities.get('g_heart.spire') as any;
         const isl = d.game.islands.find((i) => i.key === 'g_heart');

@@ -60,7 +60,7 @@ The game saves in your browser each time you reach a new island. Continue on the
 ### Settings
 
 - Interface size scales all text and the HUD, from 70 to 180 percent. The new size applies when you let go of the slider.
-- Graphics has four levels. Low turns off real-time shadows and ambient occlusion and renders at a lower resolution. Ultra renders at up to twice your screen's resolution with sharper shadows.
+- Graphics has four levels. Low turns off real-time shadows and ambient occlusion and renders at a lower resolution. Ultra renders at up to twice your screen's resolution with sharper shadows. Every level draws the volumetric fog; higher levels take more samples through it.
 - Mouse sensitivity, invert look, field of view, volume, and music.
 
 ### Sound
@@ -97,6 +97,11 @@ tools/run_all.sh out/        # every playthrough, each checked for reaching its 
 node tools/play.mjs tests/refresh.mjs out/ "manual"   # every tap counts at 60, 144 and 240 Hz
 node tools/play.mjs tests/carry.mjs out/ "manual"     # carried crates make no impact sounds; landings do
 node tools/scan.mjs tests/gaps.mjs out/ "manual"      # tall, thin see-through slits between walls
+node tools/play.mjs tests/traps.mjs out/ "manual"     # Islands II and IV wait before dropping what you still need
+node tools/play.mjs tests/bulkhead.mjs out/ "manual"  # bulkheads sink when you take and rise when you give
+node tools/play.mjs tests/lens_respawn.mjs out/ "manual"  # a fallen lens comes back where it last rested
+node tools/play.mjs tests/checkpoint.mjs out/ "manual"    # a fall on the Heart's wall puts you back on the wall
+node tools/play.mjs tests/fogviews.mjs out/ "manual"  # how far you can see from each bloom
 ```
 
 ### Credits

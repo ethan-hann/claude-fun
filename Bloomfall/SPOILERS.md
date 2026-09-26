@@ -42,7 +42,7 @@ The memory sits on a plinth at the west edge of the terrace, past the gate.
 8. Give it the cell you brought up. It grows to medium under you.
 9. Take the plate crate's cell back through the screen. The gate closes behind you. Give it to your crate: large. Climb to the bloom.
 
-If you reach the terrace with an empty Graft, the yard is one cell short. Hold R to reset the island.
+If you reach the terrace one cell short, the garden waits for you. Reach down from the terrace's edge and take one more cell from a bollard or a crate. The garden falls once the space up top is enough for the yard.
 
 The memory sits on top of the broken column in the garden, 3 m up. A large crate beside the column reaches it, but the garden's four cells are exactly what you need: the detour means shrinking the crate again, one cell at a time.
 
@@ -73,7 +73,7 @@ The memory sits on top of the broken column in the garden, 3 m up. A large crate
 8. Give both cells to your crate on pan B, through its perforated floor. Pan B weighs 16 and sinks. Pan A carries you up.
 9. Jump to the west gallery and walk out to the bloom.
 
-If you come inside without a crate, nothing can weigh pan B down. Hold R to reset the island.
+If you come inside without a crate, the forecourt waits for you. Go back out for one.
 
 The memory rides on pan B. The catwalk reaches it while the pan hangs high.
 
@@ -97,7 +97,7 @@ The west stage, the Stair:
 1. Take a plaza bollard's cell. Unfold the west span with it and cross.
 2. Take the stage's bollard. Then take the span behind you. You hold two cells, and you are stranded.
 3. Stand on the first pillar and give it both cells. It rises 4 m.
-4. Drop onto the second pillar. Take the first pillar's two cells and give them to the second. Do the same from the second pillar to the third. The third lifts you level with the tower ledge at 8 m. Pick up the lens there.
+4. Drop onto the second pillar. Take the first pillar's two cells and give them to the second. Do the same from the second pillar to the third. The third lifts you to 8 m, level with the tower ledge. Jump across and pick up the lens.
 5. Jump down. Take the third pillar's cells and give one to the span. Carry the lens home.
 
 The east stage, the Counterweight:

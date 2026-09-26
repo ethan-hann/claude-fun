@@ -218,6 +218,90 @@ export class Cradle extends Entity {
 }
 
 // ------------------------------------------------------------------------------------------
+// Beam: a shaft of light from the Observatory's telescope to the Heart. It lights while every
+// linked cradle holds a lens. The far end is found at run time, since the Heart is on another island.
+// ------------------------------------------------------------------------------------------
+const BEAM_VS = /* glsl */ `
+  varying float vT;
+  varying float vF;
+  void main() {
+    vec4 wp = modelMatrix * vec4(position, 1.0);
+    vec3 n = normalize(mat3(modelMatrix) * normal);
+    vF = abs(dot(n, normalize(cameraPosition - wp.xyz)));
+    vT = uv.y;
+    gl_Position = projectionMatrix * viewMatrix * wp;
+  }`;
+const BEAM_FS = /* glsl */ `
+  uniform float uGlow;
+  varying float vT;
+  varying float vF;
+  void main() {
+    float along = 0.55 + 0.45 * (1.0 - vT);
+    float a = uGlow * along * pow(vF, 2.5) * 6.0;
+    gl_FragColor = vec4(vec3(0.6, 0.92, 1.0) * a, 1.0);
+  }`;
+
+export class Beam extends Entity {
+  start: THREE.Vector3;
+  openIf: string[];
+  private target: string;
+  private entities: Map<string, Entity>;
+  private holder = new THREE.Group(); // rides along with the island's other things when it drifts
+  private mesh: THREE.Mesh | null = null;
+  private u = { uGlow: { value: 0 } };
+  private on = false;
+
+  constructor(rec: EntityRec, ctx: EntityContext) {
+    super(rec);
+    this.start = v3(rec.p).add(ctx.origin);
+    this.openIf = rec.openIf ?? [];
+    this.target = rec.target;
+    this.entities = ctx.entities;
+    ctx.scene.add(this.holder);
+  }
+
+  get active(): boolean { return this.on; }
+
+  private build(): void {
+    const heart = this.entities.get(this.target) as { center?: THREE.Vector3 } | undefined;
+    if (!heart?.center) return;
+    const dir = heart.center.clone().sub(this.start);
+    const len = dir.length();
+    const geo = new THREE.CylinderGeometry(1.1, 0.3, len, 24, 1, true);
+    geo.translate(0, len / 2, 0);
+    const mat = new THREE.ShaderMaterial({ uniforms: this.u, vertexShader: BEAM_VS, fragmentShader: BEAM_FS, transparent: true,
+      depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
+    this.mesh = new THREE.Mesh(geo, mat);
+    this.mesh.position.copy(this.start);
+    this.mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
+    this.mesh.frustumCulled = false;
+    this.mesh.visible = false;
+    this.holder.add(this.mesh);
+  }
+
+  fixedUpdate(_dt: number, ctx: EntityContext): void {
+    this.on = this.openIf.length > 0 && this.openIf.every((id) => !!ctx.entities.get(id)?.active);
+  }
+
+  frameUpdate(dt: number): void {
+    const g = this.u.uGlow.value + ((this.on ? 1 : 0) - this.u.uGlow.value) * Math.min(1, dt * 0.8);
+    this.u.uGlow.value = g;
+    if (g > 0.002 && !this.mesh) this.build();
+    if (this.mesh) this.mesh.visible = g > 0.002;
+  }
+
+  reset(): void {
+    this.on = false;
+    this.u.uGlow.value = 0;
+    if (this.mesh) this.mesh.visible = false;
+  }
+
+  setVisible(v: boolean): void { if (!v) this.reset(); }
+  // the island drifts away once the player is across: the beam would no longer meet the Heart
+  onDrift(): void { this.reset(); }
+}
+
+// ------------------------------------------------------------------------------------------
 // Door: a heavy slab that slides open while every linked plate (or lattice condition) holds.
 // ------------------------------------------------------------------------------------------
 export class Door extends Entity implements Platform {

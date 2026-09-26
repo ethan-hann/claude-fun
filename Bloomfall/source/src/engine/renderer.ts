@@ -9,6 +9,7 @@ import { Sky, sunDirection, SUN_COLOR, SUN_INTENSITY } from './sky';
 import { LightPool } from './lightpool';
 import { setMaxAnisotropy, fogUniforms } from './materials';
 import { DynamicShadow } from './dynshadow';
+import { VolumetricFog } from './fog';
 import world from '../../shared/world.json';
 
 // Contrast (in sRGB) and saturation after tone mapping. Every value is clamped to [0, 1] before a
@@ -56,13 +57,14 @@ interface Preset {
   bloom: boolean;
   smaa: boolean;
   anisotropy: number;
+  fogSteps: number;
 }
 
 export const PRESETS: Record<Quality, Preset> = {
-  low: { pixelRatio: 0.75, shadows: false, shadowSize: 1024, shadowRadius: 1, ao: false, aoHalf: true, bloom: true, smaa: false, anisotropy: 2 },
-  medium: { pixelRatio: 1.0, shadows: true, shadowSize: 1024, shadowRadius: 2, ao: 'Performance', aoHalf: true, bloom: true, smaa: true, anisotropy: 4 },
-  high: { pixelRatio: 1.5, shadows: true, shadowSize: 2048, shadowRadius: 2.5, ao: 'Medium', aoHalf: false, bloom: true, smaa: true, anisotropy: 8 },
-  ultra: { pixelRatio: 2.0, shadows: true, shadowSize: 4096, shadowRadius: 3, ao: 'High', aoHalf: false, bloom: true, smaa: true, anisotropy: 16 },
+  low: { pixelRatio: 0.75, shadows: false, shadowSize: 1024, shadowRadius: 1, ao: false, aoHalf: true, bloom: true, smaa: false, anisotropy: 2, fogSteps: 8 },
+  medium: { pixelRatio: 1.0, shadows: true, shadowSize: 1024, shadowRadius: 2, ao: 'Performance', aoHalf: true, bloom: true, smaa: true, anisotropy: 4, fogSteps: 12 },
+  high: { pixelRatio: 1.5, shadows: true, shadowSize: 2048, shadowRadius: 2.5, ao: 'Medium', aoHalf: false, bloom: true, smaa: true, anisotropy: 8, fogSteps: 16 },
+  ultra: { pixelRatio: 2.0, shadows: true, shadowSize: 4096, shadowRadius: 3, ao: 'High', aoHalf: false, bloom: true, smaa: true, anisotropy: 16, fogSteps: 24 },
 };
 
 export class Renderer {
@@ -79,6 +81,7 @@ export class Renderer {
   private toneMap!: ToneMappingEffect;
   private vignette!: VignetteEffect;
   private effectPass!: EffectPass;
+  fog: VolumetricFog | null = null;
   private smaaPass: EffectPass | null = null;
   private renderPass!: RenderPass;
   dynShadow: DynamicShadow;
@@ -116,6 +119,8 @@ export class Renderer {
   async init(): Promise<void> {
     await this.sky.load();
     fogUniforms.uFogBrightness.value = world.sky.strength;
+    // the volumetric fog pass does all the fogging; the surfaces' own analytic fog stays off
+    fogUniforms.uFogEnabled.value = 0;
     this.scene.environment = this.sky.envMap;
     this.scene.environmentIntensity = world.sky.strength;
     this.buildComposer();
@@ -142,6 +147,9 @@ export class Renderer {
       this.composer.addPass(ao);
       this.ao = ao;
     }
+    this.fog?.dispose();
+    this.fog = new VolumetricFog(this.camera, preset.fogSteps);
+    this.composer.addPass(new EffectPass(this.camera, this.fog));
     this.bloom = new BloomEffect({ mipmapBlur: true, luminanceThreshold: 2.5, luminanceSmoothing: 0.6, intensity: 0.55, radius: 0.7 });
     this.toneMap = new ToneMappingEffect({ mode: (window as any).__toneMode ?? ToneMappingMode.AGX });
     this.vignette = new VignetteEffect({ offset: 0.32, darkness: 0.48 });

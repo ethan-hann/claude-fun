@@ -112,8 +112,12 @@ def build(b):
     for sx in (-1, 1):
         b.box((HX + sx * 0.55, DAIS_H + 3.0, HZ), (0.16, 1.9, 0.9), mat='steel', bevel=0.02, collide=False)
     pivot = (HX, DAIS_H + 3.6, HZ)
-    el = math.radians(34.0)
-    az = math.radians(-16.0)  # toward -z, a little toward -x
+    # aimed at the Heart: island g_heart sits at (-30, 28, -530) and this one at (-6, 25, -447) (see
+    # src/main.ts); the Heart floats 14.3 m over g_heart's local (0, -20)
+    heart = (-30.0 + 6.0, 28.0 + 14.3 - 25.0, -530.0 - 20.0 + 447.0)
+    to = (heart[0] - pivot[0], heart[1] - pivot[1], heart[2] - pivot[2])
+    el = math.atan2(to[1], math.hypot(to[0], to[2]))
+    az = math.atan2(to[0], -to[2])  # toward -z, a little toward -x
     tube_len = 7.2
     d = (math.sin(az) * math.cos(el), math.sin(el), -math.cos(az) * math.cos(el))
     axis = Vector((0.0, 0.0, 1.0)).rotation_difference(lib.g2b(d)).to_euler()
@@ -127,6 +131,9 @@ def build(b):
     along(0.9, 0.6, tube_len, 'plates', bevel=0.03)             # the tube
     along(4.62, 0.7, 0.36, 'steel')                              # objective ring
     along(4.82, 0.52, 0.04, 'glow_white', bevel=0.0)             # the objective glass
+    # with all three lenses home, a shaft of light runs from the objective to the Heart
+    E('beam', id='beam', p=tuple(round(pivot[i] + d[i] * 4.9, 3) for i in range(3)), openIf=['cr_w', 'cr_e', 'cr_s'],
+      target='g_heart.heart')
     for off in (-1.2, 0.9, 3.0):
         along(off, 0.66, 0.22, 'steel')                          # bands
     along(-2.95, 0.36, 0.9, 'steel', r_top=0.5)                  # eyepiece end
@@ -153,7 +160,8 @@ def build(b):
     for side in (-1, 1):
         b.balustrade((side * 2.8, -0.005, -25.2), (side * 2.8, -0.005, -31.8), height=1.05, mat='marble')
         edge_rim(b, side * 3.1, -24.6, side * 3.1, -32.0)
-    b.balustrade((-2.8, -0.005, -31.8), (2.8, -0.005, -31.8), height=1.05, mat='marble')
+    # the bridge to the Heart leaves to the north-west: the rail stops short of it
+    b.balustrade((0.4, -0.005, -31.8), (2.8, -0.005, -31.8), height=1.05, mat='marble')
     b.cyl((0.0, 0.15, -29.4), 1.7, 0.3, mat='marble', segments=40, bevel=0.03)
     E('bloom', id='bloom', p=(0.0, 0.3, -29.4))
     E('zone', id='z_bloom', p=(0.0, 0.3, -29.4), r=1.6, bloom=True)
@@ -162,8 +170,10 @@ def build(b):
     for sx in (-1, 1):
         b.box((sx * 2.5, 1.74, -25.1), (1.8, 3.52, 0.8), mat='marble', bevel=0.03)
     b.box((0.0, 3.7, -25.1), (6.8, 0.4, 0.8), mat='marble', bevel=0.03)
-    E('door', id='gate', p=(0.0, 0.0, -25.1), size=(3.2, 3.5, 0.3), openIf=['cr_w', 'cr_e', 'cr_s'], mode='up', travel=3.4,
-      latch=True)
+    # two leaves that part into the jambs
+    for gid, sx, mode in (('gate', -1, 'left'), ('gate_r', 1, 'right')):
+        E('door', id=gid, p=(sx * 0.8, 0.0, -25.1), size=(1.6, 3.5, 0.3), openIf=['cr_w', 'cr_e', 'cr_s'], mode=mode,
+          travel=1.55, latch=True)
     E('zone', id='z_gate', p=(0.0, 0.0, -22.4), r=2.4, echo='f_gate')
 
     # ---------------------------------------------------------------- west: the Stair
@@ -223,7 +233,7 @@ def build(b):
     arch.wall(b, CX1, CZ1 - 0.25, CX1, CZ0 + 0.25, 0.0, 4.6, thick=0.5, mat='wall')
     arch.wall(b, CX0, CZ1 - 0.25, CX0, CZ0 + 0.25, 0.0, 4.6, thick=0.5, mat='wall', openings=[(3.1, 5.6, 0.0, 3.2)])
     b.box((CX0, 3.45, HZ), (0.7, 0.3, 3.0), mat='marble', bevel=0.03)
-    E('door', id='door_e', p=(CX0, 0.0, HZ), size=(0.2, 3.2, 2.6), openIf=['plate_e'], mode='up', travel=3.1, closeSpeed=2.0,
+    E('door', id='door_e', p=(CX0, 0.0, HZ), size=(0.2, 3.2, 2.6), openIf=['plate_e'], mode='up', travel=2.4, closeSpeed=2.0,
       screen=True)
     b.cyl((35.2, 0.003, HZ), 1.72, 0.01, mat='steel', segments=48, bevel=0.003, collide=False)
     E('plate', id='plate_e', p=(35.2, 0.008, HZ), r=1.6, threshold=16)

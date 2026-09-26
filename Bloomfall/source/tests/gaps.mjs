@@ -60,5 +60,5 @@ const scan = (i) => s(`island_${i}`, `
 export const steps = [
   { name: 'helpers', code: H },
   s('start', `const d=__director; d.newGame(); d.ui.fade(0,0); T.step(0.5); return 'ok';`),
-  ...[0, 1, 2, 3, 4, 5].map(scan),
+  ...[0, 1, 2, 3, 4, 5, 6].map(scan),
 ];

@@ -53,5 +53,6 @@ export const steps = [
   st('seed', `W(12.6,-51.4,{tol:0.4}); T.tap('use'); T.step(0.5); return {seeds:__director.save.seeds.slice()};`),
   st('back_n', `W(8.5,-45.2,{tol:0.3}); T.runJump(O.x+8.5, O.z-40.0, 0.25, 0.55); const on=me(); const r=W(8.5,-33.8,{tol:0.4}); const r2=W(8.5,-22,{tol:0.4}); W(7.0,-17.5,{tol:0.4}); W(4.5,-8.6,{tol:0.4}); return {on, r, r2, held:__game.graft.held&&__game.graft.held.id};`),
   st('place_n', `W(0,-9.95,{tol:0.25}); look(0,0.52,-11.7); T.tap('use'); T.step(2.0); return {cr_s:cr('cr_s'), all:['cr_w','cr_e','cr_s'].map(cr), gate:+T.ent('gate').t.toFixed(2)};`, true),
+  st('beam_view', `T.step(3.0); W(2.5,-6.5,{tol:0.4}); look(-8,6,-50); T.step(0.5); return {beam:T.ent('beam').active};`, true),
   st('to_bloom', `T.step(2.0); W(-4.6,-10.4,{tol:0.4}); W(-4.6,-19.0,{tol:0.4}); W(0,-23.6,{tol:0.4}); const r=W(0,-29.2,{tol:0.5}); T.step(1.0); return {r, gate:+T.ent('gate').t.toFixed(2), state:__director.state, arrived:[...__director.arrived]};`, true),
 ];

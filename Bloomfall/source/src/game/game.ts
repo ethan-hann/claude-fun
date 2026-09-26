@@ -11,7 +11,7 @@ import { Player, Platform, PLAYER } from './player';
 import { Graft } from './graft';
 import { Lattice, FreeLattice, AnchoredLattice, SpanLattice, isLatticeCollider } from './lattice';
 import { LatticeVisuals } from './visuals';
-import { Entity, EntityContext, Plate, Cradle, Door, Zone, Pickup, Balance, Toppler } from './entities';
+import { Entity, EntityContext, Plate, Cradle, Beam, Door, Zone, Pickup, Balance, Toppler } from './entities';
 import { Heart } from './heart';
 
 export const STEP = 1 / 60;
@@ -170,6 +170,7 @@ export class Island {
     this.group.updateMatrixWorld(true);
     this.group.attach(this.things);
     for (const l of this.lights) l.src.intensity = 0;
+    for (const e of this.entities) (e as any).onDrift?.();
   }
   updateDrift(dt: number): void {
     if (this.driftT < 0 || !this.group) return;
@@ -346,6 +347,11 @@ export class Game {
       case 'cradle': {
         const e = new Cradle(rec, this.ctx);
         this.addEntity(isl, id, e);
+        break;
+      }
+      case 'beam': {
+        const r2 = { ...rec, openIf: (rec.openIf ?? []).map((x: string) => `${isl.key}.${x}`) };
+        this.addEntity(isl, id, new Beam(r2, this.ctx));
         break;
       }
       case 'door': {

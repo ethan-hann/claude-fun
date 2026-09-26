@@ -23,9 +23,10 @@ import world from '../../shared/world.json';
 export interface IslandPlan { key: string; origin: [number, number, number]; capacity: number; infinite?: boolean }
 
 const SAVE_KEY = 'bloomfall.save.v1';
-const TITLE_A = new THREE.Vector3(-60, 26, -70);
-const TITLE_B = new THREE.Vector3(-50, 21, -90);
-const TITLE_LOOK = new THREE.Vector3(20, 10, -190);
+// close to the first islands: the fog hides the rest of the chain
+const TITLE_A = new THREE.Vector3(-38, 18, -30);
+const TITLE_B = new THREE.Vector3(-34, 16, -42);
+const TITLE_LOOK = new THREE.Vector3(18, 6, -130);
 const SETTINGS_KEY = 'bloomfall.settings.v1';
 
 interface SaveData { island: number; reached?: number; seeds: string[]; time: number; resets: number; falls: number; done?: boolean }
@@ -498,7 +499,7 @@ export class Director {
     });
     if (this.state === 'title') {
       this.titleT += dt;
-      // a slow drift past the island chain, the sunset to the left and the Heart far ahead
+      // a slow drift past the first islands, the sunset to the left and the rest of the chain lost in the fog
       const k = 0.5 - 0.5 * Math.cos(this.titleT * 0.035);
       const shot = (window as any).__titleCam as number[] | undefined;
       const a = shot ? new THREE.Vector3(shot[0], shot[1], shot[2]) : TITLE_A;
