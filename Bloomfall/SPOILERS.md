@@ -88,14 +88,49 @@ The memory rides on pan B. The catwalk reaches it while the pan hangs high.
 7. Past the gate, set the crate against the column in front of the plinth. Grow it with whichever cell is left, the crate's own or the bollard's. The column falls against the plinth's edge and leans there.
 8. Climb the leaning column to the plinth and the bloom.
 
-### VI. The Heartbloom
+### VI. The Observatory
+
+The plaza is a hub. Three stages hang off it, to the west, the east and the north. Each one keeps a lens for the great telescope, and you can fetch them in any order. Two bollards on the plaza hold a cell each. Each span out to a stage takes one cell. Once you are back on the plaza, you can take a span back and spend its cell somewhere else.
+
+The west stage, the Stair:
+
+1. Take a plaza bollard's cell. Unfold the west span with it and cross.
+2. Take the stage's bollard. Then take the span behind you. You hold two cells, and you are stranded.
+3. Stand on the first pillar and give it both cells. It rises 4 m.
+4. Drop onto the second pillar. Take the first pillar's two cells and give them to the second. Do the same from the second pillar to the third. The third lifts you level with the tower ledge at 8 m. Pick up the lens there.
+5. Jump down. Take the third pillar's cells and give one to the span. Carry the lens home.
+
+The east stage, the Counterweight:
+
+1. Unfold the east span with a cell and cross.
+2. Take the medium crate's cell and give it to the short span. It reaches the chamber pier.
+3. The chamber door stays open while its plate holds 16. The lens is a large orb on that plate, and it weighs 16 on its own. Carry the small crate inside and set it on the plate.
+4. Take two cells from the lens. The door closes. Give both to the crate. At large it weighs 16, and the door opens again.
+5. Carry the small lens home.
+
+The north stage, the Long Reach:
+
+1. You need two cells here: one for the north span and one for the crate beside the column. Take back a span you no longer need.
+2. Unfold the north span from the pier at the plaza's north-east. The stage is 8 m past its end.
+3. Walk out along the span, but not to its end. From there, the crate beside the column is in reach. Give it a cell. It grows against the column, and the column falls onto the end of the span.
+4. Jump onto the fallen column and walk across.
+5. Carry the crate onto the plate beside the cage. The cage opens while the plate holds 4. Take the lens.
+6. Walk back over the column and carry the lens home.
+
+Then set each lens in a cradle on the dais. A cradle draws in a small lens that you drop beside it. When all three cradles hold a lens, the telescope turns to find the Heart, and the gate on the north balcony opens. The bloom is behind it.
+
+The memory is in the far corner of the north stage, past the cage.
+
+### VII. The Heartbloom
 
 1. The Graft never runs dry here. Give as often as you like.
-2. Climb the ring wall the way you climbed the retaining wall on the Terraces: grow a crate under your feet while carrying another, stack, and grow again.
-3. Walk along the wall to the east side. Jump to the pillar in the well and give it four times. It rises to the height of the platform under the Heart.
-4. Jump to the platform. Look up at the Heart and hold Take.
+2. Climb the ring wall the way you climbed the retaining wall on the Terraces: stand on a crate and grow it while you carry another, stack, and grow again. Stack close to the wall.
+3. There is no crate on the wall, and you need one. From the wall's edge, reach down and pick up the medium crate at the top of your stack. You can also throw a small crate up from the ground, or stack again with the third crate.
+4. Carry it along the wall to the stamen on the north side. Set it beside the stamen's foot and grow it. The stamen falls inward and comes to rest on the rim of the platform under the Heart.
+5. Go around to the landing behind the stamen. Jump onto its lower end and climb it, then drop onto the platform.
+6. Look up at the Heart and hold Take.
 
-The last memory is on the far side of the ring wall, at the north.
+The last memory is on the west side of the ring wall.
 
 ## The memories
 
@@ -106,7 +141,8 @@ The last memory is on the far side of the ring wall, at the north.
 | III | On the lookout | An engineer's note | We built the bridges out of lattice so they could stretch. They stretched. Then they tore. |
 | IV | On pan B of the great scale, reached from the catwalk | The last ledger entry | Household 4,117,202. Requested: one more room. Granted. |
 | V | On top of the first column | A concert program | The last concert was in the Colonnade. The orchestra sat so far apart that the music arrived in pieces. |
-| VI | On the north side of the ring wall | The Gardener | If a Tender finds this: the Heart cannot be stopped from outside. It can only be taken, all at once, by something willing to hold it. |
+| VI | In the far corner of the north stage, past the cage | An observer's log | Night 3,650,211 of the survey. Nothing past the edge of the sky. Tomorrow we will look again. |
+| VII | On the west side of the ring wall | The Gardener | If a Tender finds this: the Heart cannot be stopped from outside. It can only be taken, all at once, by something willing to hold it. |
 
 ## The epilogue
 

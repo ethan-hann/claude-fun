@@ -57,6 +57,26 @@ window.T = (() => {
     step(0.3);
     return [+p.pos.x.toFixed(2), +p.feet.y.toFixed(2), +p.pos.z.toFixed(2)];
   }
+  // Jump onto a small target at (x, z) whose top is at y = top: jump first, move once the feet
+  // clear the top (so the player does not shove it), and let go of forward once over it.
+  function hopTo(x, z, top, maxT = 0.9) {
+    const p = g().player;
+    const face = () => { p.yaw = Math.atan2(-(x - p.pos.x), -(z - p.pos.z)); };
+    face();
+    g().input.press('jump'); step(1 / 60); g().input.release('jump');
+    let t = 0;
+    while (t < 0.35 && p.feet.y < top + 0.08) { step(1 / 60); t += 1 / 60; }
+    g().input.press('forward');
+    // in the air the player brakes at 9 m/s^2 with no input: let go at the stopping distance
+    while (t < maxT) {
+      const d = Math.hypot(x - p.pos.x, z - p.pos.z), v = Math.hypot(p.vel.x, p.vel.z);
+      if (d <= (v * v) / 18 + 0.03) break;
+      face(); step(1 / 60); t += 1 / 60;
+    }
+    g().input.release('forward');
+    step(0.5);
+    return [+p.pos.x.toFixed(2), +p.feet.y.toFixed(2), +p.pos.z.toFixed(2)];
+  }
   // ids are per island; prefer the island the player is on
   const cur = () => (d() && d().island ? d().island.key + '.' : '');
   function lat(id) { return g().lattices.get(cur() + id) ?? [...g().lattices.values()].find((l) => l.id.endsWith('.' + id)); }
@@ -66,6 +86,6 @@ window.T = (() => {
     return { feet: [+p.pos.x.toFixed(2), +p.feet.y.toFixed(2), +p.pos.z.toFixed(2)], cells: gr.cells, owned: gr.owned, held: gr.held && gr.held.id, target: gr.target && gr.target.id, card: d() && d().ui.currentCard };
   }
   function render() { g().renderFrame(1 / 60); }
-  return { step, lookAt, tap, walkTo, jumpForward, runJump, lat, ent, state, render, V };
+  return { step, lookAt, tap, walkTo, jumpForward, runJump, hopTo, lat, ent, state, render, V };
 })();
 'ok';

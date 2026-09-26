@@ -67,18 +67,20 @@ export class Plate extends Entity {
     const topMat = mat(ctx, 'plates');
     topMat.roughness = 2.2;
     topMat.color.setScalar(0.45);
-    this.top = new THREE.Mesh(new THREE.CylinderGeometry(this.radius * 0.86, this.radius * 0.9, 0.08, 48), topMat);
-    this.top.position.copy(this.pos).add(new THREE.Vector3(0, 0.04, 0));
+    // A thin top on a flat base: plates have no collider, so whatever stands on one rests on the
+    // floor, and a thick plate would swallow the bottom of it.
+    this.top = new THREE.Mesh(new THREE.CylinderGeometry(this.radius * 0.86, this.radius * 0.9, 0.024, 48), topMat);
+    this.top.position.copy(this.pos).add(new THREE.Vector3(0, 0.004, 0));
     ctx.scene.add(dyn(this.top));
     const n = this.threshold;
     this.notchMat = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xffffff, emissiveIntensity: 1, roughness: 1, metalness: 0 });
-    this.notches = new THREE.InstancedMesh(new THREE.BoxGeometry(0.07, 0.03, 0.16), this.notchMat, n);
+    this.notches = new THREE.InstancedMesh(new THREE.BoxGeometry(0.07, 0.02, 0.16), this.notchMat, n);
     const m = new THREE.Matrix4();
     const ringR = this.radius * 0.96;
     for (let i = 0; i < n; i++) {
       const a = (i / n) * Math.PI * 2 + Math.PI / n;
       m.makeRotationY(-a);
-      m.setPosition(this.pos.x + Math.cos(a) * ringR, this.pos.y + 0.035, this.pos.z + Math.sin(a) * ringR);
+      m.setPosition(this.pos.x + Math.cos(a) * ringR, this.pos.y + 0.01, this.pos.z + Math.sin(a) * ringR);
       this.notches.setMatrixAt(i, m);
       this.notches.setColorAt(i, new THREE.Color(0.1, 0.1, 0.1));
     }
@@ -142,9 +144,77 @@ export class Plate extends Entity {
     }
     this.notches.instanceColor!.needsUpdate = true;
     this.notchMat.emissiveIntensity = this.on ? 5 : 3;
-    const target = this.pos.y + 0.04 - (this.weight > 0 ? 0.03 : 0);
+    const target = this.pos.y + 0.004 - (this.weight > 0 ? 0.01 : 0);
     this.top.position.y += (target - this.top.position.y) * Math.min(1, dt * 12);
   }
+}
+
+// ------------------------------------------------------------------------------------------
+// Cradle: a lens holder in the Observatory's great instrument, a round hole in the dais. It holds
+// while a lattice orb rests in it; its ring lights when it does.
+// ------------------------------------------------------------------------------------------
+export class Cradle extends Entity {
+  pos: THREE.Vector3; // center of the hole's rim
+  radius: number;
+  private on = false;
+  private ringMat: THREE.MeshStandardMaterial;
+  private glow = 0;
+
+  constructor(rec: EntityRec, ctx: EntityContext) {
+    super(rec);
+    this.pos = v3(rec.p).add(ctx.origin);
+    this.radius = rec.r ?? 0.4;
+    this.ringMat = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: new THREE.Color(0.35, 0.85, 1.0), emissiveIntensity: 1.2, roughness: 1 });
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(this.radius + 0.07, 0.03, 8, 48), this.ringMat);
+    ring.rotation.x = Math.PI / 2;
+    ring.position.copy(this.pos).add(new THREE.Vector3(0, 0.012, 0));
+    ctx.scene.add(ring);
+  }
+
+  get active(): boolean { return this.on; }
+
+  fixedUpdate(_dt: number, ctx: EntityContext): void {
+    let on = false;
+    let near: FreeLattice | null = null;
+    let nearD = Infinity;
+    for (const l of ctx.lattices.values()) {
+      if (!l.free || l.kind !== 'orb' || l.islandKey !== this.islandKey) continue;
+      const f = l as FreeLattice;
+      if (f.held) continue;
+      const p = f.position();
+      const d = Math.hypot(p.x - this.pos.x, p.z - this.pos.z);
+      if (d < this.radius && p.y < this.pos.y + 0.2 && p.y > this.pos.y - 1.0) { on = true; break; }
+      if (f.level === 0 && !f.anim && d < nearD && p.y > this.pos.y - 0.3 && p.y < this.pos.y + 1.2) { near = f; nearD = d; }
+    }
+    // An empty cradle draws in a small orb left beside it: up over the rim and into the cup.
+    if (!on && near && nearD < 1.0) this.pull(near);
+    if (on !== this.on) {
+      this.on = on;
+      ctx.emit(on ? 'cradle-on' : 'cradle-off', this);
+    }
+  }
+
+  private pull(f: FreeLattice): void {
+    const p = f.position();
+    const dx = this.pos.x - p.x;
+    const dz = this.pos.z - p.z;
+    const d = Math.hypot(dx, dz);
+    if (d < 0.05) return;
+    const speed = Math.min(1.4, d * 3.0);
+    const v = f.body.linvel();
+    // outside the rim, hold the orb's underside a little above it; inside, let it settle
+    const vy = d > 0.3 ? THREE.MathUtils.clamp((this.pos.y + 0.33 - p.y) * 6.0, -1.5, 2.0) : v.y;
+    f.body.setLinvel({ x: (dx / d) * speed, y: vy, z: (dz / d) * speed }, true);
+    f.body.setAngvel({ x: 0, y: 0, z: 0 }, true);
+  }
+
+  frameUpdate(dt: number): void {
+    this.glow += ((this.on ? 1 : 0) - this.glow) * Math.min(1, dt * 4);
+    this.ringMat.emissive.setRGB(0.35 + 0.65 * this.glow, 0.85 - 0.05 * this.glow, 1.0 - 0.45 * this.glow);
+    this.ringMat.emissiveIntensity = 1.2 + 5.0 * this.glow;
+  }
+
+  reset(): void { this.on = false; }
 }
 
 // ------------------------------------------------------------------------------------------
@@ -675,6 +745,7 @@ export class Toppler extends Entity {
         mesh.material = mat(ctx, ctx.sets[n] ? n : 'marble');
       });
       m.rotation.y = Math.atan2(this.dir.x, this.dir.z);
+      m.scale.y = this.height / 8.5; // the column model is 8.5 m tall
       this.group.add(m);
     }
     ctx.scene.add(dyn(this.group));

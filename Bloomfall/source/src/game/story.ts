@@ -6,7 +6,8 @@ export const CHAPTERS: Record<string, { numeral: string; name: string }> = {
   c_viaduct: { numeral: 'III', name: 'The Viaduct' },
   d_weighhouse: { numeral: 'IV', name: 'The Weighhouse' },
   e_colonnade: { numeral: 'V', name: 'The Colonnade' },
-  f_heart: { numeral: 'VI', name: 'The Heartbloom' },
+  f_observatory: { numeral: 'VI', name: 'The Observatory' },
+  g_heart: { numeral: 'VII', name: 'The Heartbloom' },
 };
 
 export interface Card { title: string; body: string }
@@ -33,6 +34,8 @@ export const CARDS: Record<string, Card> = {
   topple: { title: 'Downfall', body: 'Lattice pushes as it grows. Some things only stand until something pushes them.' },
   infinite: { title: 'The Heart', body: 'Here your Graft never runs dry. {LMB} as often as you like.' },
   core: { title: 'The core', body: 'Hold {RMB} on the core.' },
+  lens: { title: 'Lenses', body: 'Each lens is a lattice orb. Set it in a cradle on the dais. It fits only while it is small.' },
+  range: { title: 'Reach', body: 'The Graft reaches about fourteen meters. Some things can only be touched from the right spot.' },
 };
 
 export interface EchoLine { text: string; hold?: number }
@@ -91,11 +94,33 @@ export const ECHOES: Record<string, EchoLine[]> = {
     { text: 'There is no spring anymore. There is only this evening, and it does not end.' },
   ],
   f_arrive: [
+    { text: 'The Observatory. We built it to look for other lights.' },
+    { text: 'In a thousand years it never found one. It kept looking.' },
+  ],
+  f_dais: [
+    { text: 'Its lenses were carried out to the far stages when the city came apart.' },
+    { text: 'Bring all three home, and it will find the Heart for you.' },
+  ],
+  f_gate: [
+    { text: 'The way on opens when the instrument can see.' },
+  ],
+  f_chamber: [
+    { text: 'Nothing leaves this room unless something takes its place.' },
+  ],
+  f_open: [
+    { text: 'There. It sees the Heart.' },
+    { text: 'It has drifted farther than any bridge we built. Follow the light.' },
+  ],
+  g_arrive: [
     { text: 'The Heart makes space faster than the city can fall apart.' },
     { text: 'Here your Graft cannot run dry. Give freely.' },
     { text: 'Then take it all.' },
   ],
-  f_core: [
+  g_wall: [
+    { text: 'The last stamen still stands on the rim.' },
+    { text: 'Everything here leans toward the Heart. Give it a reason to fall.' },
+  ],
+  g_core: [
     { text: 'Fold it shut, Tender.' },
     { text: 'Let Calyx fall inward. Let it be small again.' },
   ],
@@ -129,7 +154,11 @@ export const SEEDS: Record<string, { title: string; text: string }> = {
     title: 'A concert program',
     text: 'The last concert was in the Colonnade. The orchestra sat so far apart that the music arrived in pieces.',
   },
-  f_heart: {
+  f_observatory: {
+    title: 'An observer\'s log',
+    text: 'Night 3,650,211 of the survey. Nothing past the edge of the sky. Tomorrow we will look again.',
+  },
+  g_heart: {
     title: 'The Gardener',
     text: 'If a Tender finds this: the Heart cannot be stopped from outside. It can only be taken, all at once, by something willing to hold it.',
   },

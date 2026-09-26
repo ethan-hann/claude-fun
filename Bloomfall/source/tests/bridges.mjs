@@ -13,5 +13,5 @@ const hop = (i) => [
 ];
 export const steps = [
   { name: 'helpers', code: H },
-  ...[0, 1, 2, 3, 4].flatMap(hop),
+  ...[0, 1, 2, 3, 4, 5].flatMap(hop),
 ];

@@ -1,8 +1,9 @@
-"""Island VI: the Heartbloom.
+"""Island VII: the Heartbloom.
 
 The Graft never runs dry here. A promenade leads to a ring around a bright well; the Heart floats
-over the well. Climb the calyx wall with crates (grow them under your feet), cross to the pillar
-in the well and raise it as far as it goes, jump to the platform under the Heart, and take it.
+over the well. Climb the calyx wall with crates (grow them under your feet). On the wall, bring a
+crate up after you and grow it at the foot of the last stamen: it falls inward and leans on the
+platform under the Heart. Climb it and take the Heart.
 
 Local origin: promenade floor, y = 0. The player walks toward -Z.
 Reach rules (floating capsule): the player climbs 1.5 m above what they stand on.
@@ -14,8 +15,11 @@ TITLE = 'The Heartbloom'
 
 C = (0.0, -20.0)      # center of the well
 WALL = 4.3            # calyx wall
-CORE_Y = 10.3         # platform under the Heart
-HEART_Y = 16.8
+CORE_Y = 7.8          # platform under the Heart
+CORE_R = 2.0
+HEART_Y = 14.3
+SPIRE_R = 7.2         # the stamen's base, from the well's center (north)
+SPIRE_H = 6.7
 K = math.cos(math.radians(22.5))
 
 
@@ -61,11 +65,11 @@ def build(b):
     octo_ring(b, 8.9, 9.18, -0.02, 0.55, 'marble', bevel=0.02, collide=False)
     octo_ring(b, 8.9, 9.16, WALL - 0.5, WALL - 0.3, 'marble', bevel=0.02, collide=False)
     octo_ring(b, 5.84, 6.1, WALL - 0.5, WALL - 0.3, 'marble', bevel=0.02, collide=False)
-    # a rail on the wall's inner edge, open on the east where the pillar rises
+    # a rail on the wall's inner edge, open on the north where the stamen falls
     pi = octagon(6.25)
     for k in range(8):
         a, c = pi[k], pi[(k + 1) % 8]
-        if (a[0] + c[0]) / 2 > 5.0:
+        if (a[1] + c[1]) / 2 < C[1] - 5.0:
             continue
         b.balustrade((a[0], WALL, a[1]), (c[0], WALL, c[1]), height=1.05, mat='marble')
     # the ring's outer rail, open where the promenade arrives
@@ -92,17 +96,36 @@ def build(b):
     E('crate', id='c_a', p=(1.6, 0.25, -9.2), level=0, ry=12)
     E('crate', id='c_b', p=(-1.4, 0.25, -8.4), level=0, ry=-20)
     E('crate', id='c_c', p=(6.2, 0.25, -12.6), level=0, ry=35)
-    E('pillar', id='p', p=(4.5, WALL, C[1]), size=(2.0, 2.0), heights=[0.0, 1.5, 3.0, 4.5, 6.0], level=0, depth=34.0)
-    b.cyl((C[0], CORE_Y - 0.25, C[1]), 2.0, 0.5, mat='marble', segments=48, bevel=0.03)
-    b.cyl((C[0], CORE_Y + 0.01, C[1]), 1.6, 0.04, mat='paving', segments=48, bevel=0.0, collide=False)
+    # a landing behind the last stamen: the wall top widens outward on the north, with a rail
+    t = math.tan(math.radians(22.5))
+    a0, a1 = 9.0, 10.6
+    land = [(-a0 * t, C[1] - a0), (a0 * t, C[1] - a0), (a1 * t, C[1] - a1), (-a1 * t, C[1] - a1)]
+    b.poly_prism(land, 0.0, WALL - 0.1, mat='wall', bevel=0.03)
+    top = [(-9.1 * t, C[1] - 9.1), (9.1 * t, C[1] - 9.1), ((a1 + 0.1) * t, C[1] - a1 - 0.1), (-(a1 + 0.1) * t, C[1] - a1 - 0.1)]
+    b.poly_prism(top, WALL - 0.1, WALL, mat='marble', bevel=0.02)
+    r_out = a1 - 0.25
+    b.balustrade((-r_out * t, WALL, C[1] - r_out), (r_out * t, WALL, C[1] - r_out), height=1.05, mat='marble')
+    for sx in (-1, 1):
+        b.balustrade((sx * r_out * t, WALL, C[1] - r_out), (sx * 9.35 * t, WALL, C[1] - 9.35), height=1.05, mat='marble')
+
+    # the last stamen: a column on the wall's north side. Grown lattice at its foot tips it inward, and
+    # it comes to rest with its front face on the rim of the platform under the Heart.
+    sz = C[1] - SPIRE_R
+    pivot_z = sz + 0.55
+    lean = math.degrees(math.atan2((C[1] - CORE_R) - pivot_z, CORE_Y - WALL))
+    E('toppler', id='spire', p=(C[0], WALL, sz), height=SPIRE_H, width=1.1, dir=(0.0, 1.0), endAngle=round(lean, 2))
+    b.box((C[0], WALL + 0.01, sz), (1.5, 0.02, 1.5), mat='steel', bevel=0.005, collide=False)
+    b.cyl((C[0], CORE_Y - 0.25, C[1]), CORE_R, 0.5, mat='marble', segments=48, bevel=0.03)
+    b.cyl((C[0], CORE_Y + 0.01, C[1]), CORE_R - 0.4, 0.04, mat='paving', segments=48, bevel=0.0, collide=False)
     b.cyl((C[0], CORE_Y - 1.1, C[1]), 1.2, 1.2, mat='marble', segments=32, bevel=0.03, collide=False, radius_top=1.9)
     E('heart', id='heart', p=(C[0], HEART_Y, C[1]), r=3.3)
 
     E('spawn', p=(0.0, 0.05, 14.5), yaw=0)
     E('arrive', p=(0.0, 0.0, 17.2))
-    E('zone', id='z_arrive', p=(0.0, 0.0, 13.5), r=3.2, echo='f_arrive')
+    E('zone', id='z_arrive', p=(0.0, 0.0, 13.5), r=3.2, echo='g_arrive')
     E('zone', id='z_inf', p=(0.0, 0.0, 2.0), r=4.0, card='infinite')
-    E('zone', id='z_core', p=(C[0], CORE_Y, C[1]), r=2.2, card='core', echo='f_core')
-    # the Gardener's last note, on the far side of the wall
-    b.box((0.0, WALL + 0.35, C[1] - 8.2), (0.6, 0.7, 0.6), mat='marble', bevel=0.03)
-    E('pickup', id='seed', kind='seed', p=(0.0, WALL + 1.1, C[1] - 8.2))
+    E('zone', id='z_core', p=(C[0], CORE_Y, C[1]), r=2.2, card='core', echo='g_core')
+    E('zone', id='z_wall', p=(C[0], WALL, C[1]), r=9.2, h=2.0, grounded=True, echo='g_wall')
+    # the Gardener's last note, on the west side of the wall
+    b.box((C[0] - 8.2, WALL + 0.35, C[1]), (0.6, 0.7, 0.6), mat='marble', bevel=0.03)
+    E('pickup', id='seed', kind='seed', p=(C[0] - 8.2, WALL + 1.1, C[1]))

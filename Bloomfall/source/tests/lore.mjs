@@ -8,7 +8,7 @@ const views = [
   { name: 'viaduct', key: 'c_viaduct', p: [-11.5, 1.0, 8.0], look: [0, 2.0, -40] },
   { name: 'weighhouse', key: 'd_weighhouse', p: [-9.5, 6.4, -30], look: [3, 3, -22] },
   { name: 'colonnade', key: 'e_colonnade', p: [0, 0.05, 14.5], look: [0, 4, -10] },
-  { name: 'heart', key: 'f_heart', p: [0, 0.05, 6], look: [0, 12, -20] },
+  { name: 'heart', key: 'g_heart', p: [0, 0.05, 6], look: [0, 12, -20] },
 ];
 const only = process.env.ONLY ? process.env.ONLY.split(',') : null;
 export const steps = [

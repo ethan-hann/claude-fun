@@ -85,8 +85,8 @@ def build(b):
         rz = 0.35 * dx
         b.box((px + dx * 1.0, -PIT_D + 0.08, pz + dz * 1.0), (2.4 if dz else 0.4, 0.12, 0.4 if dz else 2.4), mat='wall', bevel=0.01,
               rot=(rx, 0.0, rz))
-    b.cyl((px, -PIT_D + 0.02, pz), 1.02, 0.06, mat='steel', segments=48, bevel=0.01, collide=False)
-    E('plate', id='plate_o', p=(px, -PIT_D + 0.05, pz), r=0.95, threshold=16)
+    b.cyl((px, -PIT_D + 0.003, pz), 1.02, 0.01, mat='steel', segments=48, bevel=0.003, collide=False)  # plate base, flat
+    E('plate', id='plate_o', p=(px, -PIT_D + 0.008, pz), r=0.95, threshold=16)
     # the grate over the pit, with a slot on its west side where the channel comes in. A steel bar
     # stops a rolling orb over the slot; a stone hood keeps people out of it.
     b.screen((px + 0.4, -0.02, pz), (2.04, 0.04, 2.44))

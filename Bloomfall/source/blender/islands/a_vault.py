@@ -103,7 +103,8 @@ def build(b):
     b.box((1.33, 1.5, 1.0), (0.3, 3.0, 1.0), mat='plates', bevel=0.03)
     b.box((0, 3.14, 1.0), (3.0, 0.32, 1.0), mat='plates', bevel=0.03)
     # plate base ring (the moving top is the game's)
-    b.cyl((-3.0, 0.02, 7.8), 1.02, 0.06, mat='steel', segments=48, bevel=0.01, collide=False)
+    # flat, so a crate on the plate is not swallowed by it (the base has no collider)
+    b.cyl((-3.0, 0.003, 7.8), 1.02, 0.01, mat='steel', segments=48, bevel=0.003, collide=False)
     b.glow_strip((0, 3.3, 5.5), (0.1, 0.04, 6.0), color='glow_warm')
     b.point_light((0.0, 3.1, 5.5), color=(1.0, 0.6, 0.3), power=70.0, radius=0.3)
     # stacked supply crates (static) for scale
@@ -183,7 +184,7 @@ def build(b):
     b.poly_prism(terrace, 2.2, 2.3, mat='paving', bevel=0.01)
     b.box((0, 2.33, -30.15), (18.8, 0.08, 0.3), mat='marble', bevel=0.02, collide=False)
     # heavy plate base
-    b.cyl((-3.2, 2.32, -35.2), 1.22, 0.06, mat='steel', segments=48, bevel=0.01, collide=False)
+    b.cyl((-3.2, 2.303, -35.2), 1.22, 0.01, mat='steel', segments=48, bevel=0.003, collide=False)
     # gate wall across the terrace at z = -40 with a 3 m opening
     arch.wall(b, -9.6, -40.0, 9.6, -40.0, 2.3, 6.5, thick=0.8, mat='wall', openings=[(7.95, 11.25, 0.0, 3.8)],
               style='classic', pilaster_every=3.0)
@@ -224,7 +225,7 @@ def build(b):
     E('zone', id='z_bloom', p=(0.0, 2.6, -46.5), r=2.0, bloom=True)
 
     E('crate', id='c_plate', p=(2.9, 0.5, 6.9), level=1, ry=12)
-    E('plate', id='plate1', p=(-3.0, 0.05, 7.8), r=0.95, threshold=4)
+    E('plate', id='plate1', p=(-3.0, 0.008, 7.8), r=0.95, threshold=4)
     E('door', id='door1', p=(0.0, 0.0, 1.0), size=(2.4, 3.0, 0.36), openIf=['plate1'], mode='up', travel=2.95, closeSpeed=3.4)
     E('crate', id='c_step', p=(-2.0, 0.5, -1.2), level=1, ry=-8)
 
@@ -233,6 +234,6 @@ def build(b):
     E('bulkhead', id='bulk1', p=(0.0, 0.0, -24.0), size=(3.1, 3.3, 0.45), level=1)
     E('crate', id='c_garden', p=(3.0, 0.25, -26.6), level=0, ry=20)
     E('crate', id='c_heavy', p=(3.4, 2.8, -34.0), level=1, ry=-15)
-    E('plate', id='plate2', p=(-3.2, 2.35, -35.2), r=1.15, threshold=16)
+    E('plate', id='plate2', p=(-3.2, 2.308, -35.2), r=1.15, threshold=16)
     E('door', id='gate', p=(0.0, 2.3, -40.0), size=(3.3, 3.8, 0.4), openIf=['plate2'], mode='up', travel=3.7)
     E('bloom', id='bloom', p=(0.0, 2.6, -46.5))

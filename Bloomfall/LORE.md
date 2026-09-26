@@ -106,12 +106,22 @@ A concert ground ringed by fluted columns, with a dry fountain at its center and
 
 ![The Colonnade in the long evening](images/colonnade.jpg)
 
+### The Observatory
+
+The last place in Calyx that still looked outward. A round plaza holds the great telescope on its dais, with three empty cradles where its lenses once sat. When the city came apart, the lenses were carried out to three stages that hang off the plaza: a sundial court with a stair of pillars to the west, a walled chamber to the east, and a long reach to the north. The astronomers kept watching the dark long after there was nothing left to see.
+
+> Its lenses were carried out to the far stages when the city came apart.
+>
+> The Gardener
+
+![The Observatory's plaza and the great telescope on its dais](images/observatory.jpg)
+
 ### The Heartbloom
 
-A promenade lined with glowing spires leads to a ring around a bright well. The ring stands on a tall stalk of rock, like a flower on its stem. An eight-sided wall circles the well. The Heart floats high above it, over a small round platform.
+A promenade lined with glowing spires leads to a ring around a bright well. The ring stands on a tall stalk of rock, like a flower on its stem. An eight-sided wall circles the well. The Heart floats high above it, over a small round platform. One stamen still stands on the wall, a stone column over the well.
 
 ![The Heartbloom over its well](images/heart.jpg)
 
 ## Memories
 
-The people of Calyx left memories: small green seeds that hold a few written lines. Six of them lie along the Tender's way. Each one records a moment from the years when the city came apart: a letter, the minutes of a council vote, an engineer's note. They are optional. The pause menu counts how many you have kept.
+The people of Calyx left memories: small green seeds that hold a few written lines. Seven of them lie along the Tender's way. Each one records a moment from the years when the city came apart: a letter, the minutes of a council vote, an engineer's note. They are optional. The pause menu counts how many you have kept.

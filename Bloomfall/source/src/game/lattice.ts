@@ -27,6 +27,7 @@ export interface LatticeVisualFactory {
   register(obj: THREE.Object3D, mats: { body: THREE.Material; rail: THREE.Material; seam: THREE.MeshStandardMaterial }): void;
   setGlow(obj: THREE.Object3D, glow: number, highlight: number): void;
   setLevelPips(obj: THREE.Object3D, level: number, levels: number): void;
+  tintSeams(obj: THREE.Object3D, color: THREE.Color): void;
 }
 
 const _q = new THREE.Quaternion();
@@ -161,7 +162,14 @@ export class FreeLattice extends Lattice {
 
   weight(): number { return FREE_WEIGHTS[this.level]; }
   carryable(): boolean { return this.level <= 1 && !this.anim; }
-  label(): string { return (this.kind === 'crate' ? 'Lattice crate' : 'Lattice orb'); }
+  label(): string { return this.lens ? 'Lens' : (this.kind === 'crate' ? 'Lattice crate' : 'Lattice orb'); }
+
+  // The Observatory's lenses are lattice orbs with warm seams.
+  lens = false;
+  makeLens(): void {
+    this.lens = true;
+    this.vis.tintSeams(this.object, new THREE.Color(1.0, 0.74, 0.42));
+  }
 
   position(out = new THREE.Vector3()): THREE.Vector3 {
     const t = this.body.translation();

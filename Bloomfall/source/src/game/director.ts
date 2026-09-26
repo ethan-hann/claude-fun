@@ -3,9 +3,11 @@ import { Game, Island } from './game';
 import { UI, Settings, applyUiScale } from './ui';
 import { Audio } from './audio';
 import { ECHOES, SEEDS, EPILOGUE, CHAPTERS } from './story';
+
+const SEED_COUNT = Object.keys(SEEDS).length;
 import { Bridge } from './bridge';
 import { ViewModel } from './viewmodel';
-import { Zone, Pickup, Plate, Door, Toppler } from './entities';
+import { Zone, Pickup, Plate, Door, Toppler, Cradle } from './entities';
 import { FREE_SIZES } from './lattice';
 import { FreeLattice, Lattice } from './lattice';
 import type { Quality } from '../engine/renderer';
@@ -256,7 +258,7 @@ export class Director {
     this.game.paused = true;
     const s = this.save;
     const mins = Math.floor(s.time / 60);
-    this.ui.setPauseStats(`<b>${CHAPTERS[this.island.key]?.numeral ?? ''} · ${CHAPTERS[this.island.key]?.name ?? ''}</b><br>Memories kept: <b>${s.seeds.length} of 6</b><br>Time: <b>${mins} min</b>`);
+    this.ui.setPauseStats(`<b>${CHAPTERS[this.island.key]?.numeral ?? ''} · ${CHAPTERS[this.island.key]?.name ?? ''}</b><br>Memories kept: <b>${s.seeds.length} of ${SEED_COUNT}</b><br>Time: <b>${mins} min</b>`);
     this.ui.showScreen('pause');
     this.ui.setHudVisible(false);
     this.game.input.exitLock();
@@ -288,6 +290,13 @@ export class Director {
       case 'fell': this.onFell(); break;
       case 'plate-on': this.audio.plate((d as Plate).pos, true); this.scripts[this.island.key]?.plate?.(d, true); break;
       case 'plate-off': this.audio.plate((d as Plate).pos, false); this.scripts[this.island.key]?.plate?.(d, false); break;
+      case 'cradle-on': {
+        this.audio.plate((d as Cradle).pos, true);
+        const all = this.island.entities.filter((e) => e instanceof Cradle);
+        if (all.length && all.every((e) => e.active)) this.echoOnce('f_open', 1.2);
+        break;
+      }
+      case 'cradle-off': this.audio.plate((d as Cradle).pos, false); break;
       case 'door-move': this.audio.doorMove((d as Door).closedPos, 1.6); break;
       case 'door-open': this.audio.doorStop((d as Door).openPos); this.dismissCardOn('door'); break;
       case 'door-shut': this.audio.doorStop((d as Door).closedPos); break;
@@ -393,7 +402,7 @@ export class Director {
       saveJSON(SAVE_KEY, this.save);
       const s = SEEDS[key];
       this.audio.memory();
-      if (s) this.ui.memory(s.title, s.text, `Memory ${this.save.seeds.length} of 6`);
+      if (s) this.ui.memory(s.title, s.text, `Memory ${this.save.seeds.length} of ${SEED_COUNT}`);
     }
   }
 
@@ -620,17 +629,14 @@ export class Director {
     }
     // prompts
     let prompt: string | null = null;
-    if (gr.held) prompt = '{E} Set down    {F} Throw';
-    else {
-      for (const e of this.island.entities) {
-        if (e instanceof Pickup && e.near(g.player.feet)) {
-          prompt = e.kind === 'graft' ? '{E} Take the Graft' : e.kind === 'seed' ? '{E} Gather the memory' : '{E} Take the cell';
-          break;
-        }
+    for (const e of this.island.entities) {
+      if (e instanceof Pickup && e.near(g.player.feet)) {
+        prompt = e.kind === 'graft' ? '{E} Take the Graft' : e.kind === 'seed' ? '{E} Gather the memory' : '{E} Take the cell';
+        break;
       }
-      if (!prompt && t && t.free && gr.targetDist < 3.4 && (t as FreeLattice).carryable() && !gr.owned) prompt = '{E} Pick up';
-      if (!prompt && t && t.free && gr.targetDist < 3.4 && !(t as FreeLattice).carryable() && !gr.owned) prompt = 'Too heavy to lift';
     }
+    if (!prompt && gr.held) prompt = '{E} Set down    {F} Throw';
+    else if (!prompt && t && t.free && gr.targetDist < 3.4 && !gr.owned) prompt = (t as FreeLattice).carryable() ? '{E} Pick up' : 'Too heavy to lift';
     this.ui.prompt(prompt);
   }
 
@@ -748,6 +754,6 @@ export class Director {
     const mins = Math.floor(this.save.time / 60);
     const secs = Math.floor(this.save.time % 60);
     this.ui.fade(0, 3.0);
-    this.ui.showCredits(EPILOGUE, stats ? `Time: <b>${mins}:${String(secs).padStart(2, '0')}</b><br>Memories kept: <b>${this.save.seeds.length} of 6</b><br>Falls: <b>${this.save.falls}</b> · Resets: <b>${this.save.resets}</b><br><br><span style="font-size:0.8em">Bloomfall. Made with Three.js, Rapier, and Blender.<br>Textures, sky, and models from Poly Haven and ambientCG (CC0).</span>` : '');
+    this.ui.showCredits(EPILOGUE, stats ? `Time: <b>${mins}:${String(secs).padStart(2, '0')}</b><br>Memories kept: <b>${this.save.seeds.length} of ${SEED_COUNT}</b><br>Falls: <b>${this.save.falls}</b> · Resets: <b>${this.save.resets}</b><br><br><span style="font-size:0.8em">Bloomfall. Made with Three.js, Rapier, and Blender.<br>Textures, sky, and models from Poly Haven and ambientCG (CC0).</span>` : '');
   }
 }

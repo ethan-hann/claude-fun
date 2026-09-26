@@ -174,9 +174,9 @@ def build(b):
     b.box((2.2, SUP + 1.85, -47.0), (0.3, 3.7, 0.3), mat='steel', bevel=0.02)
     b.screen((3.5, SUP + 1.8, -47.0), (2.3, 3.6, 0.02))
     b.box((3.5, SUP + 3.64, -47.0), (2.6, 0.1, 0.3), mat='steel', bevel=0.02)
-    b.cyl((3.4, SUP + 0.02, -46.0), 1.02, 0.06, mat='steel', segments=48, bevel=0.01, collide=False)  # plate base
+    b.cyl((3.4, SUP + 0.003, -46.0), 1.02, 0.01, mat='steel', segments=48, bevel=0.003, collide=False)  # plate base, flat
     b.glow_strip((4.55, SUP + 3.0, -45.5), (0.05, 0.05, 2.6), color='glow_cyan')
-    E('plate', id='plate_h', p=(3.4, SUP + 0.05, -46.0), r=0.95, threshold=16)
+    E('plate', id='plate_h', p=(3.4, SUP + 0.008, -46.0), r=0.95, threshold=16)
     E('door', id='gate', p=(0.0, SUP, SHRINE_S), size=(2.4, 3.0, 0.3), openIf=['plate_h'], mode='up', travel=2.9, closeSpeed=2.4)
     E('zone', id='z_shrine', p=(0.0, SUP, -40.5), r=4.5, takeback=True)
 

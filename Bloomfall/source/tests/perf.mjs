@@ -2,7 +2,7 @@
 // all passes). VIEWS env as in views.mjs; defaults to each island's spawn looking ahead.
 import { readFileSync } from 'node:fs';
 const H = readFileSync(new URL('./helpers.js', import.meta.url), 'utf8');
-const def = ['a_vault', 'b_terraces', 'c_viaduct', 'd_weighhouse', 'e_colonnade', 'f_heart'].map((key) => ({ key, name: key }));
+const def = ['a_vault', 'b_terraces', 'c_viaduct', 'd_weighhouse', 'e_colonnade', 'f_observatory', 'g_heart'].map((key) => ({ key, name: key }));
 const views = process.env.VIEWS ? JSON.parse(process.env.VIEWS) : def;
 export const steps = [
   { name: 'helpers', code: H },

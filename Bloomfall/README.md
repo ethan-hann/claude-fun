@@ -51,7 +51,7 @@ You can climb about 1.5 m above whatever you stand on.
 
 ### Progression
 
-There are six islands. Each one adds a new kind of lattice or a new way to use what you know. The Graft learns to hold more space as you go. Six memories are hidden along the way. They are optional.
+There are seven islands. Each one adds a new kind of lattice or a new way to use what you know. Most of them lead straight on to the next. One is a hub with three stages that you can take in any order. The Graft learns to hold more space as you go. Seven memories are hidden along the way. They are optional.
 
 ### Saving and chapters
 
@@ -59,7 +59,7 @@ The game saves in your browser each time you reach a new island. Continue on the
 
 ### Settings
 
-- Interface size scales all text and the HUD, from 70 to 180 percent.
+- Interface size scales all text and the HUD, from 70 to 180 percent. The new size applies when you let go of the slider.
 - Graphics has four levels. Low turns off real-time shadows and ambient occlusion and renders at a lower resolution. Ultra renders at up to twice your screen's resolution with sharper shadows.
 - Mouse sensitivity, invert look, field of view, volume, and music.
 
@@ -94,6 +94,9 @@ The scripted playthroughs in `tests/` drive the game's real input in headless Ch
 ```
 node tools/play.mjs tests/island_a.mjs out/ "manual" 1280 720
 tools/run_all.sh out/        # every playthrough, each checked for reaching its bloom (or the credits)
+node tools/play.mjs tests/refresh.mjs out/ "manual"   # every tap counts at 60, 144 and 240 Hz
+node tools/play.mjs tests/carry.mjs out/ "manual"     # carried crates make no impact sounds; landings do
+node tools/scan.mjs tests/gaps.mjs out/ "manual"      # tall, thin see-through slits between walls
 ```
 
 ### Credits

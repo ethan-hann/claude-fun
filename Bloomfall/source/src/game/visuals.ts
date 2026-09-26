@@ -213,6 +213,11 @@ export class LatticeVisuals implements LatticeVisualFactory {
     if (uv) uv.value = obj.scale.x;
   }
 
+  tintSeams(obj: THREE.Object3D, color: THREE.Color): void {
+    const g = this.glowMap.get(obj);
+    if (g) for (const m of g.seam) m.emissive.copy(color);
+  }
+
   setLevelPips(obj: THREE.Object3D, level: number, _levels: number): void {
     const g = this.glowMap.get(obj);
     if (!g) return;

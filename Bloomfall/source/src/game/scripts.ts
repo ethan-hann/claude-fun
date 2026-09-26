@@ -204,6 +204,51 @@ export function islandScripts(d: Director): Record<string, IslandScript> {
         'Take the fourth cell before you step onto the terrace, and keep it in your Graft.',
       ],
     },
+    f_observatory: {
+      hints: () => {
+        const isl = d.game.islands.find((i) => i.key === 'f_observatory');
+        const at = (id: string) => {
+          const l = d.game.lattices.get(`f_observatory.${id}`);
+          return l && isl ? l.body.translation() : null;
+        };
+        const o = isl?.origin;
+        const w = at('lens_w'), e = at('lens_e'), n = at('lens_n');
+        const out: string[] = [];
+        if (o && w && w.x - o.x < -18.4) out.push(
+          'West: two cells climb any number of pillars. Give both to the pillar under you, drop to the next, and take them back from the one behind.',
+          'West: the span you crossed holds a cell. Borrow it, and give it back when you leave.');
+        if (o && e && e.x - o.x > 18.4) out.push(
+          'East: the chamber stays open while its plate holds 16. Something else has to weigh 16 before the lens can leave.',
+          'East: the crate\'s own cell unfolds the short span. Carry the small crate in.');
+        if (o && n && n.z - o.z < -42.4) out.push(
+          'North: the crate beside the column is out of reach from the plaza. Walk out on the span first, but not to its end: the column falls there.',
+          'North: the column falls away from whatever grows beside it. The cage opens while its plate holds 4.');
+        out.push(
+          'Each span takes one cell. Once you are back, you can take a span back from the plaza and use its cell elsewhere.',
+          'A lens fits its cradle only while it is small.');
+        return out;
+      },
+    },
+    g_heart: {
+      hints: () => {
+        const spire = d.game.entities.get('g_heart.spire') as any;
+        const isl = d.game.islands.find((i) => i.key === 'g_heart');
+        const up = isl ? d.game.player.feet.y - isl.origin.y > 4.0 : false;
+        if (spire && spire.state !== 'standing') return [
+          'The fallen stamen is a ramp. Jump onto it near its foot and climb to the platform under the Heart.',
+          'On the platform, look up at the Heart and hold Take.',
+        ];
+        if (!up) return [
+          'The wall is 4.3 m. Stand on a crate and grow it while you carry another, as on the Terraces.',
+          'Stack near the wall. You will want that top crate again.',
+        ];
+        return [
+          'The stamen on the north side of the wall stands over the well. Lattice growing at its foot tips it in.',
+          'You need a crate up here. From the wall\'s edge you can reach down to the top of your stack and pick up a medium crate.',
+          'No crate in reach? Go down, and throw a small crate up onto the wall, or stack again with the third crate.',
+        ];
+      },
+    },
     a_vault: {
       hints: () => {
         const g = d.game.graft;

@@ -11,7 +11,7 @@ import { Player, Platform, PLAYER } from './player';
 import { Graft } from './graft';
 import { Lattice, FreeLattice, AnchoredLattice, SpanLattice, isLatticeCollider } from './lattice';
 import { LatticeVisuals } from './visuals';
-import { Entity, EntityContext, Plate, Door, Zone, Pickup, Balance, Toppler } from './entities';
+import { Entity, EntityContext, Plate, Cradle, Door, Zone, Pickup, Balance, Toppler } from './entities';
 import { Heart } from './heart';
 
 export const STEP = 1 / 60;
@@ -293,6 +293,7 @@ export class Game {
         const p = v3(rec.p).add(o);
         const l = new FreeLattice(this.phys, this.vis, id, rec.type, p, rec.level ?? 0, THREE.MathUtils.degToRad(rec.ry ?? 0));
         l.islandKey = isl.key;
+        if (rec.lens) l.makeLens();
         scene.add(l.object);
         isl.lattices.push(l);
         this.lattices.set(id, l);
@@ -339,6 +340,11 @@ export class Game {
       }
       case 'plate': {
         const e = new Plate(rec, this.ctx);
+        this.addEntity(isl, id, e);
+        break;
+      }
+      case 'cradle': {
+        const e = new Cradle(rec, this.ctx);
         this.addEntity(isl, id, e);
         break;
       }
@@ -540,12 +546,13 @@ export class Game {
     this.time += dt;
   }
 
+  // A pickup in reach comes first, even with something in hand: the held thing stays held.
   use(): void {
     const g = this.graft;
-    if (g.held) { g.drop(); return; }
     for (const e of this.entities.values()) {
       if (e instanceof Pickup && e.near(this.player.feet)) { e.take(this.ctx); return; }
     }
+    if (g.held) { g.drop(); return; }
     if (g.canGrab()) g.grab();
   }
 

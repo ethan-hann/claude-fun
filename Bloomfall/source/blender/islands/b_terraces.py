@@ -80,7 +80,7 @@ def build(b):
     b.box((-1.75, G + 1.81, -20.0), (0.4, 3.62, 1.1), mat='plates', bevel=0.03)
     b.box((1.75, G + 1.81, -20.0), (0.4, 3.62, 1.1), mat='plates', bevel=0.03)
     b.box((0.0, G + 3.83, -20.0), (4.0, 0.42, 1.1), mat='plates', bevel=0.03)
-    b.cyl((-4.0, G + 0.02, -15.4), 1.02, 0.06, mat='steel', segments=48, bevel=0.01, collide=False)  # plate base
+    b.cyl((-4.0, G + 0.003, -15.4), 1.02, 0.01, mat='steel', segments=48, bevel=0.003, collide=False)  # plate base, flat
     # the yard behind the gate: walls high enough that the garden cannot be seen from it
     for sx in (-1, 1):
         arch.wall(b, sx * 10.8, -20.4, sx * 10.8, -24.0, G, G + 4.4, thick=0.8, mat='wall', style='classic')
@@ -126,7 +126,7 @@ def build(b):
         E('pickup', id='seed', kind='seed', p=(7.2, 3.35, 5.6))
 
     E('crate', id='c_c', p=(4.2, G + 0.5, -14.8), level=1, ry=15)
-    E('plate', id='plate', p=(-4.0, G + 0.05, -15.4), r=0.95, threshold=4)
+    E('plate', id='plate', p=(-4.0, G + 0.008, -15.4), r=0.95, threshold=4)
     E('door', id='gate', p=(0.0, G, -20.0), size=(3.2, 3.6, 0.2), openIf=['plate'], mode='up', travel=3.5, screen=True,
       closeSpeed=2.2)
     E('crate', id='c_d', p=(2.6, G + 0.25, -24.2), level=0, ry=30)
