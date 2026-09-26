@@ -125,5 +125,6 @@ Before you stop, use it the way a first-time player would. Take screenshots from
 
 Make every decision yourself. Do not ask me anything. When you finish, tell me what you could not verify.
 ```
+#### Model: Opus 5.5 - Max
 
 [^1]: By single prompt, I mean a single kick-off prompt. I did have to steer each one a little during the work so something somewhat usable and fun was produced. The follow ups are recorded in the individual READMEs.
