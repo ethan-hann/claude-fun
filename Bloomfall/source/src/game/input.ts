@@ -11,8 +11,12 @@ const KEYMAP: Record<string, Action> = {
 
 export class Input {
   down = new Set<Action>();
-  pressed = new Set<Action>(); // pressed this frame
+  // Presses wait here until a physics step reads them. Steps run at 60 Hz and frames can run
+  // faster, so clearing these every frame would drop most presses on a 144 Hz screen.
+  pressed = new Set<Action>();
   released = new Set<Action>();
+  // Presses for per-frame logic (pause, hints), cleared after every rendered frame.
+  framePressed = new Set<Action>();
   lookDX = 0;
   lookDY = 0;
   sensitivity = 1.0;
@@ -32,7 +36,7 @@ export class Input {
       if (!a) return;
       if (a !== 'pause') e.preventDefault();
       this.usingGamepad = false;
-      if (!this.down.has(a)) this.pressed.add(a);
+      if (!this.down.has(a)) this.edge(a);
       this.down.add(a);
     });
     window.addEventListener('keyup', (e) => {
@@ -46,7 +50,7 @@ export class Input {
       const a: Action | null = e.button === 0 ? 'give' : e.button === 2 ? 'take' : e.button === 1 ? 'throw' : null;
       if (!a) return;
       this.usingGamepad = false;
-      if (!this.down.has(a)) this.pressed.add(a);
+      if (!this.down.has(a)) this.edge(a);
       this.down.add(a);
     });
     window.addEventListener('mouseup', (e) => {
@@ -126,7 +130,7 @@ export class Input {
     if (b(3)) now.add('reset');
     if (b(8)) now.add('hint');
     for (const a of now) {
-      if (!this.padPrev.has(a)) { this.pressed.add(a); this.down.add(a); this.usingGamepad = true; }
+      if (!this.padPrev.has(a)) { this.edge(a); this.down.add(a); this.usingGamepad = true; }
     }
     for (const a of this.padPrev) {
       if (!now.has(a)) { this.released.add(a); this.down.delete(a); }
@@ -148,13 +152,29 @@ export class Input {
     return r;
   }
 
-  endFrame(): void {
+  private edge(a: Action): void {
+    this.pressed.add(a);
+    this.framePressed.add(a);
+  }
+
+  // After a physics step has read the presses.
+  endStep(): void {
     this.pressed.clear();
     this.released.clear();
   }
 
+  // After every rendered frame.
+  endFrame(): void {
+    this.framePressed.clear();
+  }
+
+  clearPresses(): void {
+    this.pressed.clear();
+    this.framePressed.clear();
+  }
+
   // --- test driving ---
-  press(a: Action): void { if (!this.down.has(a)) this.pressed.add(a); this.down.add(a); }
+  press(a: Action): void { if (!this.down.has(a)) this.edge(a); this.down.add(a); }
   release(a: Action): void { this.down.delete(a); this.released.add(a); }
 }
 

@@ -28,7 +28,7 @@ const CORE_FS = /* glsl */ `
   varying vec3 vP;
   varying vec3 vView;
   void main() {
-    float fres = pow(1.0 - max(dot(normalize(vN), normalize(vView)), 0.0), 2.0);
+    float fres = pow(clamp(1.0 - dot(normalize(vN), normalize(vView)), 0.0, 1.0), 2.0);
     vec3 p = normalize(vP);
     float swirl = sin(atan(p.z, p.x) * 3.0 + uTime * 0.7) * 1.5;
     float bands = 0.5 + 0.5 * sin(p.y * 9.0 + uTime * 1.3 + swirl);

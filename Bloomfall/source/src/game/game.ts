@@ -548,7 +548,7 @@ export class Game {
     if (!this.paused) {
       this.input.pollGamepad(dt);
       const look = this.input.consumeLook();
-      if (this.controlsLocked) { this.input.down.clear(); this.input.pressed.clear(); look.dx = 0; look.dy = 0; }
+      if (this.controlsLocked) { this.input.down.clear(); this.input.clearPresses(); look.dx = 0; look.dy = 0; }
       lx = look.dx; ly = look.dy;
       this.player.look(look.dx, look.dy);
       this.acc += dt;
@@ -556,6 +556,8 @@ export class Game {
       let n = 0;
       while (this.acc >= STEP && n < 6) {
         this.fixedUpdate(STEP, first);
+        // a frame without a step keeps its presses for the next one
+        if (first) this.input.endStep();
         first = false;
         this.acc -= STEP;
         n++;
@@ -563,6 +565,7 @@ export class Game {
       if (n === 6) this.acc = 0;
     } else {
       this.input.consumeLook();
+      this.input.endStep();
     }
     this.frameHook?.(dt, lx, ly);
     this.input.endFrame();
@@ -611,6 +614,7 @@ export class Game {
       const look = this.input.consumeLook();
       this.player.look(look.dx, look.dy);
       this.fixedUpdate(STEP, true);
+      this.input.endStep();
       this.input.endFrame();
     }
     this.acc = 0;

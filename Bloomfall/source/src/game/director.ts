@@ -524,7 +524,7 @@ export class Director {
       if (this.resetHold > 1.2) { this.resetHold = 0; this.resetIsland(); }
     } else this.resetHold = Math.max(0, this.resetHold - dt * 3);
     this.ui.resetProgress(this.resetHold / 1.2);
-    if (input.pressed.has('pause')) this.pause();
+    if (input.framePressed.has('pause')) this.pause();
     // graft feedback
     const gr = g.graft;
     for (const e of gr.events) {
@@ -580,7 +580,7 @@ export class Director {
     }
     this.scripts[this.island.key]?.update?.(dt);
     // hints
-    if (input.pressed.has('hint')) this.showHint();
+    if (input.framePressed.has('hint')) this.showHint();
   }
 
   private showHint(): void {

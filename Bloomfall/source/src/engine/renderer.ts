@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { SunLight } from 'three/examples/jsm/lights/SunLight.js';
 import {
   EffectComposer, RenderPass, EffectPass, BloomEffect, ToneMappingEffect, ToneMappingMode,
-  VignetteEffect, SMAAEffect, SMAAPreset, NoiseEffect, BlendFunction, BrightnessContrastEffect, HueSaturationEffect,
+  VignetteEffect, SMAAEffect, SMAAPreset, NoiseEffect, BlendFunction, Effect,
 } from 'postprocessing';
 import { N8AOPostPass } from 'n8ao';
 import { Sky, sunDirection, SUN_COLOR, SUN_INTENSITY } from './sky';
@@ -10,6 +10,39 @@ import { LightPool } from './lightpool';
 import { setMaxAnisotropy, fogUniforms } from './materials';
 import { DynamicShadow } from './dynshadow';
 import world from '../../shared/world.json';
+
+// Contrast (in sRGB) and saturation after tone mapping. Every value is clamped to [0, 1] before a
+// pow(). The stock contrast effect let the darkest pixels go below zero; the next sRGB decode
+// then took pow() of a negative number, which is undefined. D3D11 (Chrome and Edge on Windows)
+// returns NaN there, and the saturation step's min(NaN, 1.0) turns it into pure white.
+const GRADE_GLSL = /* glsl */ `
+uniform float uContrast;
+uniform float uSaturation;
+vec3 bfEncode( vec3 c ) {
+  c = clamp( c, 0.0, 1.0 );
+  return mix( pow( c, vec3( 0.41666 ) ) * 1.055 - vec3( 0.055 ), c * 12.92, vec3( lessThanEqual( c, vec3( 0.0031308 ) ) ) );
+}
+vec3 bfDecode( vec3 c ) {
+  c = clamp( c, 0.0, 1.0 );
+  return mix( pow( c * 0.9478672986 + vec3( 0.0521327014 ), vec3( 2.4 ) ), c * 0.0773993808, vec3( lessThanEqual( c, vec3( 0.04045 ) ) ) );
+}
+void mainImage( const in vec4 inputColor, const in vec2 uv, out vec4 outputColor ) {
+  vec3 s = ( bfEncode( inputColor.rgb ) - 0.5 ) / ( 1.0 - uContrast ) + 0.5;
+  vec3 c = bfDecode( s );
+  float avg = ( c.r + c.g + c.b ) / 3.0;
+  c += ( c - avg ) * ( 1.0 / ( 1.001 - uSaturation ) - 1.0 );
+  outputColor = vec4( clamp( c, 0.0, 1.0 ), inputColor.a );
+}
+`;
+
+class GradeEffect extends Effect {
+  constructor(contrast: number, saturation: number) {
+    super('GradeEffect', GRADE_GLSL, {
+      blendFunction: BlendFunction.SRC,
+      uniforms: new Map([['uContrast', new THREE.Uniform(contrast)], ['uSaturation', new THREE.Uniform(saturation)]]),
+    });
+  }
+}
 
 export type Quality = 'low' | 'medium' | 'high' | 'ultra';
 
@@ -115,9 +148,8 @@ export class Renderer {
     const noise = new NoiseEffect({ premultiply: true, blendFunction: BlendFunction.SCREEN });
     noise.blendMode.opacity.value = 0.035;
     const grade = (window as any).__grade ?? [0.12, 0.1];
-    const contrast = new BrightnessContrastEffect({ brightness: 0, contrast: grade[0] });
-    const sat = new HueSaturationEffect({ saturation: grade[1] });
-    const effects = preset.bloom ? [this.bloom, this.toneMap, contrast, sat, this.vignette, noise] : [this.toneMap, contrast, sat, this.vignette, noise];
+    const gradeFx = new GradeEffect(grade[0], grade[1]);
+    const effects = preset.bloom ? [this.bloom, this.toneMap, gradeFx, this.vignette, noise] : [this.toneMap, gradeFx, this.vignette, noise];
     this.effectPass = new EffectPass(this.camera, ...effects);
     this.composer.addPass(this.effectPass);
     this.smaaPass = null;
