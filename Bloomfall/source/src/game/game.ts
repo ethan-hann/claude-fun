@@ -1,0 +1,648 @@
+import RAPIER from '@dimforge/rapier3d-compat';
+import * as THREE from 'three';
+import { Renderer, Quality } from '../engine/renderer';
+import type { LightSource } from '../engine/lightpool';
+import { loadIslandVisual, loadModel } from '../engine/level';
+import { levelData, EntityRec } from '../engine/assets';
+import { textureSet, TextureSet, fogUniforms, buildSurfaceMaterial } from '../engine/materials';
+import { Physics, G, v3 } from './physics';
+import { Input } from './input';
+import { Player, Platform, PLAYER } from './player';
+import { Graft } from './graft';
+import { Lattice, FreeLattice, AnchoredLattice, SpanLattice, isLatticeCollider } from './lattice';
+import { LatticeVisuals } from './visuals';
+import { Entity, EntityContext, Plate, Cradle, Beam, Door, Zone, Pickup, Balance, Toppler } from './entities';
+import { Heart } from './heart';
+
+export const STEP = 1 / 60;
+
+export interface IslandDef { key: string; origin: [number, number, number] }
+
+interface Chunk {
+  node: THREE.Object3D | null;
+  body: RAPIER.RigidBody;
+  lattices: Lattice[];
+  entities: Entity[];
+  fall: { t: number; v: THREE.Vector3; w: THREE.Vector3 } | null;
+  home: THREE.Vector3;
+  homeQ: THREE.Quaternion;
+  bounds: THREE.Box3; // world bounds at rest
+  lights: { src: LightSource; base: number }[];
+}
+
+const FAR = new THREE.Vector3(0, -5000, 0);
+const THINGS_RANGE = 190; // meters from an island's bounds within which its things are drawn
+
+export class Island {
+  key: string;
+  origin: THREE.Vector3;
+  group: THREE.Group | null = null;
+  colliders: RAPIER.Collider[] = [];
+  staticBody: RAPIER.RigidBody | null = null;
+  lattices: Lattice[] = [];
+  entities: Entity[] = [];
+  spawn = new THREE.Vector3();
+  spawnYaw = 0;
+  killY = -30;
+  title = '';
+  startCells = 0;
+  bloomPoint: THREE.Vector3 | null = null;
+  arrivePoint: THREE.Vector3 | null = null;
+  graftTaken = false;
+  attached = true;
+  frozen = false; // drifting away: its things ride along and stop updating
+  // Everything its entities and lattices draw, in world space (an identity parent), so a far
+  // island can skip it all and a drifting island can carry it off.
+  things = new THREE.Group();
+  bounds = new THREE.Box3(); // world bounds of its static geometry
+  private driftT = -1;
+  private driftDir = new THREE.Vector3();
+  private phys: Physics | null = null;
+  lights: { src: LightSource; base: number }[] = [];
+  chunks = new Map<string, Chunk>();
+  constructor(def: IslandDef) {
+    this.key = def.key;
+    this.origin = new THREE.Vector3(...def.origin);
+  }
+  bind(phys: Physics): void { this.phys = phys; }
+  // Attached islands are solid and visible. Detached ones are gone (drifted into the haze).
+  setAttached(v: boolean): void {
+    this.attached = v;
+    this.driftT = -1;
+    this.frozen = false;
+    if (this.group) {
+      this.group.visible = v; this.group.position.copy(this.origin); this.group.scale.setScalar(1); this.group.rotation.set(0, 0, 0);
+      // things that rode along on a drift go back to the scene, where they started
+      const scene = this.group.parent;
+      if (scene && this.things.parent !== scene) scene.add(this.things);
+      this.things.position.set(0, 0, 0); this.things.quaternion.identity(); this.things.scale.set(1, 1, 1);
+    }
+    this.things.visible = v;
+    for (const c of this.chunks.values()) c.body.setTranslation(v ? this.origin : FAR, true);
+    for (const l of this.lattices) { l.object.visible = v; l.disabled = !v; if (!v) l.body.setTranslation(FAR, false); }
+    for (const e of this.entities) (e as any).setVisible?.(v);
+    for (const l of this.lights) l.src.intensity = v ? l.base : 0;
+  }
+  resetState(): void {
+    this.graftTaken = false;
+    for (const [name, c] of this.chunks) if (name !== 'main') this.restoreChunk(name);
+  }
+  // A section of the island breaks off: it shakes, drops, tilts and falls into the haze.
+  detachChunk(name: string): void {
+    const c = this.chunks.get(name);
+    if (!c || c.fall) return;
+    c.fall = { t: 0, v: new THREE.Vector3(0, 0, 0), w: new THREE.Vector3((Math.random() - 0.5) * 0.06, 0, (Math.random() - 0.5) * 0.06) };
+  }
+  restoreChunk(name: string): void {
+    const c = this.chunks.get(name);
+    if (!c) return;
+    c.fall = null;
+    if (c.node) { c.node.position.copy(c.home); c.node.quaternion.copy(c.homeQ); c.node.visible = true; }
+    c.body.setTranslation(this.attached ? this.origin : FAR, true);
+    c.body.setRotation({ x: 0, y: 0, z: 0, w: 1 }, true);
+    for (const l of c.lattices) {
+      l.object.visible = this.attached;
+      l.disabled = !this.attached;
+      if (l.free) (l as FreeLattice).spawnPos.copy((l as FreeLattice).authoredPos);
+    }
+    for (const e of c.entities) (e as any).setVisible?.(this.attached);
+    for (const l of c.lights) l.src.intensity = this.attached ? l.base : 0;
+  }
+  // Where free lattice carried off a fallen chunk returns to if it later falls.
+  rescuePoint(): THREE.Vector3 {
+    return this.spawn.clone().add(new THREE.Vector3(Math.sin(this.spawnYaw - 0.6), 0.6, -Math.cos(this.spawnYaw - 0.6)).multiplyScalar(1.6));
+  }
+  updateChunks(dt: number, onGone?: (name: string) => void): void {
+    for (const [name, c] of this.chunks) {
+      if (!c.fall) continue;
+      const f = c.fall;
+      f.t += dt;
+      const shake = f.t < 1.6 ? (Math.random() - 0.5) * 0.05 * f.t : 0;
+      if (f.t > 1.6) {
+        f.v.y -= 6 * dt;
+        f.v.x += f.w.x * dt * 2;
+        f.v.z += f.w.z * dt * 2;
+      }
+      const drop = new THREE.Vector3().copy(f.v).multiplyScalar(dt);
+      if (c.node) {
+        c.node.position.add(drop);
+        c.node.position.x += shake;
+        if (f.t > 1.6) { c.node.rotation.x += f.w.x * dt; c.node.rotation.z += f.w.z * dt; }
+      }
+      // the colliders follow while the player could still be on it, then vanish
+      const t = c.body.translation();
+      if (f.t < 2.4) c.body.setTranslation({ x: t.x + drop.x, y: t.y + drop.y, z: t.z + drop.z }, true);
+      else if (t.y > -4000) {
+        c.body.setTranslation(FAR, true);
+        for (const l of c.lattices) {
+          // lattice the player carried off the chunk stays; it now belongs to the rest of the island
+          if (l.free) {
+            const fl = l as FreeLattice;
+            const p = fl.position();
+            const aboard = p.x > c.bounds.min.x && p.x < c.bounds.max.x && p.z > c.bounds.min.z && p.z < c.bounds.max.z;
+            if (fl.held || !aboard) { fl.spawnPos.copy(this.rescuePoint()); continue; }
+          }
+          l.object.visible = false; l.disabled = true; l.body.setTranslation(FAR, false);
+        }
+        for (const e of c.entities) (e as any).setVisible?.(false);
+        for (const l of c.lights) l.src.intensity = 0;
+        onGone?.(name);
+      }
+      if (f.t < 2.4) {
+        for (const l of c.lattices) if (!l.free) l.shift(drop);
+        for (const e of c.entities) (e as any).shift?.(drop);
+      }
+      if (f.t > 20 && c.node) c.node.visible = false;
+    }
+  }
+  drift(): void {
+    if (!this.attached || this.driftT >= 0 || !this.group) return;
+    this.driftT = 0;
+    this.frozen = true;
+    this.driftDir.set(Math.random() - 0.5, -0.35, 0.8).normalize();
+    for (const c of this.chunks.values()) c.body.setTranslation(FAR, true);
+    for (const l of this.lattices) { l.body.setTranslation(FAR, false); l.disabled = true; }
+    // doors, plates, crates and the rest ride along with the island as it drifts off; lattice
+    // that was carried off the island (onto a bridge or the next island) is taken back instead
+    const box = this.bounds.clone().expandByScalar(2);
+    for (const l of this.lattices) if (!box.containsPoint(l.object.position)) l.object.visible = false;
+    this.things.visible = true;
+    this.group.updateMatrixWorld(true);
+    this.group.attach(this.things);
+    for (const l of this.lights) l.src.intensity = 0;
+    for (const e of this.entities) (e as any).onDrift?.();
+  }
+  updateDrift(dt: number): void {
+    if (this.driftT < 0 || !this.group) return;
+    this.driftT += dt;
+    const t = this.driftT;
+    const dist = 0.4 * t * t + 0.5 * t;
+    this.group.position.copy(this.origin).addScaledVector(this.driftDir, dist);
+    this.group.rotation.z = Math.sin(t * 0.1) * 0.02 * t * 0.2;
+    if (dist > 600) { this.group.visible = false; this.driftT = -1; this.attached = false; }
+  }
+}
+
+export class Game {
+  r!: Renderer;
+  phys = new Physics();
+  input!: Input;
+  player!: Player;
+  graft!: Graft;
+  vis = new LatticeVisuals();
+  islands: Island[] = [];
+  current: Island | null = null;
+  lattices = new Map<string, Lattice>();
+  entities = new Map<string, Entity>();
+  sets: Record<string, TextureSet> = {};
+  ctx!: EntityContext;
+  time = 0;
+  private acc = 0;
+  private last = 0;
+  running = false;
+  paused = false;
+  shake = 0; // camera shake, decays by itself
+  controlsLocked = false; // the ending: the player no longer moves
+  cameraOverride: ((cam: THREE.PerspectiveCamera, dt: number) => void) | null = null;
+  listeners: ((ev: string, data?: any) => void)[] = [];
+
+  async init(defs: IslandDef[], quality: Quality = 'high'): Promise<void> {
+    this.r = new Renderer();
+    document.body.appendChild(this.r.renderer.domElement);
+    this.r.quality = quality;
+    await Promise.all([this.r.init(), this.phys.init()]);
+    for (const k of ['plates', 'steel', 'lattice', 'marble', 'wall', 'rust', 'screen']) this.sets[k] = await textureSet(k);
+    await this.vis.init();
+    this.gloveModel = await loadModel('glove');
+    this.columnModel = await loadModel('column');
+    const bloom = await loadModel('bloom');
+    bloom.traverse((o) => { if (!this.petalModel && o.name.startsWith('petal')) this.petalModel = o; });
+    this.gloveModel.traverse((o) => {
+      const m = o as THREE.Mesh;
+      if (!m.isMesh) return;
+      const n = (m.material as THREE.Material).name.split('.')[0];
+      m.material = n.startsWith('glow') ? new THREE.MeshStandardMaterial({ color: 0, emissive: 0x8fe8ff, emissiveIntensity: n === 'glow_white' ? 3 : 1.2 })
+        : buildSurfaceMaterial(n, this.sets[n] ?? this.sets.lattice, { skyVis: { value: 1 } });
+    });
+    this.input = new Input(this.r.renderer.domElement);
+    this.player = new Player(this.phys);
+    this.graft = new Graft(this.phys);
+    this.ctx = {
+      phys: this.phys, scene: this.r.scene, player: this.player, lattices: this.lattices, entities: this.entities,
+      sets: this.sets, emit: (e, d) => this.emit(e, d), origin: new THREE.Vector3(), lights: this.r.lights,
+    };
+    for (const d of defs) {
+      const isl = new Island(d);
+      await this.loadIsland(isl);
+      this.islands.push(isl);
+    }
+    this.current = this.islands[0];
+    this.respawn();
+  }
+
+  emit(ev: string, data?: any): void {
+    for (const l of this.listeners) l(ev, data);
+  }
+
+  async loadIsland(isl: Island): Promise<void> {
+    const data = levelData(isl.key)!;
+    const vis = await loadIslandVisual(isl.key);
+    vis.group.position.copy(isl.origin);
+    vis.group.updateMatrixWorld(true);
+    this.r.scene.add(vis.group);
+    isl.group = vis.group;
+    isl.bounds.setFromObject(vis.group);
+    isl.things.name = `things_${isl.key}`;
+    this.r.scene.add(isl.things);
+    isl.title = data.title;
+    const bodies = this.phys.addStatic(data.colliders, isl.origin);
+    for (const [name, b] of bodies) {
+      const node = name === 'main' ? null : vis.chunks.get(name) ?? null;
+      isl.chunks.set(name, {
+        node, body: b.body, lattices: [], entities: [], fall: null,
+        home: node ? node.position.clone() : new THREE.Vector3(), homeQ: node ? node.quaternion.clone() : new THREE.Quaternion(),
+        bounds: node ? new THREE.Box3().setFromObject(node) : new THREE.Box3(),
+        lights: [],
+      });
+      isl.colliders.push(...b.colliders);
+    }
+    isl.staticBody = bodies.get('main')!.body;
+    isl.bind(this.phys);
+    isl.killY = isl.origin.y + (data.meta.killY ?? -30);
+    isl.startCells = data.meta.startCells ?? 0;
+    this.ctx.origin = isl.origin;
+    for (const rec of data.entities) {
+      const nL = isl.lattices.length, nE = isl.entities.length, nV = this.r.scene.children.length;
+      this.createEntity(isl, rec);
+      for (const o of this.r.scene.children.slice(nV)) isl.things.add(o);
+      const ch = this.chunkOf(isl, rec);
+      if (ch) { ch.lattices.push(...isl.lattices.slice(nL)); ch.entities.push(...isl.entities.slice(nE)); }
+    }
+  }
+
+  private createEntity(isl: Island, rec: EntityRec): void {
+    const o = isl.origin;
+    const id = rec.id ? `${isl.key}.${rec.id}` : `${isl.key}.${rec.type}${Math.random().toString(36).slice(2, 7)}`;
+    const scene = this.r.scene;
+    switch (rec.type) {
+      case 'spawn':
+        isl.spawn.copy(v3(rec.p).add(o));
+        isl.spawnYaw = THREE.MathUtils.degToRad(rec.yaw ?? 0);
+        break;
+      case 'crate':
+      case 'orb': {
+        const p = v3(rec.p).add(o);
+        const l = new FreeLattice(this.phys, this.vis, id, rec.type, p, rec.level ?? 0, THREE.MathUtils.degToRad(rec.ry ?? 0));
+        l.islandKey = isl.key;
+        if (rec.lens) l.makeLens();
+        scene.add(l.object);
+        isl.lattices.push(l);
+        this.lattices.set(id, l);
+        break;
+      }
+      case 'pillar': {
+        const w = rec.size[0], d = rec.size[1];
+        const heights: number[] = rec.heights;
+        const depth = rec.depth ?? 4;
+        const H = depth + heights[heights.length - 1];
+        const base = v3(rec.p).add(o).add(new THREE.Vector3(0, -H / 2, 0));
+        const obj = this.vis.pillar(w, d, H);
+        const l = new AnchoredLattice(this.phys, this.vis, id, 'pillar', obj, base, new THREE.Vector3(0, 1, 0), heights, rec.level ?? 0,
+          new THREE.Vector3(w / 2, H / 2, d / 2), THREE.MathUtils.degToRad(rec.ry ?? 0), rec.speed ?? 2.2);
+        this.addAnchored(isl, l);
+        break;
+      }
+      case 'span': {
+        const dir = new THREE.Vector3(rec.dir[0], 0, rec.dir[1]);
+        const l = new SpanLattice(this.phys, this.vis, id, v3(rec.p).add(o), dir, rec.width ?? 2.4, rec.thickness ?? 0.36,
+          rec.lengths ?? [0.6, rec.length], rec.level ?? 0, rec.speed ?? 5);
+        this.addAnchored(isl, l);
+        break;
+      }
+      case 'piston': {
+        // a ram: anchored lattice that slides horizontally along its track
+        const [w, h, d] = rec.size;
+        const dir = new THREE.Vector3(rec.dir[0], 0, rec.dir[1]).normalize();
+        const obj = this.vis.bulkhead(w, h, d);
+        const l = new AnchoredLattice(this.phys, this.vis, id, 'bulkhead', obj, v3(rec.p).add(o), dir, [0, rec.travel], rec.level ?? 0,
+          new THREE.Vector3(w / 2, h / 2, d / 2), Math.atan2(dir.x, dir.z), rec.speed ?? 2.2);
+        l.names = 'Lattice ram';
+        this.addAnchored(isl, l);
+        break;
+      }
+      case 'bulkhead': {
+        const [w, h, d] = rec.size;
+        const base = v3(rec.p).add(o);
+        const obj = this.vis.bulkhead(w, h, d);
+        const l = new AnchoredLattice(this.phys, this.vis, id, 'bulkhead', obj, base, new THREE.Vector3(0, 1, 0), [-h / 2 - 0.03, h / 2], rec.level ?? 1,
+          new THREE.Vector3(w / 2, h / 2, d / 2), THREE.MathUtils.degToRad(rec.ry ?? 0), rec.speed ?? 2.6);
+        this.addAnchored(isl, l);
+        break;
+      }
+      case 'plate': {
+        const e = new Plate(rec, this.ctx);
+        this.addEntity(isl, id, e);
+        break;
+      }
+      case 'cradle': {
+        const e = new Cradle(rec, this.ctx);
+        this.addEntity(isl, id, e);
+        break;
+      }
+      case 'beam': {
+        const r2 = { ...rec, openIf: (rec.openIf ?? []).map((x: string) => `${isl.key}.${x}`) };
+        this.addEntity(isl, id, new Beam(r2, this.ctx));
+        break;
+      }
+      case 'door': {
+        const r2 = { ...rec, openIf: (rec.openIf ?? []).map((x: string) => `${isl.key}.${x}`) };
+        const e = new Door(r2, this.ctx);
+        this.addEntity(isl, id, e);
+        break;
+      }
+      case 'zone': {
+        const e = new Zone(rec, this.ctx);
+        this.addEntity(isl, id, e);
+        break;
+      }
+      case 'light': {
+        const src = this.r.lights.add(v3(rec.p).add(o), new THREE.Color(rec.color[0], rec.color[1], rec.color[2]), rec.intensity, rec.range || 12);
+        isl.lights.push({ src, base: rec.intensity });
+        if (rec.chunk) isl.chunks.get(rec.chunk)?.lights.push({ src, base: rec.intensity });
+        break;
+      }
+      case 'bloom':
+        isl.bloomPoint = v3(rec.p).add(o);
+        break;
+      case 'arrive':
+        isl.arrivePoint = v3(rec.p).add(o);
+        break;
+      case 'heart': {
+        const e = new Heart(rec, this.ctx, this.petalModel);
+        this.addEntity(isl, id, e);
+        break;
+      }
+      case 'toppler': {
+        const e = new Toppler(rec, this.ctx, this.columnModel);
+        this.addEntity(isl, id, e);
+        break;
+      }
+      case 'balance': {
+        const e = new Balance(rec, this.ctx);
+        this.addEntity(isl, id, e);
+        break;
+      }
+      case 'pickup': {
+        const obj = this.pickupObject(rec.kind);
+        const e = new Pickup({ ...rec, type: rec.kind }, this.ctx, obj);
+        this.addEntity(isl, id, e);
+        break;
+      }
+      default:
+        break;
+    }
+  }
+
+  private gloveModel: THREE.Object3D | null = null;
+  private columnModel: THREE.Object3D | null = null;
+  private petalModel: THREE.Object3D | null = null;
+
+  private pickupObject(kind: string): THREE.Object3D {
+    const g = new THREE.Group();
+    if (kind === 'graft' && this.gloveModel) {
+      const m = this.gloveModel.clone(true);
+      m.rotation.set(0, Math.PI * 0.35, Math.PI / 2);
+      // centered on its pedestal and resting on it (the model's origin is at the wrist)
+      m.updateMatrixWorld(true);
+      const box = new THREE.Box3().setFromObject(m);
+      const c = box.getCenter(new THREE.Vector3());
+      m.position.set(-c.x, -box.min.y + 0.005, -c.z);
+      g.add(m);
+      return g;
+    }
+    const glow = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: kind === 'seed' ? new THREE.Color(0.6, 1.0, 0.75) : new THREE.Color(0.45, 0.9, 1.0), emissiveIntensity: 4, roughness: 0.3 });
+    const shell = buildSurfaceMaterial('steel', this.sets.steel, { skyVis: { value: 1 } });
+    if (kind === 'seed') {
+      const core = new THREE.Mesh(new THREE.SphereGeometry(0.09, 24, 16), glow);
+      core.scale.set(1, 1.35, 1);
+      g.add(core);
+      for (let i = 0; i < 5; i++) {
+        const petal = new THREE.Mesh(new THREE.SphereGeometry(0.07, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), shell);
+        petal.scale.set(0.9, 1.6, 0.4);
+        petal.rotation.set(0.5, (i / 5) * Math.PI * 2, 0);
+        petal.position.set(Math.sin((i / 5) * Math.PI * 2) * 0.05, -0.06, Math.cos((i / 5) * Math.PI * 2) * 0.05);
+        g.add(petal);
+      }
+    } else {
+      const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.22, 20), glow);
+      g.add(cap);
+      for (const y of [-0.13, 0.13]) {
+        const ring = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.04, 20), shell);
+        ring.position.y = y;
+        g.add(ring);
+      }
+    }
+    return g;
+  }
+
+  isInterior(): boolean {
+    const hit = this.phys.castRay(this.r.camera.position, new THREE.Vector3(0, 1, 0), 10, G.STATIC, null);
+    return !!hit;
+  }
+
+  // Things on an island that is drifting away ride along with it and stop updating.
+  private frozen(key: string | undefined): boolean {
+    if (!key) return false;
+    for (const isl of this.islands) if (isl.key === key) return isl.frozen;
+    return false;
+  }
+
+  private chunkOf(isl: Island, rec: EntityRec) {
+    return rec.chunk ? isl.chunks.get(rec.chunk) : undefined;
+  }
+
+  private addAnchored(isl: Island, l: Lattice): void {
+    l.islandKey = isl.key;
+    this.r.scene.add(l.object);
+    isl.lattices.push(l);
+    this.lattices.set(l.id, l);
+  }
+
+  private addEntity(isl: Island, id: string, e: Entity): void {
+    e.id = id;
+    e.islandKey = isl.key;
+    isl.entities.push(e);
+    this.entities.set(id, e);
+  }
+
+  platformOf = (c: RAPIER.Collider): Platform | null => {
+    const o = this.phys.owners.get(c.handle);
+    if (!o) return null;
+    if (o.kind === 'lattice') return o.lattice as Lattice;
+    if (o.kind === 'door') return o.door as Door;
+    if (o.kind === 'platform') return o.platform as Platform;
+    return null;
+  };
+
+  respawn(): void {
+    const isl = this.current!;
+    this.player.teleport(isl.spawn, isl.spawnYaw);
+  }
+
+  // Push the player out of anything that moved into it (growing crates, rising lattice, doors).
+  private depenetrate(): void {
+    const pc = this.player.collider;
+    const push = new THREE.Vector3();
+    for (const l of this.lattices.values()) {
+      if (!l.animating && l.kind !== 'crate' && l.kind !== 'orb') continue;
+      if ((l as FreeLattice).held) continue;
+      const c = pc.contactCollider(l.collider, 0.0);
+      if (c && c.distance < -0.001) {
+        const n = new THREE.Vector3(c.normal1.x, c.normal1.y, c.normal1.z);
+        push.addScaledVector(n, c.distance);
+      }
+    }
+    if (push.lengthSq() > 0) {
+      if (push.length() > 0.6) push.setLength(0.6);
+      this.player.pushOut.add(push);
+    }
+  }
+
+  fixedUpdate(dt: number, first: boolean): void {
+    const input = this.input;
+    for (const l of this.lattices.values()) if (!this.frozen(l.islandKey)) l.update(dt);
+    for (const e of this.entities.values()) if (!this.frozen(e.islandKey)) e.fixedUpdate(dt, this.ctx);
+    this.depenetrate();
+    this.player.fixedUpdate(dt, input, this.platformOf);
+    // game logic aims from the latest physics pose; rendering re-applies it with interpolation
+    this.player.applyCamera(this.r.camera, 1);
+    this.r.camera.updateMatrixWorld();
+    if (first) {
+      this.graft.update(dt, input, this.r.camera, this.player);
+      if (input.pressed.has('use')) this.use();
+    } else {
+      this.graft.updateHeld(dt, this.r.camera, this.player);
+    }
+    this.phys.step();
+    // Impacts: a free crate or orb that loses speed suddenly hit something. (Contact forces also
+    // fire for a crate resting on the floor, or pressed against a wall while carried.)
+    for (const l of this.lattices.values()) {
+      if (!l.free || l.disabled || this.frozen(l.islandKey)) continue;
+      const fl = l as FreeLattice;
+      const v = fl.body.linvel();
+      const pv = fl.prevVel;
+      if (!fl.held && !fl.anim && pv.lengthSq() > 1.44) {
+        const dv = Math.hypot(v.x - pv.x, v.y - pv.y, v.z - pv.z);
+        if (dv > 1.2) this.emit('impact', { lattice: fl, force: dv });
+      }
+      pv.set(v.x, v.y, v.z);
+    }
+    // falls
+    const isl = this.current!;
+    if (this.player.pos.y < isl.killY) this.emit('fell');
+    for (const l of this.lattices.values()) {
+      if (!l.free || l.disabled) continue;
+      const fl = l as FreeLattice;
+      if (fl.position().y < isl.killY - 10) {
+        if (this.graft.held === fl) this.graft.drop(false);
+        fl.respawn();
+        this.emit('lattice-respawn', fl);
+      }
+    }
+    this.time += dt;
+  }
+
+  // A pickup in reach comes first, even with something in hand: the held thing stays held.
+  use(): void {
+    const g = this.graft;
+    for (const e of this.entities.values()) {
+      if (e instanceof Pickup && e.near(this.player.feet)) { e.take(this.ctx); return; }
+    }
+    if (g.held) { g.drop(); return; }
+    if (g.canGrab()) g.grab();
+  }
+
+  frameHook: ((dt: number, lookDX: number, lookDY: number) => void) | null = null;
+
+  frame(now: number): void {
+    const dt = Math.min((now - this.last) / 1000, 0.1);
+    this.last = now;
+    let lx = 0, ly = 0;
+    if (!this.paused) {
+      this.input.pollGamepad(dt);
+      const look = this.input.consumeLook();
+      if (this.controlsLocked) { this.input.down.clear(); this.input.clearPresses(); look.dx = 0; look.dy = 0; }
+      lx = look.dx; ly = look.dy;
+      this.player.look(look.dx, look.dy);
+      this.acc += dt;
+      let first = true;
+      let n = 0;
+      while (this.acc >= STEP && n < 6) {
+        this.fixedUpdate(STEP, first);
+        // a frame without a step keeps its presses for the next one
+        if (first) this.input.endStep();
+        first = false;
+        this.acc -= STEP;
+        n++;
+      }
+      if (n === 6) this.acc = 0;
+    } else {
+      this.input.consumeLook();
+      this.input.endStep();
+    }
+    this.frameHook?.(dt, lx, ly);
+    this.input.endFrame();
+    this.renderFrame(dt);
+  }
+
+  renderFrame(dt: number): void {
+    const alpha = this.acc / STEP;
+    // islands far out in the haze skip their crates, doors and the rest (hundreds of draw calls)
+    const cam = this.r.camera.position;
+    for (const isl of this.islands) if (!isl.frozen) isl.things.visible = isl.attached && isl.bounds.distanceToPoint(cam) < THINGS_RANGE;
+    for (const l of this.lattices.values()) if (!this.frozen(l.islandKey)) (l as any).syncObject(alpha);
+    for (const e of this.entities.values()) if (!this.frozen(e.islandKey)) e.frameUpdate(dt, alpha, this.ctx);
+    if (!this.paused) {
+      if (this.cameraOverride) this.cameraOverride(this.r.camera, dt);
+      else this.player.applyCamera(this.r.camera, alpha);
+      this.r.focus.copy(this.player.pos);
+      if (this.shake > 0.001) {
+        const k = this.shake * this.shake * 0.09;
+        const c = this.r.camera;
+        c.position.x += (Math.random() - 0.5) * k;
+        c.position.y += (Math.random() - 0.5) * k;
+        c.position.z += (Math.random() - 0.5) * k;
+        this.shake = Math.max(0, this.shake - dt * 0.9);
+      }
+    }
+    for (const l of this.lattices.values()) l.highlight += ((l === this.graft.target ? 1 : 0) - l.highlight) * Math.min(1, dt * 12);
+    this.r.render(dt);
+  }
+
+  start(): void {
+    this.running = true;
+    this.last = performance.now();
+    const loop = (t: number) => {
+      if (!this.running) return;
+      this.frame(t);
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
+  }
+
+  // Advance the simulation without rendering (for tests), then render once.
+  simulate(seconds: number, render = true): void {
+    const steps = Math.round(seconds / STEP);
+    for (let i = 0; i < steps; i++) {
+      const look = this.input.consumeLook();
+      this.player.look(look.dx, look.dy);
+      this.fixedUpdate(STEP, true);
+      this.input.endStep();
+      this.input.endFrame();
+    }
+    this.acc = 0;
+    if (render) this.renderFrame(STEP);
+  }
+}
+
+void G; void PLAYER; void isLatticeCollider; void fogUniforms;

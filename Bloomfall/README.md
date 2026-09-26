@@ -1,0 +1,126 @@
+# Bloomfall
+
+A first-person physics puzzle platformer. The last city made room from nothing until it could not stop. Now it is coming apart, and you carry the only tool that can move space.
+
+Open [bloomfall.html](bloomfall.html) in a desktop browser with WebGL 2. Everything is inside that one file, so it runs offline. It is about 32 MB and takes a few seconds to load. Headphones help.
+
+This file covers what the game tells you in its opening and tutorial. [LORE.md](LORE.md) describes the world, also without spoilers. [SPOILERS.md](SPOILERS.md) covers the solutions and the ending. Read it after you finish.
+
+### Premise
+
+Calyx is the last city. Its people learned to bloom space: to make new room out of nothing. The city grew for ten thousand years. Then the engine at its center, the Heartbloom, would not stop. The districts are drifting apart under a sunset that never ends.
+
+You are a Tender, a small gardener built to tend the city. A recorded voice wakes you in a seed vault.
+
+### Goal
+
+Cross the drifting islands of Calyx to the Heartbloom. Each island ends at a bloom, a metal flower. Step onto it and a bridge grows to the next island. The island behind you does not wait.
+
+### Controls
+
+| Input | Action |
+| --- | --- |
+| W A S D | Move |
+| Mouse | Look |
+| Space | Jump |
+| Shift | Run |
+| Left click or Z | Give space: the lattice you aim at grows |
+| Right click or X | Take space: the lattice you aim at shrinks |
+| E | Pick up, set down, use |
+| F or middle click | Throw what you carry |
+| Hold R | Reset the island |
+| H | Hint |
+| Esc | Pause |
+
+A gamepad works too. The left stick moves and the right stick looks. Click the left stick to run. A jumps, RT gives, LT takes, X uses, B throws, hold Y to reset, Back shows a hint, and Start pauses.
+
+### The Graft
+
+Early on you find the Graft, a device worn on the forearm.
+
+- Lattice is dark metal with glowing seams. The Graft can move space in and out of it.
+- Take (right click) pulls space out of lattice. It shrinks, and one of the Graft's cells fills.
+- Give (left click) puts space back. The lattice grows, and a cell empties.
+- The Graft cannot make space and cannot destroy it. If your cells are empty, take space from lattice you no longer need, even if it is far away.
+- Crates come in three sizes. Small weighs 1, medium weighs 4, and large weighs 16. You weigh 4. You can carry small and medium crates.
+- A pressure plate shows how much weight it needs with a ring of notches.
+- Lattice lifts whatever stands on it as it grows, including you.
+- Perforated screens stop bodies. The Graft reaches straight through them.
+
+You can climb about 1.5 m above whatever you stand on.
+
+### Progression
+
+There are seven islands. Each one adds a new kind of lattice or a new way to use what you know. Most of them lead straight on to the next. One is a hub with three stages that you can take in any order. The Graft learns to hold more space as you go. Seven memories are hidden along the way. They are optional.
+
+### Saving and chapters
+
+The game saves in your browser each time you reach a new island. Continue on the title screen picks it up. Chapters lets you replay any island you have reached.
+
+### Settings
+
+- Interface size scales all text and the HUD, from 70 to 180 percent. The new size applies when you let go of the slider.
+- Graphics has four levels. Low turns off real-time shadows and ambient occlusion and renders at a lower resolution. Ultra renders at up to twice your screen's resolution with sharper shadows. Every level draws the volumetric fog; higher levels take more samples through it.
+- Bloom and fog each have a strength slider. Bloom at zero turns it off. Vignette and film grain switch on and off.
+- Mouse sensitivity, invert look, field of view, volume, and music.
+
+### Sound
+
+Everything you hear is synthesized live with WebAudio: the wind, the score, the Heartbloom's hum, stone and metal.
+
+### What I had to fix
+
+The first pass was complete and playable. Human playtests then led to extra passes in these areas:
+
+- **A look of its own.** The first typefaces looked like The Tithe's. The text was also too small. Bloomfall now has its own typefaces, a larger interface, and an Interface size slider.
+- **Rendering bugs.** Playtests found black and white patches, missing faces, and slits of sky between walls. Doors hung in the air after their island drifted away. Each one is fixed.
+- **Input and physics.** On a 144 Hz screen, more than half of all key presses were lost. A resting crate looped its impact sound. Every key press now counts at 60, 144, and 240 Hz. Crates now sound only on impact.
+- **Difficulty and length.** The first full playtest took 11 minutes. Claude made Islands II to V harder. The next one took about 25 minutes. A speedrun took about 8. Claude then added a hub island with three stages you can take in any order. The finale got harder too.
+- **Hard locks.** Some mistakes left the game impossible to finish. Parts of two islands fell away with a piece you still needed. Bulkheads never rose again once you took their space. A new game after the ending had no Graft to pick up. All three are fixed.
+- **Volumetric fog.** The whole chain of islands was visible at once. Now far islands sink into drifting fog and come out of it as you get close.
+- **Fewer hints.** The game explained too much, too soon. Cards now teach only the controls, when you first need them. Mechanics the world cannot show get a short card after a delay. The card never shows if you found the mechanic first.
+- **Post-processing settings.** The bloom was too strong. Settings now has strength sliders for bloom and fog, and switches for the vignette and film grain.
+- **Lore that matches the sky.** LORE.md described a dark sky. The game's sky is a sunset that never ends. The lore now matches it.
+
+### Building from source
+
+The game is a TypeScript project built with Vite. The source is in [source/](source/).
+
+```
+cd source
+npm install
+npm run build        # type-checks, builds, and copies the single file to ../bloomfall.html
+```
+
+The islands are built, lit, and baked in Blender from Python. The Blender scripts need Blender 5.0.1 as a Python module (`pip install bpy==5.0.1 numpy pillow`).
+
+```
+python3 tools/fetch_assets.py                 # downloads the CC0 textures, sky, and models into .cache/
+<bpy python> tools/process_textures.py        # makes the game's WebP texture sets
+<bpy python> tools/process_sky.py             # rotates and encodes the sky
+<bpy python> blender/build_props.py           # crates, orbs, the Graft, the bloom, the column
+<bpy python> blender/build_island.py a_vault  # one island: geometry, colliders, lightmap bake, GLB
+```
+
+`build_island.py` accepts `--quick` for a fast, noisy bake while laying out a level, and `--nobake` for geometry only. Each island script is in `blender/islands/`. Static geometry gets a baked lightmap (sky, bounce light, and a sun visibility mask). Everything that moves is lit in real time and casts real-time shadows.
+
+The scripted playthroughs in `tests/` drive the game's real input in headless Chromium and save screenshots:
+
+```
+node tools/play.mjs tests/island_a.mjs out/ "manual" 1280 720
+tools/run_all.sh out/        # every playthrough, each checked for reaching its bloom (or the credits)
+node tools/play.mjs tests/refresh.mjs out/ "manual"   # every tap counts at 60, 144 and 240 Hz
+node tools/play.mjs tests/carry.mjs out/ "manual"     # carried crates make no impact sounds; landings do
+node tools/scan.mjs tests/gaps.mjs out/ "manual"      # tall, thin see-through slits between walls
+node tools/play.mjs tests/traps.mjs out/ "manual"     # Islands II and IV wait before dropping what you still need
+node tools/play.mjs tests/bulkhead.mjs out/ "manual"  # bulkheads sink when you take and rise when you give
+node tools/play.mjs tests/lens_respawn.mjs out/ "manual"  # a fallen lens comes back where it last rested
+node tools/play.mjs tests/checkpoint.mjs out/ "manual"    # a fall on the Heart's wall puts you back on the wall
+node tools/play.mjs tests/fogviews.mjs out/ "manual"  # how far you can see from each bloom
+```
+
+### Credits
+
+- Textures, sky, and models: [Poly Haven](https://polyhaven.com) and [ambientCG](https://ambientcg.com), all CC0.
+- Fonts: Syne, Sora, and Fraunces, under the SIL Open Font License.
+- Libraries: three.js (MIT), Rapier physics (Apache 2.0), postprocessing (Zlib), and N8AO (CC0).
