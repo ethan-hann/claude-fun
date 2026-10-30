@@ -90,7 +90,10 @@ The game is a TypeScript project built with Vite. The source is in [source/](sou
 cd source
 npm install
 npm run build        # type-checks, builds, and copies the single file to ../bloomfall.html
+npm run build:artifact   # splits ../bloomfall.html into dist-artifact/ for a claude.ai artifact
 ```
+
+A claude.ai artifact page must be under 16 MB, and artifacts do not serve `.glb` files. `build:artifact` moves the large inlined assets into `dist-artifact/a/` and turns each GLB into an equivalent glTF JSON file. The artifact host's Content Security Policy blocks `fetch()` of `data:` URLs, so the page also gets a small script that answers those requests itself. It needs no `npm install`. Publish `dist-artifact/index.html` with the files listed in `dist-artifact/files.json`.
 
 The islands are built, lit, and baked in Blender from Python. The Blender scripts need Blender 5.0.1 as a Python module (`pip install bpy==5.0.1 numpy pillow`).
 
