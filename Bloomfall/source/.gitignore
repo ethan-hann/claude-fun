@@ -1,5 +1,6 @@
 node_modules/
 dist/
+dist-artifact/
 .cache/
 *.log
 __pycache__/

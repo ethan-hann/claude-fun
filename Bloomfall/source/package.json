@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build && node tools/copy-build.mjs",
-    "typecheck": "tsc --noEmit",
+    "build:artifact": "node tools/artifact-build.mjs",
+    "typecheck":"tsc --noEmit",
     "preview": "vite preview"
   },
   "dependencies": {
